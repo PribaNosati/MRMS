@@ -18,7 +18,7 @@ void loop() {}
 
 /** If something goes wrong, it will be the best to stop the program.
 */
-void error(const char * message) {
+void error(String message) {
   Serial.print(message);
   while (true)
     ;
