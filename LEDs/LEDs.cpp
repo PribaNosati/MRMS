@@ -13,13 +13,6 @@ void LEDs::add(uint8_t pin)
 	nextFree++;
 }
 
-/**Turn off all LEDs
-*/
-void LEDs::off() {
-	for (int i = 0; i < nextFree; i++)
-		off(i);
-}
-
 /**Turn off a LED
 @param ledNumber - LED index. Function add() assigns 0 to first LED, 1 to second, etc.
 */
