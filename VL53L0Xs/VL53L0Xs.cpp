@@ -1,8 +1,5 @@
 #include "VL53L0Xs.h"
 
-#define STR_HELPER( x ) #x ///< a string helper
-#define STR( x )        STR_HELPER(x) ///< string helper wrapper
-
 /** Add a sensor. It assigns sensor 0 to the first sensor, 1 to the second, etc. This number ("sensorNumber") is used to
 call other functions for this sensor.
 @param pin - Sensor's enable pin. @param pin - Sensor's enable pin. 0xFF - not used. Sensor will be enabled if this pin if left
@@ -61,20 +58,9 @@ void VL53L0Xs::begin(bool continuousMeasurement, boolean verbose, uint8_t sensor
 		VL53L0X_DeviceInfo_t DeviceInfo;
 		if (VL53L0X_GetDeviceInfo(pDev[sensorNumber], &DeviceInfo) != VL53L0X_ERROR_NONE)
 			errorVL(sensorNumber, "Info");
-		if (verbose) {
-			print(F("VL53L0X - "));
-			print(F(" name: ")); 
-			print(DeviceInfo.Name);
-			print(F(", type: ")); 
-			print(DeviceInfo.Type);
-			print(F(", id: ")); 
-			print((int)DeviceInfo.ProductId);
-
-			print(F(", ver: ")); 
-			print(DeviceInfo.ProductRevisionMajor);
-			print(F(".")); 
-			print(DeviceInfo.ProductRevisionMinor, true);
-		}
+		if (verbose) 
+			print("VL53L0X " + (String)DeviceInfo.Name + ", type: " + (String)DeviceInfo.Type + ", id: " + (String)(int)DeviceInfo.ProductId +
+				", " + (String)DeviceInfo.ProductRevisionMajor + "." + (String)DeviceInfo.ProductRevisionMinor, true);
 
 		//Specific settings
 		if (VL53L0X_StaticInit(pDev[sensorNumber]) != VL53L0X_ERROR_NONE)
@@ -85,12 +71,8 @@ void VL53L0Xs::begin(bool continuousMeasurement, boolean verbose, uint8_t sensor
 		uint8_t   isApertureSpads;
 		if (VL53L0X_PerformRefSpadManagement(pDev[sensorNumber], &refSpadCount, &isApertureSpads) != VL53L0X_ERROR_NONE)
 			errorVL(sensorNumber, "Spad");
-		if (verbose) {
-			print(F("refSpadCount = "));
-			print(refSpadCount);
-			print(F(", isApertureSpads = "));
-			print(isApertureSpads, true);
-		}
+		if (verbose) 
+			print("refSpadCount = " + (String)refSpadCount + ", isApertureSpads = " + (String)isApertureSpads, true);
 
 		//Ref (temperature) calibration. This function should be run from time to time -todo
 		uint8_t VhvSettings, PhaseCal;
