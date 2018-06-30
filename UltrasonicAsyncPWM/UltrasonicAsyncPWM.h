@@ -91,4 +91,4 @@ public:
 };
 
 //Declaration of error function. Definition is in Your code.
-void error(const char * message);
+void error(String message);
