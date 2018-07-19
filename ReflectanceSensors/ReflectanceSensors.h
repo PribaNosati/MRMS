@@ -4,7 +4,7 @@
 /**
 Purpose: usage of MRMS reflective sensors. Separate sensors can be used or as a group, for example for a line following.
 @author MRMS team
-@version 0.3 2018-02-19
+@version 0.4 2018-02-19
 Licence: You can use this code any way you like.
 */
 
@@ -72,7 +72,8 @@ public:
 
 	/** Add a sensor
 	@param pin - Analog pin the sensor uses.
-	@param mm - Distances in millimeters from a longitudinal axis of the robot, for a line follower. Negative values are for left sensors.
+	@param mm - Distances in millimeters from th longitudinal axis of the robot, for a line follower. Negative values are for left sensors.
+	@param forLineCalculation - It will be included in the calculation for line following.
 	@param lowestValue - Sensor's lowest values.
 	@param highestValue - Sensor's highest value.
 	@param forLineCalculation - If true, the sensor will be used in a calculation that finds line's center (for a line follower).

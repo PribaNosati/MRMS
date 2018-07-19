@@ -18,6 +18,7 @@ ReflectanceSensors::ReflectanceSensors(int autoCalibrationValue, double percentF
 /** Add a sensor
 @param pin - Analog pin the sensor uses.
 @param mm - Distances in millimeters from a longitudinal axis of the robot, for a line follower. Negative values are for left sensors.
+@param forLineCalculation - It will be included in the calculation for line following.
 @param lowestValue - Sensor's lowest values.
 @param highestValue - Sensor's highest value.
 @param forLineCalculation - If true, the sensor will be used in a calculation that finds line's center (for a line follower).
@@ -55,42 +56,59 @@ void ReflectanceSensors::calibrate(uint16_t seconds, CalibrationType calibration
 	if (nextFree == 0) 
 		print("No reflective sensors. First add at least one.", true);
 	else {
-		eepromRead(calibrationType);
-		if (calibrationType == BRIGHT_AND_DARK)
-			for (int i = 0; i < nextFree; i++) {
-				darkValues[i] = 32000;
-				brightValues[i] = 0;
-			}
-		unsigned long startMs = millis();
-		while (millis() - startMs < seconds * 1000) {
-			for (int i = 0; i < nextFree; i++) {
-				int value = analogRead(pins[i]);
-				switch (calibrationType) {
-				case BRIGHT_AND_DARK:
-					if (value < darkValues[i])
-						darkValues[i] = value;
-					if (value > brightValues[i])
-						brightValues[i] = value;
-					break;
-				case DARK: //Average
-				case BRIGHT:
-				case EXTRA_BRIGHT:
-					//extraBrightValues[i] = extraBrightValues[i] * i / (i + 1) + value / (i + 1);
-					valueSet(calibrationType, i, valueGet(calibrationType, i) * i / (i + 1) + value / (i + 1));
-					break;
-				default:
-					error("Wrong type");
-					break;
+		if (calibrationType == ALL) {
+			print(" Put on black.", true);
+			delay(5000);
+			print("Start...");
+			calibrate(5, DARK);
+
+			print("Put on white.", true);
+			delay(5000);
+			print("Start...");
+			calibrate(5, BRIGHT);
+
+			print("put on silver.", true);
+			delay(5000);
+			print("Start...");
+			calibrate(5, EXTRA_BRIGHT);
+		}
+		else {
+			eepromRead(calibrationType);
+			if (calibrationType == BRIGHT_AND_DARK)
+				for (int i = 0; i < nextFree; i++) {
+					darkValues[i] = 32000;
+					brightValues[i] = 0;
+				}
+			unsigned long startMs = millis();
+			while (millis() - startMs < seconds * 1000) {
+				for (int i = 0; i < nextFree; i++) {
+					int value = analogRead(pins[i]);
+					switch (calibrationType) {
+					case BRIGHT_AND_DARK: //Maximum and minimum values
+						if (value < darkValues[i])
+							darkValues[i] = value;
+						if (value > brightValues[i])
+							brightValues[i] = value;
+						break;
+					case DARK: //Average values
+					case BRIGHT:
+					case EXTRA_BRIGHT:
+						valueSet(calibrationType, i, valueGet(calibrationType, i) * i / (i + 1) + value / (i + 1));
+						break;
+					default:
+						error("Wrong type");
+						break;
+					}
 				}
 			}
+			if (calibrationType == BRIGHT_AND_DARK || calibrationType == DARK)
+				eepromWrite(DARK);
+			if (calibrationType == BRIGHT_AND_DARK || calibrationType == BRIGHT)
+				eepromWrite(BRIGHT);
+			if (calibrationType == EXTRA_BRIGHT)
+				eepromWrite(EXTRA_BRIGHT);
+			print("Done.", true);
 		}
-		if (calibrationType == BRIGHT_AND_DARK || calibrationType == DARK)
-			eepromWrite(DARK);
-		if (calibrationType == BRIGHT_AND_DARK || calibrationType == BRIGHT)
-			eepromWrite(BRIGHT);
-		if (calibrationType == EXTRA_BRIGHT)
-			eepromWrite(EXTRA_BRIGHT);
-		print("Done.", true);
 	}
 }
 
