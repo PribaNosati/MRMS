@@ -53,12 +53,17 @@ addes display.
 @param w - width, number of pixels.
 @param h - height, number of pixels.
 @param color - for example 0 is black, 0x1F blue, 0xF800 red, 0x07E0 green, 0x07FF cyan, 0xF81F magenta, 0xFFE0 yellow, 0xFFFF white.
+@param writeImmidaiately - if false, You can call multiple drawBitmap() functions to use different colors or different regions. After the
+last one, call writeDisplay(). If true, the image will be displayed immidiately
 */
-void Displays::drawBitmap(uint8_t displayNumber, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color) {
+void Displays::drawBitmap(uint8_t displayNumber, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color, 
+	bool writeImmidiately) {
 	uint32_t ms = millis();
 	matrix[displayNumber]->drawBitmap(x, y, bitmap, w, h, color);
 	if (millis() - ms > 100)
 		timeout();
+	if (writeImmidiately)
+		writeDisplay(displayNumber);
 }
 
 /**Fills screen

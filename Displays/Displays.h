@@ -5,7 +5,7 @@
 /**
 Purpose: Adafruit tricolor display (Adafruit's product id 902) control. In fact, a wrapper for Adafruit library.
 @author MRMS team
-@version 0.1 2018-05-15
+@version 0.2 2018-07-28
 Licence: You can use this code any way you like.
 */
 
@@ -51,7 +51,8 @@ public:
 	*/
 	void clear(uint8_t displayNumber);
 
-	/** Displays a character
+	/** Displays a character: clears display, sets size to 1, cursor to 0,0, calls print() and writeDisplay(). Use print() function for a finer
+control.
 	@param displayNumber - display's ordinal number. Each call of function add() assigns an increasing number to the
 		addes display.
 	@param character - character to be displayed.
@@ -68,8 +69,10 @@ public:
 	@param w - width, number of pixels.
 	@param h - height, number of pixels.
 	@param color - for example 0 is black, 0x1F blue, 0xF800 red, 0x07E0 green, 0x07FF cyan, 0xF81F magenta, 0xFFE0 yellow, 0xFFFF white.
+	@param writeImmidaiately - if false, You can call multiple drawBitmap() functions to use different colors or different regions. After the
+	last one, call writeDisplay(). If true, the image will be displayed immidiately
 	*/
-	void drawBitmap(uint8_t displayNumber, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
+	void drawBitmap(uint8_t displayNumber, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w = 8, int16_t h = 8, uint16_t color = LED_GREEN, bool writeImmidiately = false);
 
 	/**Fills screen
 	@param displayNumber - display's ordinal number. Each call of function add() assigns an increasing number to the
@@ -98,8 +101,8 @@ public:
 	addes display.
 	@param message - string to be scrolled.
 	@param lastXScroll - total number of pixel columns to be scrolled. A letter has a certain number of columns, like 5.
-	@param fontSize - veliƒçina fonta, implicitno 1
-	@param delay - ms izmeƒëu pomaka, implicitno 60
+	@param fontSize - veliËina fonta, implicitno 1
+	@param delay - ms izmeu pomaka, implicitno 60
 	*/
 	void scrollString(uint8_t displayNumber, String message, int lastXScroll, uint8_t fontSize = 1, uint16_t delayMs = 60);
 
