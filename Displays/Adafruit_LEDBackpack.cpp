@@ -30,6 +30,8 @@
   #define _BV(bit) (1<<(bit))
 #endif
 
+#define swapAda(a, b) { int16_t t = a; a = b; b = t; }
+
 static const uint8_t numbertable[] = {
 	0x3F, /* 0 */
 	0x06, /* 1 */
@@ -345,7 +347,7 @@ void Adafruit_8x16matrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
  // check rotation, move pixel around if necessary
   switch (getRotation()) {
   case 2:
-    swap(x, y);
+    swapAda(x, y);
     x = 16 - x - 1;
     break;
   case 3:
@@ -353,7 +355,7 @@ void Adafruit_8x16matrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
     y = 8 - y - 1;
     break;
   case 0:
-    swap(x, y);
+    swapAda(x, y);
     y = 8 - y - 1;
     break;
   }
@@ -386,7 +388,7 @@ void Adafruit_8x8matrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
  // check rotation, move pixel around if necessary
   switch (getRotation()) {
   case 1:
-    swap(x, y);
+	  swapAda(x, y);
     x = 8 - x - 1;
     break;
   case 2:
@@ -394,7 +396,7 @@ void Adafruit_8x8matrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
     y = 8 - y - 1;
     break;
   case 3:
-    swap(x, y);
+	  swapAda(x, y);
     y = 8 - y - 1;
     break;
   }
@@ -422,7 +424,7 @@ void Adafruit_BicolorMatrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
   switch (getRotation()) {
   case 1:
-    swap(x, y);
+    swapAda(x, y);
     x = 8 - x - 1;
     break;
   case 2:
@@ -430,7 +432,7 @@ void Adafruit_BicolorMatrix::drawPixel(int16_t x, int16_t y, uint16_t color) {
     y = 8 - y - 1;
     break;
   case 3:
-    swap(x, y);
+    swapAda(x, y);
     y = 8 - y - 1;
     break;
   }
