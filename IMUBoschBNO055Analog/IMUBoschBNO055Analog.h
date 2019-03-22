@@ -8,7 +8,7 @@ Licence: You can use this code any way you like.
 */
   
 #define MAX_IMU_BOSCH_BNO055_SENSORS_ANALOG 1 //Maximum number of IMUs. 
-#define MAXIMUM_ANALOG_READ 1000 // Change this number according to Your system in order to get maximum reading 360 degrees
+#define BOSCH_BNO055_MAXIMUM_ANALOG_READ 1000 // Change this number according to Your system in order to get maximum reading 360 degrees
 
 typedef bool(*BreakCondition)();
 

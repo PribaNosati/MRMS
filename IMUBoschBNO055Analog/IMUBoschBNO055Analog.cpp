@@ -21,7 +21,7 @@ void IMUBoschBNO055Analog::add(uint8_t pinHeadingSet, uint8_t pinPitchSet, uint8
 float IMUBoschBNO055Analog::heading(uint8_t sensorNumber) {
 	if (sensorNumber >= nextFree)
 		error("Invalid sensor number");
-	const float f = 360.0 / (float)MAXIMUM_ANALOG_READ;
+	const float f = 360.0 / (float)BOSCH_BNO055_MAXIMUM_ANALOG_READ;
 	return analogRead(pinHeading[sensorNumber]) * f;
 }
 
@@ -72,7 +72,7 @@ void IMUBoschBNO055Analog::print(String message, bool eol) {
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
 void IMUBoschBNO055Analog::test(BreakCondition breakWhen) {
-	char buffer[14];
+	char buffer[30];
 	while (breakWhen == 0 || !(*breakWhen)()) {
 		for (uint8_t i = 0; i < nextFree; i++) {
 			sprintf(buffer, "H:%3i P:%3i R:%3i", (int)round(heading(i)), (int)round(pitch(i)), (int)round(roll(i)));
