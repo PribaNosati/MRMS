@@ -8,7 +8,8 @@ Licence: You can use this code any way you like.
 */
   
 #define MAX_VL53L0XS_ANALOG 8 //Maximum number of sensors. 
-#define MAXIMUM_ANALOG_READ 800 // Change this number according to Your system in order to get exact maximum distance
+#define VL53L0XS_MAXIMUM_ANALOG_READ 800 // Change this number according to Your system in order to get exact maximum distance
+#define VL53L0XS_MAXIMUM_MM 2000.0 //Maximum distance in mm
 
 typedef bool(*BreakCondition)();
 

@@ -17,7 +17,7 @@ void VL53L0XsAnalog::add(uint8_t pin) {
 uint16_t VL53L0XsAnalog::distance(uint8_t sensorNumber){
 	if (sensorNumber >= nextFree)
 		error("Invalid sensor number");
-	const float f = 2000.0 / (float)MAXIMUM_ANALOG_READ;
+	const float f = VL53L0XS_MAXIMUM_MM / (float)VL53L0XS_MAXIMUM_ANALOG_READ;
 	return (uint16_t)(analogRead(pins[sensorNumber]) * f);
 }
 
