@@ -5,23 +5,23 @@
 #include <CANBusBase.h>
 
 /**
-Purpose: mrm-lid-can-b interface to CANBus.
+Purpose: mrm-lid-can-b2 interface to CANBus.
 @author MRMS team
 @version 0.2 2019-08-15
 Licence: You can use this code any way you like.
 */
 
-#define CAN_ID_VL53L0X0_IN 0x0180
-#define CAN_ID_VL53L0X0_OUT 0x0181
-#define CAN_ID_VL53L0X1_IN 0x0182
-#define CAN_ID_VL53L0X1_OUT 0x0183
-#define CAN_ID_VL53L0X2_IN 0x0184
-#define CAN_ID_VL53L0X2_OUT 0x0185
-#define CAN_ID_VL53L0X3_IN 0x0186
-#define CAN_ID_VL53L0X3_OUT 0x0187
-#define CAN_ID_VL53L0X4_IN 0x0188
-#define CAN_ID_VL53L0X4_OUT 0x0189
-#define MAX_MRM_LID_CAN_B 12 // Maximum number of Mrm-ref-can complete sensors. 
+#define CAN_ID_VL53L1X0_IN 0x0150
+#define CAN_ID_VL53L1X0_OUT 0x0151
+#define CAN_ID_VL53L1X1_IN 0x0152
+#define CAN_ID_VL53L1X1_OUT 0x0153
+#define CAN_ID_VL53L1X2_IN 0x0154
+#define CAN_ID_VL53L1X2_OUT 0x0155
+#define CAN_ID_VL53L1X3_IN 0x0156
+#define CAN_ID_VL53L1X3_OUT 0x0157
+#define CAN_ID_VL53L1X4_IN 0x0158
+#define CAN_ID_VL53L1X4_OUT 0x0159
+#define MAX_MRM_LID_CAN_B2 12 // Maximum number of Mrm-lid-can-b2 complete sensors. 
 
 //CANBus commands
 #define COMMAND_REPORT_ALIVE 0xFF
@@ -32,15 +32,15 @@ Licence: You can use this code any way you like.
 
 typedef bool(*BreakCondition)();
 
-class Mrm_lid_can_b : public CANBusBase
+class Mrm_lid_can_b2 : public CANBusBase
 {
-	bool aliveThis[MAX_MRM_LID_CAN_B]; // Responded to ping
-	uint32_t idIn[MAX_MRM_LID_CAN_B];  // Inbound message id
-	uint32_t idOut[MAX_MRM_LID_CAN_B]; // Outbound message id
-	char nameThis[MAX_MRM_LID_CAN_B][10]; // Device's name
+	bool aliveThis[MAX_MRM_LID_CAN_B2]; // Responded to ping
+	uint32_t idIn[MAX_MRM_LID_CAN_B2];  // Inbound message id
+	uint32_t idOut[MAX_MRM_LID_CAN_B2]; // Outbound message id
+	char nameThis[MAX_MRM_LID_CAN_B2][10]; // Device's name
 	int nextFree;
 	BluetoothSerial * serial; // Additional serial port
-	uint16_t readings[MAX_MRM_LID_CAN_B]; // Analog readings of all sensors
+	uint16_t readings[MAX_MRM_LID_CAN_B2]; // Analog readings of all sensors
 	
 	/** Print to all serial ports
 	@param fmt - C format string
@@ -59,9 +59,9 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_lid_can_b(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
 
-	~Mrm_lid_can_b();
+	~Mrm_lid_can_b2();
 
 	/** Add a mrm-ref-can sensor
 	@param deviceName - device's name
