@@ -60,7 +60,7 @@ void Mrm_8x8a::devicesScan(bool verbose) {
 
 		uint32_t nowMs = millis();
 		bool any = false;
-		while (millis() - nowMs < 10 && !any)
+		while (millis() - nowMs < 100 && !any)
 			if (esp32CANBus->messageReceive()) {
 				if (esp32CANBus->rx_frame->MsgID == idOut[i]) {
 					if (verbose)
