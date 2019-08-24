@@ -82,6 +82,16 @@ public:
 	*/
 	void go(int8_t leftSpeed, int8_t rightSpeed);
 	
+	/** Control of a robot with axles connected in a star formation, like in a RCJ soccer robot with omni wheels. Motor 0 is at 45 degrees, 1 at 135, 2 at -135, 3 at -45.
+	@param speed - 0 to 100.
+	@param angleDegrees - Movement direction in a robot's coordinate system, in degrees. 0 degree is the front of the robot and positive angles are to the right.
+	Values between -180 and 180.
+	@param rotation - Rotation speed (around the vertical axis), -100 to 100. Positive numbers turn the robot to the right. It makes sense to use smaller
+	numbers because a value 100 turns on all the motors at maximal speed.
+	@param speedLimit - Speed limit, 0 to 100. For example, 80 will limit all the speeds to 80%. 0 will turn the motors off.
+	*/
+	void goOmni(float speed, float angleDegrees, float rotation, uint8_t speedLimit);
+	
 
 	/** Returns device's name
 	@param motorNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
