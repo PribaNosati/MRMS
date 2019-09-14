@@ -1,8 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
-#include <ESP32CANBus.h>
-#include <CANBusBase.h>
+#include <mrm-devices.h>
 
 /**
 Purpose: mrm-node interface to CANBus.
@@ -15,35 +13,38 @@ Licence: You can use this code any way you like.
 #define CAN_ID_NODE0_OUT 0x171
 #define CAN_ID_NODE1_IN 0x172
 #define CAN_ID_NODE1_OUT 0x173
-#define MAX_MRM_NODE 2 // Maximum number of mrm-node boards. 
+#define CAN_ID_NODE2_IN 0x174
+#define CAN_ID_NODE2_OUT 0x175
+#define CAN_ID_NODE3_IN 0x176
+#define CAN_ID_NODE3_OUT 0x177
+#define CAN_ID_NODE4_IN 0x178
+#define CAN_ID_NODE4_OUT 0x179
+#define CAN_ID_NODE5_IN 0x17A
+#define CAN_ID_NODE5_OUT 0x17B
+#define CAN_ID_NODE6_IN 0x17C
+#define CAN_ID_NODE6_OUT 0x17D
+#define CAN_ID_NODE7_IN 0x17E
+#define CAN_ID_NODE7_OUT 0x17F
+
+#define MRM_NODE_SENSOR_COUNT 9
 
 //CANBus commands
-#define COMMAND_REPORT_ALIVE 0xFF
+#define COMMAND_NODE_SENDING_SENSORS_1_TO_3 0x04
+#define COMMAND_NODE_SENDING_SENSORS_4_TO_6 0x05
+#define COMMAND_NODE_SENDING_SENSORS_7_TO_9 0x06
+#define COMMAND_NODE_SWITCH_ON 0x07
+#define COMMAND_NODE_SERVO_SET 0x08
 
 typedef bool(*BreakCondition)();
 
-class Mrm_node : CANBusBase
+class Mrm_node : public SensorBase
 {
-	bool aliveThis[MAX_MRM_NODE]; // Responded to ping
-	uint32_t idIn[MAX_MRM_NODE];  // Inbound message id
-	uint32_t idOut[MAX_MRM_NODE]; // Outbound message id
-	char nameThis[MAX_MRM_NODE][10]; // Device's name
-	int nextFree;
-	BluetoothSerial * serial; // Additional serial port
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
+	uint16_t readings[MAX_SENSORS_BASE][MRM_NODE_SENSOR_COUNT]; // Analog readings of all sensors
+	bool switches[5];
+	uint16_t servoDegrees[3] = { 0xFFFF, 0xFFFF };
 	
 public:
-	ESP32CANBus *esp32CANBus; // CANBus interface
-	
+
 	/** Constructor
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
@@ -57,15 +58,34 @@ public:
 	*/
 	void add(char * deviceName = "");
 
-	/** Did it respond to last ping?
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+	/** Read CAN Bus message into local variables
+	@param canId - CAN Bus id
+	@param data - 8 bytes from CAN Bus message.
 	*/
-	bool alive(uint8_t deviceNumber = 0) { return aliveThis[deviceNumber]; }
+	bool messageDecode(uint32_t canId, uint8_t data[8]);
 
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
+	/** Analog readings
+	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+	@return - analog value
 	*/
-	void devicesScan(bool verbose = true);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t sensorNumber = 0);
+
+	/** Print all readings in a line
+	*/
+	void readingsPrint();
+
+	/** Test servos
+	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
+	*/
+	void servoTest(BreakCondition breakWhen = 0);
+
+	/** Move servo
+	@deviceNumber - mrm-node id
+	@servoNumber - 0 - 2
+	@degrees - 0 - 180 degrees
+	*/
+	void servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceNumber = 0);
 
 	/**Test
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
@@ -73,8 +93,5 @@ public:
 	void test(BreakCondition breakWhen = 0);
 
 };
-
-//Declaration of error function. Definition is in Your code.
-extern void error(char * message);
 
 

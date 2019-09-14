@@ -1,8 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
-#include <ESP32CANBus.h>
-#include <CANBusBase.h>
+#include <mrm-devices.h>
 
 /**
 Purpose: mrm-mot4x10 interface to CANBus.
@@ -11,45 +9,27 @@ Purpose: mrm-mot4x10 interface to CANBus.
 Licence: You can use this code any way you like.
 */
 
-#define CAN_ID_MOT4X10_MOTOR0_IN 0x0250
-#define CAN_ID_MOT4X10_MOTOR0_OUT 0x0251
-#define CAN_ID_MOT4X10_MOTOR1_IN 0x0252
-#define CAN_ID_MOT4X10_MOTOR1_OUT 0x0253
-#define CAN_ID_MOT4X10_MOTOR2_IN 0x0254
-#define CAN_ID_MOT4X10_MOTOR2_OUT 0x0255
-#define CAN_ID_MOT4X10_MOTOR3_IN 0x0256
-#define CAN_ID_MOT4X10_MOTOR3_OUT 0x0257
-#define MAX_MRM_MOT4X10 8 // Maximum number of motors attached to all mrm-mot4x3.6can boards. 
+#define CAN_ID_MOT4X10_0_MOTOR0_IN 0x0250
+#define CAN_ID_MOT4X10_0_MOTOR0_OUT 0x0251
+#define CAN_ID_MOT4X10_0_MOTOR1_IN 0x0252
+#define CAN_ID_MOT4X10_0_MOTOR1_OUT 0x0253
+#define CAN_ID_MOT4X10_0_MOTOR2_IN 0x0254
+#define CAN_ID_MOT4X10_0_MOTOR2_OUT 0x0255
+#define CAN_ID_MOT4X10_0_MOTOR3_IN 0x0256
+#define CAN_ID_MOT4X10_0_MOTOR3_OUT 0x0257
 
-//CANBus commands
-#define COMMAND_REPORT_ALIVE 0xFF
+#define CAN_ID_MOT4X10_1_MOTOR0_IN 0x0258
+#define CAN_ID_MOT4X10_1_MOTOR0_OUT 0x0259
+#define CAN_ID_MOT4X10_1_MOTOR1_IN 0x025A
+#define CAN_ID_MOT4X10_1_MOTOR1_OUT 0x025B
+#define CAN_ID_MOT4X10_1_MOTOR2_IN 0x025C
+#define CAN_ID_MOT4X10_1_MOTOR2_OUT 0x025D
+#define CAN_ID_MOT4X10_1_MOTOR3_IN 0x025E
+#define CAN_ID_MOT4X10_1_MOTOR3_OUT 0x025F
 
-
-typedef bool(*BreakCondition)();
-
-class Mrm_mot4x10 : public CANBusBase
+class Mrm_mot4x10 : public MotorGroup
 {
-	bool aliveThis[MAX_MRM_MOT4X10]; // Responded to ping
-	uint32_t idIn[MAX_MRM_MOT4X10];  // Inbound message id
-	uint32_t idOut[MAX_MRM_MOT4X10]; // Outbound message id
-	char nameThis[MAX_MRM_MOT4X10][10]; // Device's name
-	bool reversed[MAX_MRM_MOT4X10]; // Change rotation
-	bool left[MAX_MRM_MOT4X10]; // Is on the left side
-	int nextFree;
-	BluetoothSerial * serial; // Additional serial port
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
-	
 public:
-	ESP32CANBus *esp32CANBus; // CANBus interface
 	
 	/** Constructor
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -65,44 +45,7 @@ public:
 	@param deviceName - device's name
 	*/
 	void add(bool isReversed = false, bool isLeft = true, char * deviceName = "");
-
-	/** Did it respond to last ping?
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	*/
-	bool alive(uint8_t deviceNumber = 0) { return aliveThis[deviceNumber]; }
-
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
-	*/
-	void devicesScan(bool verbose = true);
-
-	/** Start all motors
-	@param leftSpeed
-	@param right Speed
-	*/
-	void go(int8_t leftSpeed, int8_t rightSpeed);
-	
-
-	/** Returns device's name
-	@param motorNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	@return - name
-	*/
-	String name(uint8_t motorNumber);
-
-	/** Motor speed
-	@param motorNumber - motor's number
-	@param speed - in range -127 to 127
-	*/
-	void setSpeed(uint8_t motorNumber, int8_t speed);
-
-	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
-	*/
-	void test(BreakCondition breakWhen = 0);
-
 };
 
-//Declaration of error function. Definition is in Your code.
-extern void error(char * message);
 
 

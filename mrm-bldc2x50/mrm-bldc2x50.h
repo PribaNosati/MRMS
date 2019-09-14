@@ -1,55 +1,37 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
-#include <ESP32CANBus.h>
-#include <CANBusBase.h>
+#include <mrm-devices.h>
 
 /**
 Purpose: mrm-bldc2x50 interface to CANBus.
 @author MRMS team
-@version 0.2 2019-08-15
+@version 0.3 2019-09-07
 Licence: You can use this code any way you like.
 */
 
-#define CAN_ID_BLDC2X50_MOTOR0_IN 0x0110
-#define CAN_ID_BLDC2X50_MOTOR0_OUT 0x0111
-#define CAN_ID_BLDC2X50_MOTOR1_IN 0x0112
-#define CAN_ID_BLDC2X50_MOTOR1_OUT 0x0113
-#define CAN_ID_BLDC2X50_MOTOR2_IN 0x0114
-#define CAN_ID_BLDC2X50_MOTOR2_OUT 0x0115
-#define CAN_ID_BLDC2X50_MOTOR3_IN 0x0116
-#define CAN_ID_BLDC2X50_MOTOR3_OUT 0x0117
-#define MAX_MRM_BLDC2x50 8 // Maximum number of motors attached to all mrm-bldc2x50 boards. 
+#define CAN_ID_BLDC2X5_0_MOTOR0_IN 0x0110
+#define CAN_ID_BLDC2X5_0_MOTOR0_OUT 0x0111
+#define CAN_ID_BLDC2X5_0_MOTOR1_IN 0x0112
+#define CAN_ID_BLDC2X5_0_MOTOR1_OUT 0x0113
 
-//CANBus commands
-#define COMMAND_REPORT_ALIVE 0xFF
+#define CAN_ID_BLDC2X5_1_MOTOR0_IN 0x0114
+#define CAN_ID_BLDC2X5_1_MOTOR0_OUT 0x0115
+#define CAN_ID_BLDC2X5_1_MOTOR1_IN 0x0116
+#define CAN_ID_BLDC2X5_1_MOTOR1_OUT 0x0117
 
+#define CAN_ID_BLDC2X5_2_MOTOR0_IN 0x0118
+#define CAN_ID_BLDC2X5_2_MOTOR0_OUT 0x0119
+#define CAN_ID_BLDC2X5_2_MOTOR1_IN 0x011A
+#define CAN_ID_BLDC2X5_2_MOTOR1_OUT 0x011B
 
-typedef bool(*BreakCondition)();
+#define CAN_ID_BLDC2X5_3_MOTOR0_IN 0x011C
+#define CAN_ID_BLDC2X5_3_MOTOR0_OUT 0x011D
+#define CAN_ID_BLDC2X5_3_MOTOR1_IN 0x011E
+#define CAN_ID_BLDC2X5_3_MOTOR1_OUT 0x011F
 
-class Mrm_bldc2x50 : public CANBusBase
+class Mrm_bldc2x50 : public MotorGroup
 {
-	bool aliveThis[MAX_MRM_BLDC2x50]; // Responded to ping
-	uint32_t idIn[MAX_MRM_BLDC2x50];  // Inbound message id
-	uint32_t idOut[MAX_MRM_BLDC2x50]; // Outbound message id
-	char nameThis[MAX_MRM_BLDC2x50][10]; // Device's name
-	bool reversed[MAX_MRM_BLDC2x50]; // Change rotation
-	bool left[MAX_MRM_BLDC2x50]; // Is on the left side
-	int nextFree;
-	BluetoothSerial * serial; // Additional serial port
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
-	
 public:
-	ESP32CANBus *esp32CANBus; // CANBus interface
 	
 	/** Constructor
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -65,54 +47,6 @@ public:
 	@param deviceName - device's name
 	*/
 	void add(bool isReversed = false, bool isLeft = true, char * deviceName = "");
-
-	/** Did it respond to last ping?
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	*/
-	bool alive(uint8_t deviceNumber = 0) { return aliveThis[deviceNumber]; }
-
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
-	*/
-	void devicesScan(bool verbose = true);
-
-	/** Start all motors
-	@param leftSpeed
-	@param right Speed
-	*/
-	void go(int8_t leftSpeed, int8_t rightSpeed);
-	
-	/** Control of a robot with axles connected in a star formation, like in a RCJ soccer robot with omni wheels. Motor 0 is at 45 degrees, 1 at 135, 2 at -135, 3 at -45.
-	@param speed - 0 to 100.
-	@param angleDegrees - Movement direction in a robot's coordinate system, in degrees. 0 degree is the front of the robot and positive angles are to the right.
-	Values between -180 and 180.
-	@param rotation - Rotation speed (around the vertical axis), -100 to 100. Positive numbers turn the robot to the right. It makes sense to use smaller
-	numbers because a value 100 turns on all the motors at maximal speed.
-	@param speedLimit - Speed limit, 0 to 100. For example, 80 will limit all the speeds to 80%. 0 will turn the motors off.
-	*/
-	void goOmni(float speed, float angleDegrees, float rotation, uint8_t speedLimit);
-	
-
-	/** Returns device's name
-	@param motorNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	@return - name
-	*/
-	String name(uint8_t motorNumber);
-
-	/** Motor speed
-	@param motorNumber - motor's number
-	@param speed - in range -127 to 127
-	*/
-	void setSpeed(uint8_t motorNumber, int8_t speed);
-
-	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
-	*/
-	void test(BreakCondition breakWhen = 0);
-
 };
-
-//Declaration of error function. Definition is in Your code.
-extern void error(char * message);
 
 

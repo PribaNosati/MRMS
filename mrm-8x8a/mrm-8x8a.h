@@ -1,46 +1,40 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
-#include <ESP32CANBus.h>
-#include <CANBusBase.h>
+#include <mrm-devices.h>
 
 /**
 Purpose: mrm-node interface to CANBus.
 @author MRMS team
-@version 0.2 2019-08-15
+@version 0.3 2019-09-07
 Licence: You can use this code any way you like.
 */
 
-#define CAN_ID_LED8x8_IN 0x200
-#define CAN_ID_LED8x8_OUT 0x201
-#define MAX_MRM_8X8A 1 // Maximum number of mrm-ref-can boards. 
+#define CAN_ID_8x8A0_IN 0x200
+#define CAN_ID_8x8A0_OUT 0x201
+#define CAN_ID_8x8A1_IN 0x202
+#define CAN_ID_8x8A1_OUT 0x203
+#define CAN_ID_8x8A2_IN 0x204
+#define CAN_ID_8x8A2_OUT 0x205
+#define CAN_ID_8x8A3_IN 0x206
+#define CAN_ID_8x8A3_OUT 0x207
+#define CAN_ID_8x8A4_IN 0x208
+#define CAN_ID_8x8A4_OUT 0x209
+#define CAN_ID_8x8A5_IN 0x20A
+#define CAN_ID_8x8A5_OUT 0x20B
+#define CAN_ID_8x8A6_IN 0x20C
+#define CAN_ID_8x8A6_OUT 0x20D
+#define CAN_ID_8x8A7_IN 0x20E
+#define CAN_ID_8x8A7_OUT 0x20F
 
 //CANBus commands
-#define COMMAND_REPORT_ALIVE 0xFF
+#define COMMAND_8X8_DISPLAY 0x00
+#define COMMAND_8X8_SWITCH_ON 0x01
 
-typedef bool(*BreakCondition)();
-
-class Mrm_8x8a : CANBusBase
+class Mrm_8x8a : public SensorBase
 {
-	bool aliveThis[MAX_MRM_8X8A]; // Responded to ping
-	uint32_t idIn[MAX_MRM_8X8A];  // Inbound message id
-	uint32_t idOut[MAX_MRM_8X8A]; // Outbound message id
-	char nameThis[MAX_MRM_8X8A][10]; // Device's name
-	int nextFree;
-	BluetoothSerial * serial; // Additional serial port
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
+	bool on[MAX_SENSORS_BASE];
 	
 public:
-	ESP32CANBus *esp32CANBus; // CANBus interface
 	
 	/** Constructor
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -55,15 +49,18 @@ public:
 	*/
 	void add(char * deviceName = "");
 
-	/** Did it respond to last ping?
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+	/** Display bitmap
+	@param bitmapId - bitmap's id
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
-	bool alive(uint8_t deviceNumber = 0) { return aliveThis[deviceNumber]; }
+	void bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber = 0);
 
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
+	/** Read CAN Bus message into local variables
+	@param canId - CAN Bus id
+	@param data - 8 bytes from CAN Bus message.
+	@return - true if canId for this class
 	*/
-	void devicesScan(bool verbose = true);
+	bool messageDecode(uint32_t canId, uint8_t data[8]);
 
 	/**Test
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
@@ -71,8 +68,5 @@ public:
 	void test(BreakCondition breakWhen = 0);
 
 };
-
-//Declaration of error function. Definition is in Your code.
-extern void error(char * message);
 
 

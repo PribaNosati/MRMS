@@ -6,80 +6,35 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) {
-	esp32CANBus = esp32CANBusSingleton;
+Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) : SensorBase(esp32CANBusSingleton, 1, "Lid4m") {
 	serial = hardwareSerial;
-	nextFree = 0;
 }
 
 Mrm_lid_can_b2::~Mrm_lid_can_b2()
 {
 }
 
-/** Add a mrm-lid-can-b sensor
+/** Add a mrm-lid-can-b device
 @param deviceName - device's name
 */
 void Mrm_lid_can_b2::add(char * deviceName)
 {
-	if (nextFree >= MAX_MRM_LID_CAN_B2)
-		error("Too many Mrm_lid_can_b2");
-
-	switch (nextFree) {
-	case 0:
-		idIn[nextFree] = CAN_ID_VL53L1X0_IN;
-		idOut[nextFree] = CAN_ID_VL53L1X0_OUT;
-		break;
-	case 1:
-		idIn[nextFree] = CAN_ID_VL53L1X1_IN;
-		idOut[nextFree] = CAN_ID_VL53L1X1_OUT;
-		break;
-	case 2:
-		idIn[nextFree] = CAN_ID_VL53L1X2_IN;
-		idOut[nextFree] = CAN_ID_VL53L1X2_OUT;
-		break;
-	case 3:
-		idIn[nextFree] = CAN_ID_VL53L1X3_IN;
-		idOut[nextFree] = CAN_ID_VL53L1X3_OUT;
-		break;
-	case 4:
-		idIn[nextFree] = CAN_ID_VL53L1X4_IN;
-		idOut[nextFree] = CAN_ID_VL53L1X4_OUT;
-		break;
-	default:
-		error("Too many lidars");
-	}
-
-	if (deviceName != 0) {
-		if (strlen(deviceName) > 9)
-			error("Name too long");
-		strcpy(nameThis[nextFree], deviceName);
-	}
-	nextFree++;
+	SensorBase::add(deviceName, CAN_ID_LID_CAN_B2_0_IN, CAN_ID_LID_CAN_B2_0_OUT, CAN_ID_LID_CAN_B2_1_IN, CAN_ID_LID_CAN_B2_1_OUT,
+		CAN_ID_LID_CAN_B2_2_IN, CAN_ID_LID_CAN_B2_2_OUT, CAN_ID_LID_CAN_B2_3_IN, CAN_ID_LID_CAN_B2_3_OUT, CAN_ID_LID_CAN_B2_4_IN,
+		CAN_ID_LID_CAN_B2_4_OUT, CAN_ID_LID_CAN_B2_5_IN, CAN_ID_LID_CAN_B2_5_OUT, CAN_ID_LID_CAN_B2_6_IN, CAN_ID_LID_CAN_B2_6_OUT,
+		CAN_ID_LID_CAN_B2_7_IN, CAN_ID_LID_CAN_B2_7_OUT);
 }
 
-/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+/** Calibration, only once after production
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void Mrm_lid_can_b2::continuousReadingStart(uint8_t sensorNumber){
-	if (sensorNumber == 0xFF)
+void Mrm_lid_can_b2::calibration(uint8_t deviceNumber){
+	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStart(i);
+			calibration(i);
 	else{
-		uint8_t data[8] = { COMMAND_LIDAR_MEASURE_CONTINUOUS };
-		esp32CANBus->messageSend(idIn[sensorNumber], 1, data);
-	}
-}
-
-/** Stops periodical CANBus messages that refresh values that can be read by reading()
-@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-*/
-void Mrm_lid_can_b2::continuousReadingStop(uint8_t sensorNumber){
-	if (sensorNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStop(i);
-	else{
-		uint8_t data[8] = { COMMAND_LIDAR_MEASURE_STOP };
-		esp32CANBus->messageSend(idIn[sensorNumber], 1, data);
+		canData[0] = COMMAND_LID_CAN_B2_CALIBRATE;
+		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
 	}
 }
 
@@ -88,157 +43,73 @@ void Mrm_lid_can_b2::continuousReadingStop(uint8_t sensorNumber){
 @param data - 8 bytes from CAN Bus message.
 @return - true if canId for this class
 */
-bool Mrm_lid_can_b2::decodeMessage(uint32_t canId, uint8_t data[8]){
-	for (uint8_t sensorNumber = 0; sensorNumber < nextFree; sensorNumber++)
-		if (isForMe(canId, sensorNumber)){
-			uint16_t mm = (data[1] << 8) | data[0];
-			readings[sensorNumber] = mm;
+bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
+		if (isForMe(canId, deviceNumber)){
+			switch (data[0]) {
+			case COMMAND_ERROR:
+				errorCode = data[1];
+				errorInDeviceNumber = deviceNumber;
+				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				break;
+			case COMMAND_FPS_SENDING:
+				fpsLast = (data[1] << 8) | data[2];
+				break;
+			case COMMAND_REPORT_ALIVE:
+				break;
+			case COMMAND_SENSORS_MEASURE_SENDING: {
+				uint16_t mm = (data[2] << 8) | data[1];
+				readings[deviceNumber] = mm;
+			}
+				break;
+			default:
+				print("Unknown command 0x%x\n\r", data[0]);
+				error("Lid2Deco");
+			}
 			return true;
 		}
 	return false;
-}
-
-
-/** Ping devices and refresh alive array
-@param verbose - prints statuses
-*/
-void Mrm_lid_can_b2::devicesScan(bool verbose) {
-#define REPORT_STRAY 0
-	for (uint8_t i = 0; i < nextFree; i++) {
-		uint8_t data[8] = { COMMAND_REPORT_ALIVE };
-
-		esp32CANBus->messageSend(idIn[i], 1, data);
-
-		if (verbose)
-			print("%s:", nameThis[i]);
-
-		uint32_t nowMs = millis();
-		bool any = false;
-		while (millis() - nowMs < 50 && !any)
-			if (esp32CANBus->messageReceive()) {
-				if (esp32CANBus->rx_frame->MsgID == idOut[i]) {
-					if (verbose)
-						print("found\n\r");
-					any = true;
-					aliveThis[i] = true;
-				}
-#if REPORT_STRAY
-				else
-					if (verbose)
-						print("stray id: %0x02X", (String)esp32CANBus->rx_frame->MsgID);
-#endif
-			}
-		if (!any) {
-			if (verbose)
-				print("no response\n\r");
-			aliveThis[i] = false;
-		}
-	}
-}
-
-/** Prints a frame
-@param msgId - CAN Bus message id
-@param dlc - data load byte count
-@param data - data
-@return - if true, found and printed
-*/
-bool Mrm_lid_can_b2::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
-	for (uint8_t sensorNumber = 0; sensorNumber < nextFree; sensorNumber++)
-		if (isForMe(msgId, sensorNumber)) {
-			print("%s Id: 0x%04X", nameThis[sensorNumber], msgId);
-			if (dlc > 0) {
-				print(", data: ");
-				for (uint8_t i = 0; i < dlc; i++)
-					print("0x%02X ", data[i]);
-			}
-			print("\n\r");
-			return true;
-		}
-	return false;
-}
-
-/** Is the frame addressed to this device?
-@param canIdOut - CAN Bus id.
-@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-@return - if true, it is
-*/
-bool Mrm_lid_can_b2::isForMe(uint32_t canIdOut, uint8_t sensorNumber){
-	if (sensorNumber >= nextFree)
-		error("Sensor doesn't exist");
-	return canIdOut == idOut[sensorNumber];
-}
-
-/** Returns device's name
-@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-@return - name
-*/
-String Mrm_lid_can_b2::name(uint8_t sensorNumber) {
-	return nameThis[sensorNumber];
-}
-
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Mrm_lid_can_b2::print(const char* fmt, ...){
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
 }
 
 /** Analog readings
-@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 @return - analog value
 */
-uint16_t Mrm_lid_can_b2::reading(uint8_t sensorNumber){
-	if (sensorNumber > MAX_MRM_LID_CAN_B2)
-		error("Sensor doesn't exist");
-	return readings[sensorNumber];
+uint16_t Mrm_lid_can_b2::reading(uint8_t deviceNumber){
+	if (deviceNumber > MAX_SENSORS_BASE)
+		error("Device doesn't exist");
+	return readings[deviceNumber];
 }
 
 /** Print all readings in a line
 */
 void Mrm_lid_can_b2::readingsPrint() {
-	print("Lidars:");
-	for (uint8_t sensorNumber = 0; sensorNumber < nextFree; sensorNumber++)
-		if (aliveThis[sensorNumber])
-			print(" %4i mm", readings[sensorNumber]);
+	print("Lid4m:");
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
+		if (alive(deviceNumber))
+			print(" %4i", readings[deviceNumber]);
 }
 
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
+@param newLine - Line break after
 */
 void Mrm_lid_can_b2::test(BreakCondition breakWhen)
 {
-	devicesScan(false);
-	continuousReadingStart();
+	static uint32_t lastMs = 0;
 
-	uint32_t lastMs = 0;
-	print("\n\r");
-	while (breakWhen == 0 || !(*breakWhen)()) {
-		if (esp32CANBus->messageReceive())
-			decodeMessage(esp32CANBus->rx_frame->MsgID, esp32CANBus->rx_frame->data.u8);
-		if (millis() - lastMs > 300) {
-			lastMs = millis();
-			readingsPrint();
-			print("\n\r");
+	if (millis() - lastMs > 300) {
+		uint8_t pass = 0;
+		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+			if (alive(deviceNumber)) {
+				if (pass++)
+					print(" ");
+				print("%i ", readings[deviceNumber]);
+			}
 		}
+		lastMs = millis();
+		if (pass)
+			print("\n\r");
 	}
-
-	print("\n\rTest over.\n\r");
-
-	continuousReadingStop();
 }
 
-/** Print to all serial ports, pointer to list
-*/
-void Mrm_lid_can_b2::vprint(const char *fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serial != 0)
-		serial->print(buffer);
-}

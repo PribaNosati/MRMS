@@ -7,7 +7,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) {
+Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBase(esp32CANBusSingleton, 1, "LED8x8") {
 	esp32CANBus = esp32CANBusSingleton;
 	serial = hardwareSerial;
 	nextFree = 0;
@@ -22,64 +22,50 @@ Mrm_8x8a::~Mrm_8x8a()
 */
 void Mrm_8x8a::add(char * deviceName)
 {
-	if (nextFree >= MAX_MRM_8X8A)
-		error("Too many mrm-8x8a");
-	idIn[nextFree] = CAN_ID_LED8x8_IN;
-	idOut[nextFree] = CAN_ID_LED8x8_OUT;
-	if (deviceName != 0) {
-		if (strlen(deviceName) > 9)
-			error("Name too long");
-		strcpy(nameThis[nextFree], deviceName);
-	}
-	nextFree++;
+	SensorBase::add(deviceName, CAN_ID_8x8A0_IN, CAN_ID_8x8A0_OUT, CAN_ID_8x8A1_IN, CAN_ID_8x8A1_OUT, CAN_ID_8x8A2_IN, CAN_ID_8x8A2_OUT, CAN_ID_8x8A3_IN,
+		CAN_ID_8x8A3_OUT, CAN_ID_8x8A4_IN, CAN_ID_8x8A4_OUT, CAN_ID_8x8A5_IN, CAN_ID_8x8A5_OUT, CAN_ID_8x8A6_IN, CAN_ID_8x8A6_OUT, CAN_ID_8x8A7_IN, CAN_ID_8x8A7_OUT);
+
+	on[nextFree-1] = false;
 }
 
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
+/** Display bitmap
+@param bitmapId - bitmap's id
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void Mrm_8x8a::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
+void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
+	canData[0] = COMMAND_8X8_DISPLAY;
+	canData[1] = bitmapId;
+	esp32CANBus->messageSend(idIn[deviceNumber], 2, canData);
 }
 
-/** Ping devices and refresh alive array
-@param verbose - prints statuses
+/** Read CAN Bus message into local variables
+@param canId - CAN Bus id
+@param data - 8 bytes from CAN Bus message.
+@return - true if canId for this class
 */
-void Mrm_8x8a::devicesScan(bool verbose) {
-#define REPORT_STRAY 0
-	for (uint8_t i = 0; i < nextFree; i++) {
-		uint8_t data[8] = { COMMAND_REPORT_ALIVE };
-
-		esp32CANBus->messageSend(idIn[i], 1, data);
-
-		if (verbose)
-			print("%s:", nameThis[i]);
-
-		uint32_t nowMs = millis();
-		bool any = false;
-		while (millis() - nowMs < 100 && !any)
-			if (esp32CANBus->messageReceive()) {
-				if (esp32CANBus->rx_frame->MsgID == idOut[i]) {
-					if (verbose)
-						print("found\n\r");
-					any = true;
-					aliveThis[i] = true;
-				}
-#if REPORT_STRAY
-				else
-					if (verbose)
-						print("stray id: %0x02X", (String)esp32CANBus->rx_frame->MsgID);
-#endif
+bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
+		if (isForMe(canId, deviceNumber)) {
+			switch (data[0]) {
+			case COMMAND_REPORT_ALIVE:
+				break;
+			case COMMAND_8X8_SWITCH_ON: {
+				bool isOn = data[1];
+				on[deviceNumber] = isOn;
 			}
-		if (!any){
-			if (verbose)
-				print("no response\n\r");
-			aliveThis[i] = false;
+			break;
+			case COMMAND_ERROR:
+				errorCode = data[1];
+				errorInDeviceNumber = deviceNumber;
+				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				break;
+			default:
+				print("Unknown command 0x%x\n\r", data[0]);
+				error("8x8Deco");
+			}
+			return true;
 		}
-	}
+	return false;
 }
 
 /**Test
@@ -87,18 +73,14 @@ void Mrm_8x8a::devicesScan(bool verbose) {
 */
 void Mrm_8x8a::test(BreakCondition breakWhen)
 {
-
+	uint8_t bitmapId = 0;
+	while (!breakWhen()) {
+		print("Map %i\n\r", bitmapId);
+		bitmapDisplay(bitmapId);
+		if (++bitmapId > 3)
+			bitmapId = 0;
+		delay(500);
+	}
 	print("\n\rTest over.\n\r");
 }
 
-/** Print to all serial ports, pointer to list
-*/
-void Mrm_8x8a::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serial != 0)
-		serial->print(buffer);
-}
