@@ -1,8 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
-#include <ESP32CANBus.h>
-#include <CANBusBase.h>
+#include <mrm-devices.h>
 
 /**
 Purpose: mrm-ref-can interface to CANBus.
@@ -19,46 +17,30 @@ Licence: You can use this code any way you like.
 #define CAN_ID_REF_CAN2_OUT 0x0165
 #define CAN_ID_REF_CAN3_IN 0x0166
 #define CAN_ID_REF_CAN3_OUT 0x0167
-#define MAX_MRM_REF_CAN 4 // Maximum number of Mrm-ref-can complete sensors. 
-#define MRM_REF_CAN_SENSOR_COUNT 9 // Number of IR transistors in each sensor.
+#define CAN_ID_REF_CAN4_IN 0x0168
+#define CAN_ID_REF_CAN4_OUT 0x0169
+#define CAN_ID_REF_CAN5_IN 0x016A
+#define CAN_ID_REF_CAN5_OUT 0x016B
+#define CAN_ID_REF_CAN6_IN 0x016C
+#define CAN_ID_REF_CAN6_OUT 0x016D
+#define CAN_ID_REF_CAN7_IN 0x016E
+#define CAN_ID_REF_CAN7_OUT 0x016F
+
+#define MRM_REF_CAN_SENSOR_COUNT 9 // Number of IR transistors in each device.
 
 //CANBus commands
-#define COMMAND_REPORT_ALIVE 0xFF
+#define COMMAND_REF_CAN_MEASURE_ONCE_CENTER 0x04
+#define COMMAND_REF_CAN_MEASURE_CONTINUOUS_CENTER 0x05
+#define COMMAND_REF_CAN_SENDING_SENSORS_1_TO_3 0x06
+#define COMMAND_REF_CAN_SENDING_SENSORS_4_TO_6 0x07
+#define COMMAND_REF_CAN_SENDING_SENSORS_7_TO_9 0x08
+#define COMMAND_REF_CAN_CALIBRATE 0x09
 
-#define COMMAND_REFLECTANCE_ARRAY_MEASURE_ONCE_EACH 0x01
-#define COMMAND_REFLECTANCE_ARRAY_MEASURE_CONTINUOUS_EACH 0x02
-#define COMMAND_REFLECTANCE_ARRAY_MEASURE_STOP 0x03
-#define COMMAND_REFLECTANCE_ARRAY_MEASURE_ONCE_CENTER 0x04
-#define COMMAND_REFLECTANCE_ARRAY_MEASURE_CONTINUOUS_CENTER 0x05
-#define COMMAND_REFLECTANCE_ARRAY_SENDING_SENSORS_1_TO_3 0x06
-#define COMMAND_REFLECTANCE_ARRAY_SENDING_SENSORS_4_TO_6 0x07
-#define COMMAND_REFLECTANCE_ARRAY_SENDING_SENSORS_7_TO_9 0x08
-#define COMMAND_REFLECTANCE_ARRAY_CALIBRATE 0x09
-
-typedef bool(*BreakCondition)();
-
-class Mrm_ref_can : CANBusBase
+class Mrm_ref_can : public SensorBase
 {
-	bool aliveThis[MAX_MRM_REF_CAN]; // Responded to ping
-	uint32_t idIn[MAX_MRM_REF_CAN];  // Inbound message id
-	uint32_t idOut[MAX_MRM_REF_CAN]; // Outbound message id
-	char nameThis[MAX_MRM_REF_CAN][10]; // Device's name
-	int nextFree;
-	BluetoothSerial* serial; // Additional serial port
-	uint16_t readings[MAX_MRM_REF_CAN][MRM_REF_CAN_SENSOR_COUNT]; // Analog readings of all sensors
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
+	uint16_t readings[MAX_SENSORS_BASE][MRM_REF_CAN_SENSOR_COUNT]; // Analog readings of all sensors
 	
 public:
-	ESP32CANBus *esp32CANBus; // CANBus interface
 	
 	/** Constructor
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -73,57 +55,23 @@ public:
 	*/
 	void add(char * deviceName = "");
 
-	/** Did it respond to last ping?
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	*/
-	bool alive(uint8_t deviceNumber = 0) { return aliveThis[deviceNumber]; }
-
 	/** Calibrate the array
-	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0. 0xFF - calibrate all sensors.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 	*/
-	void calibrate(uint8_t sensorNumber = 0);
-	
-	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	*/
-	void continuousReadingStart(uint8_t sensorNumber = 0xFF);
-	
-	/** Stops periodical CANBus messages that refresh values that can be read by reading()
-	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	*/
-	void continuousReadingStop(uint8_t sensorNumber = 0xFF);
+	void calibrate(uint8_t deviceNumber = 0);
 	
 	/** Read CAN Bus message into local variables
+	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
 	*/
-	void decodeMessage(uint8_t data[8], uint8_t sensorNumber = 0);
-
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
-	*/
-	void devicesScan(bool verbose = true);
-
-	/** Prints a frame
-	@param msgId - CAN Bus message id
-	@param dlc - data load byte count
-	@param data - data
-	@return - if true, found and printed
-	*/
-	bool framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]);
-	
-	/** Is the frame addressed to this device?
-	@param canIdOut - CAN Bus id.
-	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
-	@return - if true, it is
-	*/
-	bool isForMe(uint32_t canIdOut, uint8_t sensorNumber = 0);
+	bool messageDecode(uint32_t canId, uint8_t data[8]);
 	
 	/** Analog readings
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
-	@param sensorNumber - Sensor's ordinal number. Each call of function add() assigns a increasing number to the sensor, starting with 0.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - analog value
 	*/
-	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t sensorNumber = 0);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
 	/** Print all readings in a line
 	*/
@@ -136,7 +84,5 @@ public:
 
 };
 
-//Declaration of error function. Definition is in Your code.
-extern void error(char * message);
 
 
