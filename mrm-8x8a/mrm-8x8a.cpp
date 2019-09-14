@@ -47,17 +47,20 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
 			switch (data[0]) {
-			case COMMAND_REPORT_ALIVE:
-				break;
 			case COMMAND_8X8_SWITCH_ON: {
 				bool isOn = data[1];
 				on[deviceNumber] = isOn;
 			}
-			break;
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
 				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				break;
+			case COMMAND_FPS_SENDING:
+				fpsLast = (data[1] << 8) | data[2];
+				break;
+			break;
+			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
 				print("Unknown command 0x%x\n\r", data[0]);
