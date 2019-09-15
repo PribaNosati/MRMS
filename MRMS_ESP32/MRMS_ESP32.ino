@@ -163,6 +163,15 @@ void bluetoothTest() {
 void broadcastingStart() {
 	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
 		deviceGroup[deviceNumber]->continuousReadingStart();
+
+	commandCurrent = NULL;
+}
+
+void broadcastingStop() {
+	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+		deviceGroup[deviceNumber]->continuousReadingStop();
+
+	commandCurrent = NULL;
 }
 
 void canBusSniff() {
@@ -330,6 +339,7 @@ void commandUpdate() {
 }
 
 void devicesScan(bool verbose) {
+	broadcastingStop();
 	for (uint8_t i = 0; i < DEVICE_GROUP_COUNT; i++)
 		deviceGroup[i]->devicesScan(verbose);
 }
@@ -571,8 +581,8 @@ void lidarCalibrate() {
 	if (selectedLidar != -1) {
 		int8_t lidarNumber = -2;
 		uint32_t lastMs;
-		while (lidarNumber <= 0 || lidarNumber >= 5) {
-			print("Enter lidar number [1 - 4] or wait to abort\n\r");
+		while (lidarNumber <= 0 || lidarNumber >= 9) {
+			print("Enter lidar number [1 - 8] or wait to abort\n\r");
 			lastMs = millis();
 			lidarNumber = -1;
 			while (millis() - lastMs < 10000 && lidarNumber == -1)
@@ -773,6 +783,8 @@ void stateRun() {
 }
 
 void stateStop() {
+	broadcastingStop();
+
 	if (mrm_mot4x3_6can.alive())
 		mrm_mot4x3_6can.go(0, 0);
 	if (mrm_mot4x10.alive())
@@ -781,11 +793,11 @@ void stateStop() {
 		if (mrm_bldc2x50.alive(i)) 
 			mrm_bldc2x50.speedSet(i, 0);
 
-	mrm_bldc4x2_5.continuousReadingStop();
-	mrm_ref_can.continuousReadingStop();
-	mrm_lid_can_b.continuousReadingStop();
-	mrm_lid_can_b2.continuousReadingStop();
-	mrm_therm_b_can.continuousReadingStop();
+	//mrm_bldc4x2_5.continuousReadingStop();
+	//mrm_ref_can.continuousReadingStop();
+	//mrm_lid_can_b.continuousReadingStop();
+	//mrm_lid_can_b2.continuousReadingStop();
+	//mrm_therm_b_can.continuousReadingStop();
 
 	commandCurrent = NULL;
 }
