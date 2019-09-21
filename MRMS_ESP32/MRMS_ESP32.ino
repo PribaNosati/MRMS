@@ -7,6 +7,7 @@
 #include <mrm-imu.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
+#include <mrm-mot2x50.h>
 #include <mrm-mot4x10.h>
 #include <mrm-mot4x3.6can.h>
 #include <mrm-node.h>
@@ -19,7 +20,7 @@
 // Defines
 
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
-#define DEVICE_GROUP_COUNT 10
+#define DEVICE_GROUP_COUNT 11
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
 
@@ -95,14 +96,15 @@ Mrm_bldc2x50 mrm_bldc2x50(&esp32CANBus, &SerialBT);
 Mrm_imu mrm_imu;
 Mrm_lid_can_b mrm_lid_can_b(&esp32CANBus, &SerialBT);
 Mrm_lid_can_b2 mrm_lid_can_b2(&esp32CANBus, &SerialBT);
+Mrm_mot2x50 mrm_mot2x50(&esp32CANBus, &SerialBT);
 Mrm_mot4x10 mrm_mot4x10(&esp32CANBus, &SerialBT);
 Mrm_mot4x3_6can mrm_mot4x3_6can(&esp32CANBus, &SerialBT);
 Mrm_node mrm_node(&esp32CANBus, &SerialBT);
 Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
 Mrm_servo mrm_servo(&SerialBT);
 Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
-DeviceGroup* deviceGroup[DEVICE_GROUP_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot4x10, &mrm_mot4x3_6can, &mrm_node,
-	&mrm_ref_can, &mrm_therm_b_can};
+DeviceGroup* deviceGroup[DEVICE_GROUP_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
+&mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
 
 
 // Function declarations
@@ -380,12 +382,16 @@ void fpsPrint() {
 
 void goAhead() {
 	const uint8_t speed = 50;
-	if (mrm_mot4x10.alive())
+	if (mrm_bldc2x50.alive())
+		mrm_bldc2x50.go(speed, speed);
+	else if (mrm_bldc4x2_5.alive())
+		mrm_bldc4x2_5.go(speed, speed);
+	else if (mrm_mot2x50.alive())
+		mrm_mot2x50.go(speed, speed);
+	else if (mrm_mot4x10.alive())
 		mrm_mot4x10.go(speed, speed);
 	else if (mrm_mot4x3_6can.alive())
 		mrm_mot4x3_6can.go(speed, speed);
-	else if (mrm_bldc4x2_5.alive())
-		mrm_bldc4x2_5.go(speed, speed);
 	commandCurrent = NULL;
 }
 
@@ -441,6 +447,16 @@ void initialize() {
 
 	// IMU
 	mrm_imu.add(true);
+
+	// Motors mrm-mot2x50
+	mrm_mot2x50.add(false, false, "Mot2x50-1");
+	mrm_mot2x50.add(false, false, "Mot2x50-2");
+	mrm_mot2x50.add(false, true, "Mot2x50-3");
+	mrm_mot2x50.add(false, true, "Mot2x50-4");
+	mrm_mot2x50.add(false, false, "Mot2x50-5");
+	mrm_mot2x50.add(false, false, "Mot2x50-6");
+	mrm_mot2x50.add(false, true, "Mot2x50-7");
+	mrm_mot2x50.add(false, true, "Mot2x50-8");
 
 	// Motors mrm-mot4x10
 	mrm_mot4x10.add(false, false, "Mot4x10-1");
@@ -562,17 +578,17 @@ void lidarCalibrate() {
 	int8_t selectedLidar = -1;
 	uint32_t lastMs;
 	while (selectedLidar != 2 && selectedLidar != 4) {
-		print("Enter max distance [2 or 4]m or wait to abort\n\r");
+		print("Enter max distance [2 or 4]m or wait to abort ");
 		lastMs = millis();
 		selectedLidar = -1;
 		while (millis() - lastMs < 10000 && selectedLidar == -1)
 			if (Serial.available()) {
 				uint8_t ch = Serial.read() - 48;
-				print("%i", ch);
+				print("%i\n\r", ch);
 				selectedLidar = ch;
 			}
 		if (selectedLidar == -1) {
-			print("\n\rAbort");
+			print("- abort\n\r");
 			break;
 		}
 	}
@@ -582,17 +598,17 @@ void lidarCalibrate() {
 		int8_t lidarNumber = -2;
 		uint32_t lastMs;
 		while (lidarNumber <= 0 || lidarNumber >= 9) {
-			print("Enter lidar number [1 - 8] or wait to abort\n\r");
+			print("Enter lidar number [1 - 8] or wait to abort ");
 			lastMs = millis();
 			lidarNumber = -1;
 			while (millis() - lastMs < 10000 && lidarNumber == -1)
 				if (Serial.available()) {
 					uint8_t ch = Serial.read() - 48;
-					print("%i", ch);
+					print("%i\n\r", ch);
 					lidarNumber = ch;
 				}
 			if (lidarNumber == -1) {
-				print("\n\rAbort");
+				print("- abort\n\r");
 				break;
 			}
 			else {
@@ -676,7 +692,9 @@ void messagesReceive() {
 
 void motorTest() {
 	print("Test motors\n\r");
-	if (mrm_mot4x10.aliveCount() > 0)
+	if (mrm_mot2x50.aliveCount() > 0)
+		mrm_mot2x50.test(userBreak, messagesReceive, blink);
+	else if (mrm_mot4x10.aliveCount() > 0)
 		mrm_mot4x10.test(userBreak, messagesReceive, blink);
 	else if (mrm_mot4x3_6can.aliveCount() > 0)
 		mrm_mot4x3_6can.test(userBreak, messagesReceive, blink);
@@ -785,7 +803,9 @@ void stateRun() {
 void stateStop() {
 	broadcastingStop();
 
-	if (mrm_mot4x3_6can.alive())
+	if (mrm_mot2x50.alive())
+		mrm_mot2x50.go(0, 0);
+	else if (mrm_mot4x3_6can.alive())
 		mrm_mot4x3_6can.go(0, 0);
 	if (mrm_mot4x10.alive())
 		mrm_mot4x10.go(0, 0);
@@ -831,18 +851,23 @@ void testAll() {
 }
 
 void testAny() {
+	if (commandTestAny.firstProcess)
+		mrm_lid_can_b.continuousReadingStart();
 	static uint32_t lastMs = 0;
-	if (millis() - lastMs > 200) {
-		mrm_lid_can_b.devicesScan();
-		bool isAlive = mrm_lid_can_b.alive(0);
-		print("%i alive: %i\n\r", millis(), isAlive);
-		lastMs = millis();
-	}
-	//while (!userBreak()) {
-	//	print("%i, %i\n\r", analogRead(36), analogRead(39));
-	//	delay(100);
-	//}
 
+	if (millis() - lastMs > 300) {
+		uint8_t pass = 0;
+		for (uint8_t deviceNumber = 0; deviceNumber < 8; deviceNumber++) {
+			if (mrm_lid_can_b.alive(deviceNumber)) {
+				if (pass++)
+					print(" ");
+				print("%i: %i ", deviceNumber, mrm_lid_can_b.reading(deviceNumber));
+			}
+		}
+		lastMs = millis();
+		if (pass)
+			print("\n\r");
+	}
 }
 
 void thermoTest() {
