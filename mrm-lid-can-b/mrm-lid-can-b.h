@@ -30,7 +30,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_LID_CAN_B_CALIBRATE 0x05
 
 
-class Mrm_lid_can_b : public SensorBase
+class Mrm_lid_can_b : public SensorGroup
 {
 	uint16_t readings[MAX_SENSORS_BASE]; // Analog readings of all sensors
 	

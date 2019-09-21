@@ -6,7 +6,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) : SensorBase(esp32CANBusSingleton, 1, "Lid4m") {
+Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) : SensorGroup(esp32CANBusSingleton, 1, "Lid4m") {
 	serial = hardwareSerial;
 }
 
@@ -19,7 +19,7 @@ Mrm_lid_can_b2::~Mrm_lid_can_b2()
 */
 void Mrm_lid_can_b2::add(char * deviceName)
 {
-	SensorBase::add(deviceName, CAN_ID_LID_CAN_B2_0_IN, CAN_ID_LID_CAN_B2_0_OUT, CAN_ID_LID_CAN_B2_1_IN, CAN_ID_LID_CAN_B2_1_OUT,
+	SensorGroup::add(deviceName, CAN_ID_LID_CAN_B2_0_IN, CAN_ID_LID_CAN_B2_0_OUT, CAN_ID_LID_CAN_B2_1_IN, CAN_ID_LID_CAN_B2_1_OUT,
 		CAN_ID_LID_CAN_B2_2_IN, CAN_ID_LID_CAN_B2_2_OUT, CAN_ID_LID_CAN_B2_3_IN, CAN_ID_LID_CAN_B2_3_OUT, CAN_ID_LID_CAN_B2_4_IN,
 		CAN_ID_LID_CAN_B2_4_OUT, CAN_ID_LID_CAN_B2_5_IN, CAN_ID_LID_CAN_B2_5_OUT, CAN_ID_LID_CAN_B2_6_IN, CAN_ID_LID_CAN_B2_6_OUT,
 		CAN_ID_LID_CAN_B2_7_IN, CAN_ID_LID_CAN_B2_7_OUT);
@@ -54,6 +54,8 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 				break;
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
+				break;
+			case COMMAND_NOTIFICATION:
 				break;
 			case COMMAND_REPORT_ALIVE:
 				break;

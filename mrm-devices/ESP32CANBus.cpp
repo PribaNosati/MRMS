@@ -8,7 +8,7 @@ Purpose: common library for ESP32 CANBus access
 Licence: You can use this code any way you like.
 */
 
-#define VERBOSE false
+#define VERBOSE 0
 
 CAN_device_t CAN_cfg;  
 

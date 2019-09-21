@@ -37,7 +37,7 @@ Licence: You can use this code any way you like.
 
 typedef bool(*BreakCondition)();
 
-class Mrm_node : public SensorBase
+class Mrm_node : public SensorGroup
 {
 	uint16_t readings[MAX_SENSORS_BASE][MRM_NODE_SENSOR_COUNT]; // Analog readings of all sensors
 	bool switches[5];

@@ -8,12 +8,13 @@
 #define COMMAND_SENSORS_MEASURE_ONCE 0x11
 #define COMMAND_SENSORS_MEASURE_STOP 0x12
 #define COMMAND_SENSORS_MEASURE_SENDING 0x13
+#define COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION 0x14
 #define COMMAND_SPEED_SET 0x20
+#define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
 #define COMMAND_FPS_REQUEST 0x30
 #define COMMAND_FPS_SENDING 0x31
 #define COMMAND_ID_CHANGE_REQUEST 0x40
-#define COMMAND_LAST_REQUEST 0x41
-#define COMMAND_LAST_SENDING 0x42
+#define COMMAND_NOTIFICATION 0x41
 #define COMMAND_ERROR 0xEE
 #define COMMAND_REPORT_ALIVE 0xFF
 
@@ -249,6 +250,12 @@ public:
 	*/
 	char * name(uint8_t deviceNumber);
 
+	/** Request notification
+	@param commandRequestingNotification
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
+
 	/** Encoder readings
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - encoder value
@@ -277,13 +284,13 @@ public:
 
 #define MAX_SENSORS_BASE 8 // Maximum number of device boards
 
-class SensorBase : public DeviceGroup {
+class SensorGroup : public DeviceGroup {
 protected:
 	uint32_t idIn[MAX_SENSORS_BASE];  // Inbound message id
 	uint32_t idOut[MAX_SENSORS_BASE]; // Outbound message id
 	char nameThis[MAX_SENSORS_BASE][10]; // Device's name
 public:
-	SensorBase(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup);
+	SensorGroup(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup);
 
 	/** add in base class*/
 	void add(char* deviceName, uint16_t in0, uint16_t out0, uint16_t in1, uint16_t out1, uint16_t in2, uint16_t out2, uint16_t in3, uint16_t out3,
@@ -346,4 +353,10 @@ public:
 	@return - name
 	*/
 	char * name(uint8_t deviceNumber);
+
+	/** Request notification
+	@param commandRequestingNotification
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
 };

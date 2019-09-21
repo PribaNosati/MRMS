@@ -36,7 +36,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_SENDING_SENSORS_7_TO_9 0x08
 #define COMMAND_REF_CAN_CALIBRATE 0x09
 
-class Mrm_ref_can : public SensorBase
+class Mrm_ref_can : public SensorGroup
 {
 	uint16_t readings[MAX_SENSORS_BASE][MRM_REF_CAN_SENSOR_COUNT]; // Analog readings of all sensors
 	

@@ -27,7 +27,7 @@ Licence: You can use this code any way you like.
 #define CAN_ID_THERM_B_CAN7_OUT 0x021F
 
 
-class Mrm_therm_b_can : public SensorBase
+class Mrm_therm_b_can : public SensorGroup
 {
 	int16_t readings[MAX_SENSORS_BASE]; // Highest temperature
 	

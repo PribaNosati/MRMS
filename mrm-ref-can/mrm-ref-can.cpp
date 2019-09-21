@@ -7,7 +7,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBase(esp32CANBusSingleton, 1, "ReflArray") {
+Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorGroup(esp32CANBusSingleton, 1, "ReflArray") {
 	serial = hardwareSerial;
 }
 
@@ -20,7 +20,7 @@ Mrm_ref_can::~Mrm_ref_can()
 */
 void Mrm_ref_can::add(char * deviceName)
 {
-	SensorBase::add(deviceName, CAN_ID_REF_CAN0_IN, CAN_ID_REF_CAN0_OUT, CAN_ID_REF_CAN1_IN, CAN_ID_REF_CAN1_OUT,
+	SensorGroup::add(deviceName, CAN_ID_REF_CAN0_IN, CAN_ID_REF_CAN0_OUT, CAN_ID_REF_CAN1_IN, CAN_ID_REF_CAN1_OUT,
 		CAN_ID_REF_CAN2_IN, CAN_ID_REF_CAN2_OUT, CAN_ID_REF_CAN3_IN, CAN_ID_REF_CAN3_OUT, CAN_ID_REF_CAN4_IN,
 		CAN_ID_REF_CAN4_OUT, CAN_ID_REF_CAN5_IN, CAN_ID_REF_CAN5_OUT, CAN_ID_REF_CAN6_IN, CAN_ID_REF_CAN6_OUT,
 		CAN_ID_REF_CAN7_IN, CAN_ID_REF_CAN7_IN);
@@ -56,6 +56,8 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 				break;
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
+				break;
+			case COMMAND_NOTIFICATION:
 				break;
 			case COMMAND_REPORT_ALIVE:
 				break;

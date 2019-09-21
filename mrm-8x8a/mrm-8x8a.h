@@ -30,7 +30,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_DISPLAY 0x00
 #define COMMAND_8X8_SWITCH_ON 0x01
 
-class Mrm_8x8a : public SensorBase
+class Mrm_8x8a : public SensorGroup
 {
 	bool on[MAX_SENSORS_BASE];
 	
