@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include "mrm-devices.h"
+#include "mrm-board.h"
 
 /**
 Purpose: mrm-lid-can-b interface to CANBus.
@@ -30,7 +30,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_LID_CAN_B_CALIBRATE 0x05
 
 
-class Mrm_lid_can_b : public SensorGroup
+class Mrm_lid_can_b : public SensorBoard
 {
 	uint16_t readings[MAX_SENSORS_BASE]; // Analog readings of all sensors
 	

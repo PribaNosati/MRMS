@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <mrm-devices.h>
+#include <mrm-board.h>
 
 /**
 Purpose: mrm-bldc4x2.5 interface to CANBus.
@@ -27,7 +27,7 @@ Licence: You can use this code any way you like.
 #define CAN_ID_BLDC4X2_5_1_MOTOR3_IN 0x024E
 #define CAN_ID_BLDC4X2_5_1_MOTOR3_OUT 0x024F
 
-class Mrm_bldc4x2_5 : public MotorGroup
+class Mrm_bldc4x2_5 : public MotorBoard
 {
 public:
 	
@@ -44,7 +44,7 @@ public:
 	@param isLeft - is on the left side
 	@param deviceName - device's name
 	*/
-	void add(bool isReversed = false, bool isLeft = true, char * deviceName = "");
+	void add(bool isReversed = false, char * deviceName = "");
 };
 
 
