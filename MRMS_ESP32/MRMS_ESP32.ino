@@ -1,10 +1,13 @@
 #include <Arduino.h>
 #include <BluetoothSerial.h>
+#include <ESP32CAN.h>
 #include <ESP32CANBus.h>
 #include <mrm-8x8a.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
 #include <mrm-imu.h>
+#include <mrm-pid.h>
+#include <mrm-ir-finder2.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
 #include <mrm-mot2x50.h>
@@ -20,9 +23,10 @@
 // Defines
 
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
-#define DEVICE_GROUP_COUNT 11
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
+#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC, 2 - differential
+#define MRM_BOARD_COUNT 11
 
 
 // Structures
@@ -47,22 +51,25 @@ struct Command commandMenuPrint;
 struct Command commandReflectanceArrayCalibrate;
 struct Command commandReportCANBusDevices;
 struct Command commandReset;
-struct Command commandScanI2C;
-struct Command commandStartBroadcasting;
-struct Command commandStateLineFollow; // State machine example - following a line
-struct Command commandStateRun; // State machine example - running
-struct Command commandStateStop; // State machine example - stopped
+struct Command commandSoccerIdle;
+struct Command commandSoccerCatch;
+struct Command commandSoccerPlayStart;
+struct Command commandBroadcastingStart;
+struct Command commandLineFollow; // State machine example - following a line
+struct Command commandStop; // State machine example - stopped
 struct Command commandTest8x8;
 struct Command commandTestAll;
 struct Command commandTestAny;
 struct Command commandTestBluetooth;
 struct Command commandTestI2C;
 struct Command commandTestIMU;
+struct Command commandTestIRFinder;
 struct Command commandTestLidars2m;
 struct Command commandTestLidars4m;
 struct Command commandTestNode;
 struct Command commandTestNodeServos;
 struct Command commandTestMotors;
+struct Command commandTestOmniWheels;
 struct Command commandTestReflectanceArray;
 struct Command commandTestServo;
 struct Command commandTestThermo;
@@ -78,6 +85,8 @@ char errorMessage[40]; // Global variable enables functions to set it although n
 uint8_t fpsNextIndex = 0; // To count frames per second
 uint32_t fpsMs[3] = { 0, 0, 0 };
 
+float headingToMaintain; // Soccer
+
 uint8_t menuLevel = 1; // Submenus have bigger numbers
 
 unsigned long previousMillis = 0;   // will store last time a CAN Message was send
@@ -90,10 +99,13 @@ static bool verbose = false; // Verbose output
 
 BluetoothSerial SerialBT;
 ESP32CANBus esp32CANBus;
+MotorGroupDifferential* motorGroupDifferential = NULL;
+MotorGroupStar *motorGroupStar = NULL;
 Mrm_8x8a mrm_8x8a(&esp32CANBus, &SerialBT);
 Mrm_bldc4x2_5 mrm_bldc4x2_5(&esp32CANBus, &SerialBT);
 Mrm_bldc2x50 mrm_bldc2x50(&esp32CANBus, &SerialBT);
 Mrm_imu mrm_imu;
+Mrm_ir_finder2 mrm_ir_finder2;
 Mrm_lid_can_b mrm_lid_can_b(&esp32CANBus, &SerialBT);
 Mrm_lid_can_b2 mrm_lid_can_b2(&esp32CANBus, &SerialBT);
 Mrm_mot2x50 mrm_mot2x50(&esp32CANBus, &SerialBT);
@@ -103,8 +115,10 @@ Mrm_node mrm_node(&esp32CANBus, &SerialBT);
 Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
 Mrm_servo mrm_servo(&SerialBT);
 Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
-DeviceGroup* deviceGroup[DEVICE_GROUP_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
+Board* deviceGroup[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
 &mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
+Mrm_pid pidXY(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the plane
+Mrm_pid pidRotation(0.5, 100, 0); // PID controller, regulates rotation around z axis
 
 
 // Function declarations
@@ -163,14 +177,14 @@ void bluetoothTest() {
 }
 
 void broadcastingStart() {
-	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 		deviceGroup[deviceNumber]->continuousReadingStart();
 
 	commandCurrent = NULL;
 }
 
 void broadcastingStop() {
-	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 		deviceGroup[deviceNumber]->continuousReadingStop();
 
 	commandCurrent = NULL;
@@ -181,7 +195,7 @@ void canBusSniff() {
 		blink();
 		bool found = false;
 		if (mrm_ref_can.esp32CANBus->messageReceive()) {
-			for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 				if (deviceGroup[deviceNumber]->framePrint(mrm_lid_can_b.esp32CANBus->rx_frame->MsgID, mrm_lid_can_b.esp32CANBus->rx_frame->FIR.B.DLC,
 					mrm_lid_can_b.esp32CANBus->rx_frame->data.u8)) {
 					found = true;
@@ -204,42 +218,54 @@ void canBusSniff() {
 
 void canIdChange() {
 	uint8_t last = 0;
-	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 		for (uint8_t subDeviceNumber = 0; subDeviceNumber < deviceGroup[deviceNumber]->deadOrAliveCount(); subDeviceNumber++)
 			if (deviceGroup[deviceNumber]->alive(subDeviceNumber)) 
 				print("%i. %s\n\r", ++last, deviceGroup[deviceNumber]->name(subDeviceNumber));
-	if (last != 0) {
-		print("Enter [1 - %i]: ", last);
+	if (last == 0)
+		print("No devices\n\r");
+	else{
+		print("Enter device [1 - %i]: ", last);
 		uint32_t lastMs = millis();
-		uint8_t selectedNumber = 0xFF;
-		while (millis() - lastMs < 30000 && selectedNumber > last && selectedNumber != 0)
-			if (Serial.available()) 
-				selectedNumber = Serial.read() - 48;
+		uint8_t selectedNumber = 0;
+		bool any = false;
+		while (millis() - lastMs < 30000 && !any || last > 9 && millis() - lastMs < 500 && any)
+			if (Serial.available()) {
+				selectedNumber = selectedNumber * 10 + (Serial.read() - 48);
+				any = true;
+				lastMs = millis();
+			}
 
-		if (selectedNumber > last)
-			print("timeout\n\r");
+		if (selectedNumber > last) {
+			if (any)
+				print("invalid");
+			else
+				print("timeout\n\r");
+		}
 		else {
 			last = 0;
-			DeviceGroup * selectedDevice = NULL;
+			Board * selectedDevice = NULL;
 			uint8_t selectedSubDevice = 0xFF;
-			for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT && selectedSubDevice == 0xFF; deviceNumber++)
+			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT && selectedSubDevice == 0xFF; deviceNumber++)
 				for (uint8_t subDeviceNumber = 0; subDeviceNumber < deviceGroup[deviceNumber]->deadOrAliveCount() && selectedSubDevice == 0xFF; subDeviceNumber++)
 					if (deviceGroup[deviceNumber]->alive(subDeviceNumber) && ++last == selectedNumber) {
 						selectedDevice = deviceGroup[deviceNumber];
 						selectedSubDevice = subDeviceNumber;
 					}
-			print("%i. %s\n\rEnter new group id [1..%i]: ", last, selectedDevice->name(selectedSubDevice), selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesIn1Group());
+			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesIn1Group();
+			print("%i. %s\n\rEnter new board id [1..%i]: ", last, selectedDevice->name(selectedSubDevice), maxInput);
 			lastMs = millis();
 			uint8_t newDeviceNumber = 0xFF;
-			while (millis() - lastMs < 30000 && newDeviceNumber > 5 && newDeviceNumber != 0)
+			while (millis() - lastMs < 30000 && newDeviceNumber > maxInput && newDeviceNumber != 0)
 				if (Serial.available())
 					newDeviceNumber = Serial.read() - 48;
 
-			if (newDeviceNumber > 5 || newDeviceNumber == 0)
+			if (newDeviceNumber > maxInput || newDeviceNumber == 0)
 				print("timeout\n\r");
 			else {
 				print("%i\n\rChange requested.\n\r", newDeviceNumber);
 				selectedDevice->idChange(newDeviceNumber - 1, selectedSubDevice);
+				delay(500); // Delay for firmware handling of devices with the same ids.
 			}
 		}
 	}
@@ -259,9 +285,10 @@ void commandsAdd() {
 	menuAdd(&commandTestMotors, "mot", "Test motors", &motorTest, 1);
 	menuAdd(&commandTestLidars2m, "li2", "Test lid. 2m", &lidar2mTest, 1);
 	menuAdd(&commandTestLidars4m, "li4", "Test lid. 4m", &lidar4mTest, 1);
-	menuAdd(&commandScanI2C, "led", "Test 8x8", &led8x8Test, 1);
+	menuAdd(&commandTest8x8, "led", "Test 8x8", &led8x8Test, 1);
 	menuAdd(&commandTestI2C, "i2c", "Test I2C", &i2cTest, 1);
 	menuAdd(&commandTestIMU, "imu", "Test IMU", &imuTest, 1);
+	menuAdd(&commandTestIRFinder, "irf", "Test IR finder", &irFinderTest, 1);
 	menuAdd(&commandTestBluetooth, "blt", "Test Bluetooth", &bluetoothTest, 1);
 	menuAdd(&commandTestReflectanceArray, "ref", "Test refl. arr.", &reflectanceArrayTest, 1);
 	menuAdd(&commandTestNode, "nod", "Test node", &nodeTest, 1);
@@ -269,19 +296,20 @@ void commandsAdd() {
 	menuAdd(&commandReportCANBusDevices, "can", "Report devices", &devicesScan, 1);
 	menuAdd(&commandCanSniff, "sni", "Sniff CAN Bus", &canBusSniff, 1);
 	menuAdd(&commandReset, "rst", "Reset", &reset, 1);
-	menuAdd(&commandStateLineFollow, "lin", "FollowLine", &stateLineFollow, 1);
-	menuAdd(&commandStateRun, "run", "Run", &stateRun, 1);
-	menuAdd(&commandStateStop, "sto", "Stop", &stateStop, 1);
+	menuAdd(&commandLineFollow, "lin", "FollowLine", &lineFollow, 1);
+	menuAdd(&commandStop, "sto", "Stop", &commandStopAll, 1);
 	menuAdd(&commandGoAhead, "ahe", "Go ahead", &goAhead, 1);
-	menuAdd(&commandStartBroadcasting, "bro", "Start sensors", &broadcastingStart, 1);
+	menuAdd(&commandBroadcastingStart, "bro", "Start sensors", &broadcastingStart, 1);
 	menuAdd(&commandTestAny, "any", "Any test", &testAny, 1);
 	menuAdd(&commandTestAll, "all", "All tests", &testAll, 1);
+	menuAdd(&commandTestOmniWheels, "omn", "Test omni wheels", &testOmniWheels, 1);
 	menuAdd(&commandReflectanceArrayCalibrate, "cal", "Calibrate refl.", &reflectanceArrayCalibrate, 1);
 	menuAdd(&commandTestThermo, "the", "Test thermo", &thermoTest, 1);
 	menuAdd(&commandTestServo, "ser", "Test servo", &servoTest, 1);
 	menuAdd(&commandLidarCalibrate, "lic", "Cal. lidar", &lidarCalibrate, 1);
 	menuAdd(&commandFPS, "fps", "FPS", &fpsPrint, 1);
 	menuAdd(&commandIdChange, "idc", "Device's id change", &canIdChange, 1);
+	menuAdd(&commandSoccerPlayStart, "soc", "Soccer play", &soccerPlayStart, 1);
 }
 
 void commandProcess() {
@@ -290,6 +318,21 @@ void commandProcess() {
 		if (commandCurrent != NULL)
 			commandCurrent->firstProcess = false;
 	}
+}
+
+void commandSet(struct Command *newCommand) {
+	commandPrevious = commandCurrent;
+	commandCurrent = newCommand;
+	commandCurrent->firstProcess = true;
+}
+
+void commandStopAll() {
+	broadcastingStop();
+	if (motorGroupDifferential != NULL)
+		motorGroupDifferential->stop();
+	if (motorGroupStar != NULL)
+		motorGroupStar->stop();
+	commandCurrent = NULL;
 }
 
 void commandUpdate() {
@@ -320,9 +363,10 @@ void commandUpdate() {
 			for (uint8_t i = 0; i < COMMANDS_LIMIT; i++) {
 				if (strcmp(commands[i]->shortcut, uartRxCommandCumulative) == 0) {
 					print(" ok.\r\n");
-					commandPrevious = commandCurrent;
-					commandCurrent = commands[i];
-					commandCurrent->firstProcess = true;
+					commandSet(commands[i]);
+					//commandPrevious = commandCurrent;
+					//commandCurrent = commands[i];
+					//commandCurrent->firstProcess = true;
 					found = 1;
 					break;
 				}
@@ -342,7 +386,8 @@ void commandUpdate() {
 
 void devicesScan(bool verbose) {
 	broadcastingStop();
-	for (uint8_t i = 0; i < DEVICE_GROUP_COUNT; i++)
+
+	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) 
 		deviceGroup[i]->devicesScan(verbose);
 }
 
@@ -370,7 +415,7 @@ void fps() {
 }
 
 void fpsPrint() {
-	for (uint8_t i = 0; i < DEVICE_GROUP_COUNT; i++){
+	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++){
 		deviceGroup[i]->fpsRequest();
 		uint32_t startMs = millis();
 		while(millis() - startMs < 50)
@@ -382,16 +427,10 @@ void fpsPrint() {
 
 void goAhead() {
 	const uint8_t speed = 50;
-	if (mrm_bldc2x50.alive())
-		mrm_bldc2x50.go(speed, speed);
-	else if (mrm_bldc4x2_5.alive())
-		mrm_bldc4x2_5.go(speed, speed);
-	else if (mrm_mot2x50.alive())
-		mrm_mot2x50.go(speed, speed);
-	else if (mrm_mot4x10.alive())
-		mrm_mot4x10.go(speed, speed);
-	else if (mrm_mot4x3_6can.alive())
-		mrm_mot4x3_6can.go(speed, speed);
+	if (motorGroupDifferential != NULL)
+		motorGroupDifferential->go(30, 30);
+	if (motorGroupStar != NULL)
+		motorGroupStar->go(speed);
 	commandCurrent = NULL;
 }
 
@@ -426,9 +465,13 @@ void i2cTest() {
 
 void imuTest() {
 	mrm_imu.test(userBreak);
-
 	commandCurrent = NULL;
 }
+
+void irFinderTest() {
+	mrm_ir_finder2.test();
+}
+
 
 void initialize() {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
@@ -441,6 +484,15 @@ void initialize() {
 	pinMode(LED_ERROR, OUTPUT); // Error LED
 	digitalWrite(15, false);
 
+	// Motor groups
+#if MOTOR_GROUP == 2
+	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 3);
+#elif MOTOR_GROUP == 3
+	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
+#else
+	motorGroupStar = new MotorGroupStar(&mrm_bldc2x50, 2, &mrm_bldc2x50, 3, &mrm_bldc2x50, 0, &mrm_bldc2x50, 1);
+#endif
+
 	// 8x8 LED
 	mrm_8x8a.add("LED8x8_1");
 	mrm_8x8a.add("LED8x8_2");
@@ -448,55 +500,58 @@ void initialize() {
 	// IMU
 	mrm_imu.add(true);
 
+	// mrm-ir-finder2
+	mrm_ir_finder2.add(34, 33);
+
 	// Motors mrm-mot2x50
-	mrm_mot2x50.add(false, false, "Mot2x50-1");
-	mrm_mot2x50.add(false, false, "Mot2x50-2");
-	mrm_mot2x50.add(false, true, "Mot2x50-3");
-	mrm_mot2x50.add(false, true, "Mot2x50-4");
-	mrm_mot2x50.add(false, false, "Mot2x50-5");
-	mrm_mot2x50.add(false, false, "Mot2x50-6");
-	mrm_mot2x50.add(false, true, "Mot2x50-7");
-	mrm_mot2x50.add(false, true, "Mot2x50-8");
+	mrm_mot2x50.add(false, "Mot2x50-1");
+	mrm_mot2x50.add(false, "Mot2x50-2");
+	mrm_mot2x50.add(false, "Mot2x50-3");
+	mrm_mot2x50.add(false, "Mot2x50-4");
+	mrm_mot2x50.add(false, "Mot2x50-5");
+	mrm_mot2x50.add(false, "Mot2x50-6");
+	mrm_mot2x50.add(false, "Mot2x50-7");
+	mrm_mot2x50.add(false, "Mot2x50-8");
 
 	// Motors mrm-mot4x10
-	mrm_mot4x10.add(false, false, "Mot4x10-1");
-	mrm_mot4x10.add(false, false, "Mot4x10-2");
-	mrm_mot4x10.add(false, true, "Mot4x10-3");
-	mrm_mot4x10.add(false, true, "Mot4x10-4");
-	mrm_mot4x10.add(false, false, "Mot4x10-5");
-	mrm_mot4x10.add(false, false, "Mot4x10-6");
-	mrm_mot4x10.add(false, true, "Mot4x10-7");
-	mrm_mot4x10.add(false, true, "Mot4x10-8");
+	mrm_mot4x10.add(false, "Mot4x10-1");
+	mrm_mot4x10.add(false, "Mot4x10-2");
+	mrm_mot4x10.add(false, "Mot4x10-3");
+	mrm_mot4x10.add(false, "Mot4x10-4");
+	mrm_mot4x10.add(false, "Mot4x10-5");
+	mrm_mot4x10.add(false, "Mot4x10-6");
+	mrm_mot4x10.add(false, "Mot4x10-7");
+	mrm_mot4x10.add(false, "Mot4x10-8");
 
 	// Motors mrm-mot4x3.6can
-	mrm_mot4x3_6can.add(false, false, "Mot3.6-1");
-	mrm_mot4x3_6can.add(false, false, "Mot3.6-2");
-	mrm_mot4x3_6can.add(false, true, "Mot3.6-3");
-	mrm_mot4x3_6can.add(false, true, "Mot3.6-4");
-	mrm_mot4x3_6can.add(false, false, "Mot3.6-5");
-	mrm_mot4x3_6can.add(false, false, "Mot3.6-6");
-	mrm_mot4x3_6can.add(false, true, "Mot3.6-7");
-	mrm_mot4x3_6can.add(false, true, "Mot3.6-8");
+	mrm_mot4x3_6can.add(false, "Mot3.6-1");
+	mrm_mot4x3_6can.add(false, "Mot3.6-2");
+	mrm_mot4x3_6can.add(false, "Mot3.6-3");
+	mrm_mot4x3_6can.add(false, "Mot3.6-4");
+	mrm_mot4x3_6can.add(false, "Mot3.6-5");
+	mrm_mot4x3_6can.add(false, "Mot3.6-6");
+	mrm_mot4x3_6can.add(false, "Mot3.6-7");
+	mrm_mot4x3_6can.add(false, "Mot3.6-8");
 
 	// Motors mrm-bldc2x50
-	mrm_bldc2x50.add(false, false, "Mot2x50-1");
-	mrm_bldc2x50.add(false, true, "Mot2x50-2");
-	mrm_bldc2x50.add(false, true, "Mot2x50-3");
-	mrm_bldc2x50.add(false, true, "Mot2x50-4");
-	mrm_bldc2x50.add(false, false, "Mot2x50-5");
-	mrm_bldc2x50.add(false, true, "Mot2x50-6");
-	mrm_bldc2x50.add(false, true, "Mot2x50-7");
-	mrm_bldc2x50.add(false, true, "Mot2x50-8");
+	mrm_bldc2x50.add(false, "Mot2x50-1");
+	mrm_bldc2x50.add(false, "Mot2x50-2");
+	mrm_bldc2x50.add(false, "Mot2x50-3");
+	mrm_bldc2x50.add(false, "Mot2x50-4");
+	mrm_bldc2x50.add(false, "Mot2x50-5");
+	mrm_bldc2x50.add(false, "Mot2x50-6");
+	mrm_bldc2x50.add(false, "Mot2x50-7");
+	mrm_bldc2x50.add(false, "Mot2x50-8");
 
 	// Motors mrm-bldc4x2.5
-	mrm_bldc4x2_5.add(false, false, "Mo4x2.5-1");
-	mrm_bldc4x2_5.add(false, false, "Mo4x2.5-2");
-	mrm_bldc4x2_5.add(false, true, "Mo4x2.5-3");
-	mrm_bldc4x2_5.add(false, true, "Mo4x2.5-4");
-	mrm_bldc4x2_5.add(false, false, "Mo4x2.5-5");
-	mrm_bldc4x2_5.add(false, false, "Mo4x2.5-6");
-	mrm_bldc4x2_5.add(false, true, "Mo4x2.5-7");
-	mrm_bldc4x2_5.add(false, true, "Mo4x2.5-8");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-1");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-2");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-3");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-4");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-5");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-6");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-7");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-8");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
 	mrm_lid_can_b.add("Lidar2m-1");
@@ -624,6 +679,27 @@ void lidarCalibrate() {
 	commandCurrent = NULL;
 }
 
+void lineFollow() {
+	const int FORWARD_SPEED = 70;
+	const int MAX_SPEED_DIFFERENCE = 150;
+
+	if (commandLineFollow.firstProcess)
+		mrm_ref_can.continuousReadingStart();
+
+	uint16_t left = mrm_ref_can.reading(4);
+	uint16_t right = mrm_ref_can.reading(5);
+
+	if (left > 600 && right < 600)
+		motorGroupDifferential->go(20, 50);
+	else if (left < 600 && right > 600)
+		motorGroupDifferential->go(50, 20);
+	else if (left < 600 && right < 600)
+		motorGroupDifferential->go(0, 0);
+	else
+		motorGroupDifferential->go(40, 40);
+
+}
+
 void menu() {
 	// Print menu
 	devicesScan(false);
@@ -647,7 +723,7 @@ void menu() {
 			print("\r\n");
 
 	// Display errors
-	for (uint8_t deviceNumber = 0; deviceNumber < DEVICE_GROUP_COUNT; deviceNumber++)
+	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 		if (deviceGroup[deviceNumber]->errorCodeLast() != 0)
 			print("Error %i in %s\n\r", deviceGroup[deviceNumber]->errorCodeLast(), deviceGroup[deviceNumber]->name(deviceGroup[deviceNumber]->errorWasInDeviceNumber()));
 
@@ -668,7 +744,7 @@ void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer
 }
 
 void menuMainAndIdle() {
-	stateStop();
+	commandStopAll();
 
 	menuLevel = 1;
 	commandCurrent = NULL;
@@ -678,15 +754,18 @@ void messagesReceive() {
 	while (esp32CANBus.messageReceive()) {
 		uint32_t id = esp32CANBus.rx_frame->MsgID;
 		bool any = false;
-		for (uint8_t deviceGroupNumber = 0; deviceGroupNumber < DEVICE_GROUP_COUNT; deviceGroupNumber++) {
+		for (uint8_t deviceGroupNumber = 0; deviceGroupNumber < MRM_BOARD_COUNT; deviceGroupNumber++) {
 			if (deviceGroup[deviceGroupNumber]->messageDecode(id, esp32CANBus.rx_frame->data.u8)) {
 				any = true;
 				break;
 			}
 		}
 
+#define REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN false
+#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
 		if (!any)
-			print("Unknown: 0x%X\n\r", id);
+			print("Address device unknown: 0x%X\n\r", id);
+#endif
 	}
 }
 
@@ -738,6 +817,14 @@ void reflectanceArrayTest() {
 void reset() {
 }
 
+///** A rotation needed to maintain the requested heading
+//@return - Rotation
+//*/
+//float rotationToMaintainHeading(float headingToMaintain) {
+//	float rotation = 0;// map(normalized(headingToMaintain - mrm_imu.heading()), -180, 180, -200, 200);
+//	return rotation;
+//}
+
 void servoSweep() {
 	// If variables are not needed in any other function, and  must be persistena, they should be declared static:
 	static uint8_t servoDegrees = 90;
@@ -758,68 +845,39 @@ void servoTest() {
 	commandCurrent = NULL;
 }
 
-void stateLineFollow() {
-	const int FORWARD_SPEED = 70;
-	const int MAX_SPEED_DIFFERENCE = 150;
+void soccerCatch() {
+	if (mrm_ir_finder2.anyIRSource()) {
 
-	if (commandStateLineFollow.firstProcess)
-		mrm_ref_can.continuousReadingStart();
+	}
+	else
+		commandSet(&commandSoccerIdle);
+}
 
-	static uint32_t lastMs = 0;
-	uint16_t center = (mrm_ref_can.esp32CANBus->rx_frame->data.u8[1] << 8) | mrm_ref_can.esp32CANBus->rx_frame->data.u8[0];
-	if (center == 0)
-		mrm_mot4x3_6can.go(FORWARD_SPEED, FORWARD_SPEED);
+void soccerIdle() {
+	static float headingToMaintain;
+	if (commandSoccerIdle.firstProcess)
+		headingToMaintain = mrm_imu.heading();
+	if (mrm_ir_finder2.anyIRSource() && false)
+		commandSet(&commandSoccerCatch);
 	else {
-		float error = (center - 600) / 400.0;
-
-		int16_t l = FORWARD_SPEED + error * MAX_SPEED_DIFFERENCE;
-		if (l < -127)
-			l = -127;
-		if (l > 127)
-			l = 127;
-		int16_t r = FORWARD_SPEED - error * MAX_SPEED_DIFFERENCE;
-		if (r < -127)
-			r = -127;
-		if (r > 127)
-			r = 127;
-		mrm_mot4x3_6can.go(l, r);
-
-		if (millis() - lastMs > 500) {
-			lastMs = millis();
-			print("%i\r\n", center);
-		}
+		//print("\n\rError: %i = %i - 300\n\r", (int)(300 - mrm_lid_can_b2.reading(3)), mrm_lid_can_b2.reading(3));
+		float errorL = 900 - mrm_lid_can_b2.reading(3);
+		float errorR = mrm_lid_can_b2.reading(1) - 900;
+		motorGroupStar->goToEliminateErrors(errorL > errorR ? errorL : errorR, 150 - mrm_lid_can_b2.reading(2), headingToMaintain - mrm_imu.heading(), &pidXY, &pidRotation, true);
+		//delay(500);
 	}
 }
 
-void stateRun() {
-	if (commandStateRun.firstProcess)
-		print("Running\n\r");
-
-	servoSweep();
-
-	commandCurrent->firstProcess = false;
-}
-
-void stateStop() {
-	broadcastingStop();
-
-	if (mrm_mot2x50.alive())
-		mrm_mot2x50.go(0, 0);
-	else if (mrm_mot4x3_6can.alive())
-		mrm_mot4x3_6can.go(0, 0);
-	if (mrm_mot4x10.alive())
-		mrm_mot4x10.go(0, 0);
-	for (uint8_t i = 0; i < 4; i++)
-		if (mrm_bldc2x50.alive(i)) 
-			mrm_bldc2x50.speedSet(i, 0);
-
-	//mrm_bldc4x2_5.continuousReadingStop();
-	//mrm_ref_can.continuousReadingStop();
-	//mrm_lid_can_b.continuousReadingStop();
-	//mrm_lid_can_b2.continuousReadingStop();
-	//mrm_therm_b_can.continuousReadingStop();
-
-	commandCurrent = NULL;
+void soccerPlayStart() {
+	if (motorGroupStar == NULL) {
+		print("Define motorGroupStar first.\n\r");
+		return;
+	}
+	headingToMaintain = mrm_imu.heading();
+	mrm_lid_can_b2.continuousReadingStart();
+	mrm_ref_can.continuousReadingStart();
+	mrm_8x8a.continuousReadingStart();
+	commandSet(&commandSoccerIdle);
 }
 
 void testAll() {
@@ -851,22 +909,53 @@ void testAll() {
 }
 
 void testAny() {
-	if (commandTestAny.firstProcess)
-		mrm_lid_can_b.continuousReadingStart();
-	static uint32_t lastMs = 0;
+	print("% i % i\n\r", analogRead(33), analogRead(34));
+	delay(500);
+}
 
-	if (millis() - lastMs > 300) {
-		uint8_t pass = 0;
-		for (uint8_t deviceNumber = 0; deviceNumber < 8; deviceNumber++) {
-			if (mrm_lid_can_b.alive(deviceNumber)) {
-				if (pass++)
-					print(" ");
-				print("%i: %i ", deviceNumber, mrm_lid_can_b.reading(deviceNumber));
-			}
+void testOmniWheels() {
+	static uint8_t nextMove;
+	static uint32_t lastMs;
+	if (commandTestOmniWheels.firstProcess) {
+		if (motorGroupDifferential == NULL) {
+			print("Differential motor group needed.");
+			commandCurrent = NULL;
+			return;
 		}
+		nextMove = 0;
 		lastMs = millis();
-		if (pass)
-			print("\n\r");
+	}
+	switch (nextMove) {
+	case 0:
+		if (millis() - lastMs > 2000) {
+			lastMs = millis();
+			nextMove = 1;
+		}
+		else
+			motorGroupDifferential->go(20, 20, 70);
+		break;
+	case 1:
+		if (millis() - lastMs > 15000) {
+			lastMs = millis();
+			nextMove = 2;
+		}
+		else {
+			float angle = (millis() - lastMs) / 1500.0;
+			int8_t x =  cos(angle) * 50;
+			int8_t y =  sin(angle) * 50;
+			motorGroupDifferential->go(y, y, x);
+			//print("%i %i %i\n\r", (int)(angle*100), (int)(x * 100), (int)(y * 100));
+			//delay(100);
+		}
+		break;
+	case 2:
+		if (millis() - lastMs > 2000) {
+			lastMs = millis();
+			nextMove = 0;
+		}
+		else
+			motorGroupDifferential->go(-20, -20, -70);
+		break;
 	}
 }
 
