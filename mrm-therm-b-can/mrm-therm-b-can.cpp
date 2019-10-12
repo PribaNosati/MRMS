@@ -7,7 +7,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_therm_b_can::Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorGroup(esp32CANBusSingleton, 1, "Thermo") {
+Mrm_therm_b_can::Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Thermo") {
 	serial = hardwareSerial;
 }
 
@@ -20,7 +20,7 @@ Mrm_therm_b_can::~Mrm_therm_b_can()
 */
 void Mrm_therm_b_can::add(char * deviceName)
 {
-	SensorGroup::add(deviceName, CAN_ID_THERM_B_CAN0_IN, CAN_ID_THERM_B_CAN0_OUT, CAN_ID_THERM_B_CAN1_IN, CAN_ID_THERM_B_CAN1_OUT,
+	SensorBoard::add(deviceName, CAN_ID_THERM_B_CAN0_IN, CAN_ID_THERM_B_CAN0_OUT, CAN_ID_THERM_B_CAN1_IN, CAN_ID_THERM_B_CAN1_OUT,
 		CAN_ID_THERM_B_CAN2_IN, CAN_ID_THERM_B_CAN2_OUT, CAN_ID_THERM_B_CAN3_IN, CAN_ID_THERM_B_CAN3_OUT, CAN_ID_THERM_B_CAN4_IN,
 		CAN_ID_THERM_B_CAN4_OUT, CAN_ID_THERM_B_CAN5_IN, CAN_ID_THERM_B_CAN5_OUT, CAN_ID_THERM_B_CAN6_IN, CAN_ID_THERM_B_CAN6_OUT,
 		CAN_ID_THERM_B_CAN7_IN, CAN_ID_THERM_B_CAN7_OUT);
@@ -54,7 +54,9 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 				break;
 			default:
 				print("Unknown command 0x%x\n\r", data[0]);
-				error("ThermBDeco");
+				errorCode = 205;
+				errorInDeviceNumber = deviceNumber;
+				//error("ThermBDeco");
 			}
 			return true;
 		}

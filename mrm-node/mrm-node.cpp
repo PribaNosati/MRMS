@@ -7,7 +7,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorGroup(esp32CANBusSingleton, 1, "Node") {
+Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Node") {
 	serial = hardwareSerial;
 }
 
@@ -20,7 +20,7 @@ Mrm_node::~Mrm_node()
 */
 void Mrm_node::add(char * deviceName)
 {
-	SensorGroup::add(deviceName, CAN_ID_NODE0_IN, CAN_ID_NODE0_OUT, CAN_ID_NODE1_IN, CAN_ID_NODE1_OUT,
+	SensorBoard::add(deviceName, CAN_ID_NODE0_IN, CAN_ID_NODE0_OUT, CAN_ID_NODE1_IN, CAN_ID_NODE1_OUT,
 		CAN_ID_NODE2_IN, CAN_ID_NODE2_OUT, CAN_ID_NODE3_IN, CAN_ID_NODE3_OUT, CAN_ID_NODE4_IN,
 		CAN_ID_NODE4_OUT, CAN_ID_NODE5_IN, CAN_ID_NODE5_OUT, CAN_ID_NODE6_IN, CAN_ID_NODE6_OUT,
 		CAN_ID_NODE7_IN, CAN_ID_NODE7_OUT);
@@ -72,7 +72,9 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 				break;
 			default:
 				print("Unknown command 0x%x\n\r", data[0]);
-				error("NodeDec");
+				errorCode = 204;
+				errorInDeviceNumber = deviceNumber;
+				//error("NodeDec");
 			}
 
 			if (any)

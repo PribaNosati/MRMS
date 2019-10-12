@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <mrm-devices.h>
+#include <mrm-board.h>
 
 /**
 Purpose: mrm-node interface to CANBus.
@@ -30,7 +30,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_DISPLAY 0x00
 #define COMMAND_8X8_SWITCH_ON 0x01
 
-class Mrm_8x8a : public SensorGroup
+class Mrm_8x8a : public SensorBoard
 {
 	bool on[MAX_SENSORS_BASE];
 	

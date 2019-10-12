@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <mrm-devices.h>
+#include <mrm-board.h>
 
 /**
 Purpose: mrm-therm-b-can interface to CANBus.
@@ -27,7 +27,7 @@ Licence: You can use this code any way you like.
 #define CAN_ID_THERM_B_CAN7_OUT 0x021F
 
 
-class Mrm_therm_b_can : public SensorGroup
+class Mrm_therm_b_can : public SensorBoard
 {
 	int16_t readings[MAX_SENSORS_BASE]; // Highest temperature
 	

@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <mrm-devices.h>
+#include <mrm-board.h>
 
 /**
 Purpose: mrm-ref-can interface to CANBus.
@@ -36,7 +36,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_SENDING_SENSORS_7_TO_9 0x08
 #define COMMAND_REF_CAN_CALIBRATE 0x09
 
-class Mrm_ref_can : public SensorGroup
+class Mrm_ref_can : public SensorBoard
 {
 	uint16_t readings[MAX_SENSORS_BASE][MRM_REF_CAN_SENSOR_COUNT]; // Analog readings of all sensors
 	

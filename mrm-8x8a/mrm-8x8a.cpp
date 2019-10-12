@@ -7,7 +7,7 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorGroup(esp32CANBusSingleton, 1, "LED8x8") {
+Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8") {
 	esp32CANBus = esp32CANBusSingleton;
 	serial = hardwareSerial;
 	nextFree = 0;
@@ -22,7 +22,7 @@ Mrm_8x8a::~Mrm_8x8a()
 */
 void Mrm_8x8a::add(char * deviceName)
 {
-	SensorGroup::add(deviceName, CAN_ID_8x8A0_IN, CAN_ID_8x8A0_OUT, CAN_ID_8x8A1_IN, CAN_ID_8x8A1_OUT, CAN_ID_8x8A2_IN, CAN_ID_8x8A2_OUT, CAN_ID_8x8A3_IN,
+	SensorBoard::add(deviceName, CAN_ID_8x8A0_IN, CAN_ID_8x8A0_OUT, CAN_ID_8x8A1_IN, CAN_ID_8x8A1_OUT, CAN_ID_8x8A2_IN, CAN_ID_8x8A2_OUT, CAN_ID_8x8A3_IN,
 		CAN_ID_8x8A3_OUT, CAN_ID_8x8A4_IN, CAN_ID_8x8A4_OUT, CAN_ID_8x8A5_IN, CAN_ID_8x8A5_OUT, CAN_ID_8x8A6_IN, CAN_ID_8x8A6_OUT, CAN_ID_8x8A7_IN, CAN_ID_8x8A7_OUT);
 
 	on[nextFree-1] = false;
@@ -66,7 +66,9 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 				break;
 			default:
 				print("Unknown command 0x%x\n\r", data[0]);
-				error("8x8Deco");
+				errorCode = 203;
+				errorInDeviceNumber = deviceNumber;
+				//error("8x8Deco");
 			}
 			return true;
 		}

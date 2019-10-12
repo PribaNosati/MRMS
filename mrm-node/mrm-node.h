@@ -1,6 +1,6 @@
 #pragma once
 #include "Arduino.h"
-#include <mrm-devices.h>
+#include <mrm-board.h>
 
 /**
 Purpose: mrm-node interface to CANBus.
@@ -37,7 +37,7 @@ Licence: You can use this code any way you like.
 
 typedef bool(*BreakCondition)();
 
-class Mrm_node : public SensorGroup
+class Mrm_node : public SensorBoard
 {
 	uint16_t readings[MAX_SENSORS_BASE][MRM_NODE_SENSOR_COUNT]; // Analog readings of all sensors
 	bool switches[5];
