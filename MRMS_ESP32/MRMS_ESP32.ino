@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <BluetoothSerial.h>
-#include <ESP32CAN.h>
-#include <ESP32CANBus.h>
 #include <mrm-8x8a.h>
+#include <mrm-board.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
 #include <mrm-imu.h>
@@ -786,12 +785,12 @@ void motorTest() {
 
 void nodeServosTest() {
 	mrm_node.servoTest(userBreak);
-	commandCurrent = NULL;
 }
 
 void nodeTest() {
-	mrm_node.test(userBreak);
-	commandCurrent = NULL;
+	if (commandTestNode.firstProcess)
+		mrm_node.continuousReadingStart();
+	mrm_node.test();
 }
 
 /** Print to all serial ports, variable arguments
@@ -909,7 +908,9 @@ void testAll() {
 }
 
 void testAny() {
-	print("% i % i\n\r", analogRead(33), analogRead(34));
+	if (commandTestAny.firstProcess)
+		broadcastingStart();
+	print("%i\n\r", mrm_lid_can_b.reading(0));
 	delay(500);
 }
 
