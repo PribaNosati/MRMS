@@ -111,13 +111,20 @@ void Mrm_node::readingsPrint() {
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
 void Mrm_node::servoTest(BreakCondition breakWhen) {
-	while (breakWhen == 0 || !(*breakWhen)()) {
+	static uint32_t lastMs = 0;
+
+	if (millis() - lastMs > 100) {
 		for (uint8_t deg = 0; deg <= 180; deg += 5) {
-			for (uint8_t servoNumber = 0; servoNumber < 3; servoNumber++)
-				servoWrite(servoNumber, deg);
+			for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+				if (alive(deviceNumber)) {
+					for (uint8_t servoNumber = 0; servoNumber < 3; servoNumber++)
+						servoWrite(servoNumber, deg, deviceNumber);
+				}
+			}
 			print("%i deg.\n\r", deg);
 			delay(100);
 		}
+		lastMs = millis();
 	}
 }
 
@@ -145,35 +152,24 @@ void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceN
 */
 void Mrm_node::test(BreakCondition breakWhen)
 {
-	continuousReadingStart();
+	static uint32_t lastMs = 0;
 
-	uint32_t lastMs = 0;
-	bool newMessage = false;
-
-	while (breakWhen == 0 || !(*breakWhen)()) {
-
+	if (millis() - lastMs > 300) {
+		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-
-			//blink();
-			if (esp32CANBus->messageReceive() && esp32CANBus->rx_frame->MsgID == idOut[deviceNumber]) {
-				messageDecode(esp32CANBus->rx_frame->MsgID, esp32CANBus->rx_frame->data.u8);
-				newMessage = true;
-			}
-			delay(5);
-
-			if (newMessage && millis() - lastMs > 300) {
+			if (alive(deviceNumber)) {
+				if (pass++)
+					print("| ");
+				print("An:");
 				for (uint8_t i = 0; i < MRM_NODE_SENSOR_COUNT; i++)
 					print("%i ", readings[deviceNumber][i]);
-				print("|");
+				print("Di:");
 				for (uint8_t i = 0; i < 5; i++)
 					print("%i ", switches[i]);
-
-				print("\n\r");
-				lastMs = millis();
 			}
 		}
+		lastMs = millis();
+		if (pass)
+			print("\n\r");
 	}
-	print("\n\rTest over.\n\r");
-
-	continuousReadingStop();
 }

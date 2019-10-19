@@ -384,7 +384,7 @@ void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
 */
 void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), void (*periodicFunction2)())
 {
-	const uint16_t PAUSE_MS = 80;
+	const uint16_t PAUSE_MS = 20;
 	const uint16_t DISPLAY_PAUSE_MS = 300;
 	const uint8_t STEP = 1;
 	const uint8_t MAXIMUM_SPEED = 100; // Max. 127
