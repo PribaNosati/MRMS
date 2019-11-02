@@ -26,12 +26,29 @@ Licence: You can use this code any way you like.
 #define CAN_ID_LID_CAN_B2_7_IN 0x015E
 #define CAN_ID_LID_CAN_B2_7_OUT 0x015F
 
+#define CAN_ID_LID_CAN_B2_8_IN 0x0270
+#define CAN_ID_LID_CAN_B2_8_OUT 0x0271
+#define CAN_ID_LID_CAN_B2_9_IN 0x0272
+#define CAN_ID_LID_CAN_B2_9_OUT 0x0273
+#define CAN_ID_LID_CAN_B2_10_IN 0x0274
+#define CAN_ID_LID_CAN_B2_10_OUT 0x0275
+#define CAN_ID_LID_CAN_B2_11_IN 0x0276
+#define CAN_ID_LID_CAN_B2_11_OUT 0x0277
+#define CAN_ID_LID_CAN_B2_12_IN 0x0278
+#define CAN_ID_LID_CAN_B2_12_OUT 0x0279
+#define CAN_ID_LID_CAN_B2_13_IN 0x027A
+#define CAN_ID_LID_CAN_B2_13_OUT 0x027B
+#define CAN_ID_LID_CAN_B2_14_IN 0x027C
+#define CAN_ID_LID_CAN_B2_14_OUT 0x027D
+#define CAN_ID_LID_CAN_B2_15_IN 0x027E
+#define CAN_ID_LID_CAN_B2_15_OUT 0x027F
+
 //CANBus commands
 #define COMMAND_LID_CAN_B2_CALIBRATE 0x05
 
 class Mrm_lid_can_b2 : public SensorBoard
 {
-	uint16_t readings[MAX_SENSORS_BASE]; // Analog readings of all sensors
+	std::vector<uint16_t>* readings; // Analog readings of all sensors
 	
 public:
 	
@@ -39,7 +56,7 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 12);
 
 	~Mrm_lid_can_b2();
 

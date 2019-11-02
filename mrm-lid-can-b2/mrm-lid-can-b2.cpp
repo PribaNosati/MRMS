@@ -6,8 +6,10 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Lid4m") {
+Mrm_lid_can_b2::Mrm_lid_can_b2(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial, uint8_t maxDevices) :
+	SensorBoard(esp32CANBusSingleton, 1, "Lid4m", maxDevices) {
 	serial = hardwareSerial;
+	readings = new std::vector<uint16_t>(maxDevices);
 }
 
 Mrm_lid_can_b2::~Mrm_lid_can_b2()
@@ -19,10 +21,44 @@ Mrm_lid_can_b2::~Mrm_lid_can_b2()
 */
 void Mrm_lid_can_b2::add(char * deviceName)
 {
-	SensorBoard::add(deviceName, CAN_ID_LID_CAN_B2_0_IN, CAN_ID_LID_CAN_B2_0_OUT, CAN_ID_LID_CAN_B2_1_IN, CAN_ID_LID_CAN_B2_1_OUT,
-		CAN_ID_LID_CAN_B2_2_IN, CAN_ID_LID_CAN_B2_2_OUT, CAN_ID_LID_CAN_B2_3_IN, CAN_ID_LID_CAN_B2_3_OUT, CAN_ID_LID_CAN_B2_4_IN,
-		CAN_ID_LID_CAN_B2_4_OUT, CAN_ID_LID_CAN_B2_5_IN, CAN_ID_LID_CAN_B2_5_OUT, CAN_ID_LID_CAN_B2_6_IN, CAN_ID_LID_CAN_B2_6_OUT,
-		CAN_ID_LID_CAN_B2_7_IN, CAN_ID_LID_CAN_B2_7_OUT);
+	uint16_t canIn, canOut;
+	switch (nextFree) {
+	case 0:
+		canIn = CAN_ID_LID_CAN_B2_0_IN;
+		canOut = CAN_ID_LID_CAN_B2_0_OUT;
+		break;
+	case 1:
+		canIn = CAN_ID_LID_CAN_B2_1_IN;
+		canOut = CAN_ID_LID_CAN_B2_1_OUT;
+		break;
+	case 2:
+		canIn = CAN_ID_LID_CAN_B2_2_IN;
+		canOut = CAN_ID_LID_CAN_B2_2_OUT;
+		break;
+	case 3:
+		canIn = CAN_ID_LID_CAN_B2_3_IN;
+		canOut = CAN_ID_LID_CAN_B2_3_OUT;
+		break;
+	case 4:
+		canIn = CAN_ID_LID_CAN_B2_4_IN;
+		canOut = CAN_ID_LID_CAN_B2_4_OUT;
+		break;
+	case 5:
+		canIn = CAN_ID_LID_CAN_B2_5_IN;
+		canOut = CAN_ID_LID_CAN_B2_5_OUT;
+		break;
+	case 6:
+		canIn = CAN_ID_LID_CAN_B2_6_IN;
+		canOut = CAN_ID_LID_CAN_B2_6_OUT;
+		break;
+	case 7:
+		canIn = CAN_ID_LID_CAN_B2_7_IN;
+		canOut = CAN_ID_LID_CAN_B2_7_OUT;
+		break;
+	default:
+		error("Too many mrm-lid-can-b2\n\r");
+	}
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Calibration, only once after production
@@ -34,7 +70,7 @@ void Mrm_lid_can_b2::calibration(uint8_t deviceNumber){
 			calibration(i);
 	else{
 		canData[0] = COMMAND_LID_CAN_B2_CALIBRATE;
-		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
 }
 
@@ -50,7 +86,7 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
@@ -61,7 +97,7 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 				break;
 			case COMMAND_SENSORS_MEASURE_SENDING: {
 				uint16_t mm = (data[2] << 8) | data[1];
-				readings[deviceNumber] = mm;
+				(*readings)[deviceNumber] = mm;
 			}
 				break;
 			default:
@@ -80,9 +116,9 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 @return - analog value
 */
 uint16_t Mrm_lid_can_b2::reading(uint8_t deviceNumber){
-	if (deviceNumber > MAX_SENSORS_BASE)
+	if (deviceNumber >= nextFree)
 		error("Device doesn't exist");
-	return readings[deviceNumber];
+	return (*readings)[deviceNumber];
 }
 
 /** Print all readings in a line
@@ -91,7 +127,7 @@ void Mrm_lid_can_b2::readingsPrint() {
 	print("Lid4m:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %4i", readings[deviceNumber]);
+			print(" %4i", (*readings)[deviceNumber]);
 }
 
 /**Test
@@ -108,7 +144,7 @@ void Mrm_lid_can_b2::test(BreakCondition breakWhen)
 			if (alive(deviceNumber)) {
 				if (pass++)
 					print(" ");
-				print("%i ", readings[deviceNumber]);
+				print("%i ", (*readings)[deviceNumber]);
 			}
 		}
 		lastMs = millis();

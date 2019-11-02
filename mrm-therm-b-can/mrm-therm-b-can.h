@@ -29,7 +29,7 @@ Licence: You can use this code any way you like.
 
 class Mrm_therm_b_can : public SensorBoard
 {
-	int16_t readings[MAX_SENSORS_BASE]; // Highest temperature
+	std::vector<int16_t>* readings; // Highest temperature
 	
 public:
 	
@@ -37,7 +37,7 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 4);
 
 	~Mrm_therm_b_can();
 

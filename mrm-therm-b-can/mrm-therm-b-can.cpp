@@ -7,8 +7,10 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_therm_b_can::Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Thermo") {
+Mrm_therm_b_can::Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
+	SensorBoard(esp32CANBusSingleton, 1, "Thermo", maxDevices) {
 	serial = hardwareSerial;
+	readings = new std::vector<int16_t>(maxDevices);
 }
 
 Mrm_therm_b_can::~Mrm_therm_b_can()
@@ -20,10 +22,43 @@ Mrm_therm_b_can::~Mrm_therm_b_can()
 */
 void Mrm_therm_b_can::add(char * deviceName)
 {
-	SensorBoard::add(deviceName, CAN_ID_THERM_B_CAN0_IN, CAN_ID_THERM_B_CAN0_OUT, CAN_ID_THERM_B_CAN1_IN, CAN_ID_THERM_B_CAN1_OUT,
-		CAN_ID_THERM_B_CAN2_IN, CAN_ID_THERM_B_CAN2_OUT, CAN_ID_THERM_B_CAN3_IN, CAN_ID_THERM_B_CAN3_OUT, CAN_ID_THERM_B_CAN4_IN,
-		CAN_ID_THERM_B_CAN4_OUT, CAN_ID_THERM_B_CAN5_IN, CAN_ID_THERM_B_CAN5_OUT, CAN_ID_THERM_B_CAN6_IN, CAN_ID_THERM_B_CAN6_OUT,
-		CAN_ID_THERM_B_CAN7_IN, CAN_ID_THERM_B_CAN7_OUT);
+	uint16_t canIn, canOut;
+	switch (nextFree) {
+	case 0:
+		canIn = CAN_ID_THERM_B_CAN0_IN;
+		canOut = CAN_ID_THERM_B_CAN0_IN;
+		break;
+	case 1:
+		canIn = CAN_ID_THERM_B_CAN1_IN;
+		canOut = CAN_ID_THERM_B_CAN1_IN;
+		break;
+	case 2:
+		canIn = CAN_ID_THERM_B_CAN2_IN;
+		canOut = CAN_ID_THERM_B_CAN2_IN;
+		break;
+	case 3:
+		canIn = CAN_ID_THERM_B_CAN3_IN;
+		canOut = CAN_ID_THERM_B_CAN3_IN;
+	case 4:
+		canIn = CAN_ID_THERM_B_CAN4_IN;
+		canOut = CAN_ID_THERM_B_CAN4_IN;
+		break;
+	case 5:
+		canIn = CAN_ID_THERM_B_CAN5_IN;
+		canOut = CAN_ID_THERM_B_CAN5_IN;
+		break;
+	case 6:
+		canIn = CAN_ID_THERM_B_CAN6_IN;
+		canOut = CAN_ID_THERM_B_CAN6_IN;
+		break;
+	case 7:
+		canIn = CAN_ID_THERM_B_CAN7_IN;
+		canOut = CAN_ID_THERM_B_CAN7_IN;
+		break;
+	default:
+		error("Too many mrm-therm-b-can\n\r");
+	}
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Read CAN Bus message into local variables
@@ -38,7 +73,7 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
@@ -47,7 +82,7 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 				break;
 			case COMMAND_SENSORS_MEASURE_SENDING: {
 				int16_t temp = (data[2] << 8) | data[1];
-				readings[deviceNumber] = temp;
+				(*readings)[deviceNumber] = temp;
 			}
 				break;
 			case COMMAND_REPORT_ALIVE:
@@ -69,9 +104,9 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 @return - analog value
 */
 int16_t Mrm_therm_b_can::reading(uint8_t deviceNumber){
-	if (deviceNumber > MAX_SENSORS_BASE)
+	if (deviceNumber >= nextFree)
 		error("Device doesn't exist");
-	return readings[deviceNumber];
+	return (*readings)[deviceNumber];
 }
 
 /** Print all readings in a line
@@ -80,7 +115,7 @@ void Mrm_therm_b_can::readingsPrint() {
 	print("Therm:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %i", readings[deviceNumber]);
+			print(" %i", (*readings)[deviceNumber]);
 }
 
 /**Test
@@ -96,7 +131,7 @@ void Mrm_therm_b_can::test(BreakCondition breakWhen)
 			if (alive(deviceNumber)) {
 				if (pass++)
 					print(" ");
-				print("%i ", readings[deviceNumber]);
+				print("%i ", (*readings)[deviceNumber]);
 			}
 		}
 		lastMs = millis();

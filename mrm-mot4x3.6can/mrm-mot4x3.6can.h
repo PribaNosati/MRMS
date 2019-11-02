@@ -36,7 +36,7 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_mot4x3_6can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_mot4x3_6can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 4);
 
 	~Mrm_mot4x3_6can();
 

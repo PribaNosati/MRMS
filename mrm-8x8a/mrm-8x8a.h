@@ -32,7 +32,7 @@ Licence: You can use this code any way you like.
 
 class Mrm_8x8a : public SensorBoard
 {
-	bool on[MAX_SENSORS_BASE];
+	std::vector<bool>* on;
 	
 public:
 	
@@ -40,7 +40,7 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 1);
 
 	~Mrm_8x8a();
 

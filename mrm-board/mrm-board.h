@@ -4,12 +4,15 @@
 #include <BluetoothSerial.h>
 #include <ESP32CANBus.h>
 #include <mrm-pid.h>
+#include <vector>
 
 #define COMMAND_SENSORS_MEASURE_CONTINUOUS 0x10
 #define COMMAND_SENSORS_MEASURE_ONCE 0x11
 #define COMMAND_SENSORS_MEASURE_STOP 0x12
 #define COMMAND_SENSORS_MEASURE_SENDING 0x13
 #define COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION 0x14
+#define COMMAND_SENSORS_MEASURE_CONTINUOUS_AND_RETURN_CALCULATED_DATA 0x15
+#define COMMAND_SENSORS_MEASURE_CALCULATED_SENDING 0x16
 #define COMMAND_SPEED_SET 0x20
 #define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
 #define COMMAND_FPS_REQUEST 0x30
@@ -38,11 +41,14 @@ protected:
 	uint32_t aliveThis; // Responded to ping, maximum 32 devices of the same class
 	uint8_t canData[8];
 	uint8_t commandLastReceivedByTarget = 0xFE;
-	uint8_t devicesInAGroup;
-	uint8_t devicesMaxNumberInAllGroups;
+	uint8_t devicesInABoard;
+	uint8_t devicesMaxNumberInAllBoards;
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
 	uint16_t fpsLast = 0xFFFF;
+	std::vector<uint32_t>* idIn;  // Inbound message id
+	std::vector<uint32_t>* idOut; // Outbound message id
+	std::vector<char[10]>* nameThis;// Device's name
 	char nameGroup[12];
 	int nextFree;
 	BluetoothSerial* serial; // Additional serial port
@@ -62,6 +68,13 @@ public:
 	ESP32CANBus* esp32CANBus; // CANBus interface
 	
 	Board(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllGroups, uint8_t devicesInAGroup, char * nameGroup);
+
+	/** Add a device
+	@param deviceName
+	@param canIn
+	@param canOut
+	*/
+	void add(char* deviceName, uint16_t canIn, uint16_t canOut);
 
 	/** Did it respond to last ping?
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -97,12 +110,12 @@ public:
 	/** Number of devices in each group (board)
 	@return - number of devices
 	*/
-	uint8_t devicesIn1Group() { return this->devicesInAGroup; }
+	uint8_t devicesIn1Group() { return this->devicesInABoard; }
 
 	/** Maximum number of devices in all groups (boards)
 	@raturn - number of devices
 	*/
-	uint8_t devicesMaximumNumberInAllGroups() { return this->devicesMaxNumberInAllGroups; }
+	uint8_t devicesMaximumNumberInAllGroups() { return this->devicesMaxNumberInAllBoards; }
 
 	/** Ping devices and refresh alive array
 	@param verbose - prints statuses
@@ -168,22 +181,14 @@ public:
 };
 
 
-#define MAX_MOTORS_BASE 8 // Maximum number of motors attached to all motor controllers of the same type
 
 class MotorBoard : public Board {
 protected:
-	uint32_t encoderCount[MAX_MOTORS_BASE]; // Encoder count
-	uint32_t idIn[MAX_MOTORS_BASE];  // Inbound message id
-	uint32_t idOut[MAX_MOTORS_BASE]; // Outbound message id
-	char nameThis[MAX_MOTORS_BASE][10]; // Device's name
-	bool reversed[MAX_MOTORS_BASE]; // Change rotation
+	std::vector<uint32_t>* encoderCount; // Encoder count
+	std::vector<bool>* reversed; // Change rotation
 public:
 
-	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char * nameGroup);
-
-	/** add in base class*/
-	void add(char* deviceName, uint16_t in0, uint16_t out0, uint16_t in1, uint16_t out1, uint16_t in2, uint16_t out2, uint16_t in3, uint16_t out3,
-		uint16_t in4, uint16_t out4, uint16_t in5, uint16_t out5, uint16_t in6, uint16_t out6, uint16_t in7, uint16_t out7);
+	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char * nameGroup, uint8_t maxDevices);
 
 	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -275,24 +280,20 @@ public:
 
 
 
-#define MAX_SENSORS_BASE 8 // Maximum number of device boards
 
 class SensorBoard : public Board {
-protected:
-	uint32_t idIn[MAX_SENSORS_BASE];  // Inbound message id
-	uint32_t idOut[MAX_SENSORS_BASE]; // Outbound message id
-	char nameThis[MAX_SENSORS_BASE][10]; // Device's name
 public:
-	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup);
-
-	/** add in base class*/
-	void add(char* deviceName, uint16_t in0, uint16_t out0, uint16_t in1, uint16_t out1, uint16_t in2, uint16_t out2, uint16_t in3, uint16_t out3,
-		uint16_t in4, uint16_t out4, uint16_t in5, uint16_t out5, uint16_t in6, uint16_t out6, uint16_t in7, uint16_t out7);
+	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices);
 
 	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void continuousReadingStart(uint8_t deviceNumber = 0xFF);
+
+	/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void continuousReadingCalculatedDataStart(uint8_t deviceNumber = 0xFF);
 
 	/** Stops periodical CANBus messages that refresh values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

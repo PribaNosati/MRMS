@@ -7,8 +7,10 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "ReflArray") {
+Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
+	SensorBoard(esp32CANBusSingleton, 1, "ReflArray", maxDevices) {
 	serial = hardwareSerial;
+	readings = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxDevices);
 }
 
 Mrm_ref_can::~Mrm_ref_can()
@@ -20,10 +22,43 @@ Mrm_ref_can::~Mrm_ref_can()
 */
 void Mrm_ref_can::add(char * deviceName)
 {
-	SensorBoard::add(deviceName, CAN_ID_REF_CAN0_IN, CAN_ID_REF_CAN0_OUT, CAN_ID_REF_CAN1_IN, CAN_ID_REF_CAN1_OUT,
-		CAN_ID_REF_CAN2_IN, CAN_ID_REF_CAN2_OUT, CAN_ID_REF_CAN3_IN, CAN_ID_REF_CAN3_OUT, CAN_ID_REF_CAN4_IN,
-		CAN_ID_REF_CAN4_OUT, CAN_ID_REF_CAN5_IN, CAN_ID_REF_CAN5_OUT, CAN_ID_REF_CAN6_IN, CAN_ID_REF_CAN6_OUT,
-		CAN_ID_REF_CAN7_IN, CAN_ID_REF_CAN7_IN);
+	uint16_t canIn, canOut;
+	switch (nextFree) {
+	case 0:
+		canIn = CAN_ID_REF_CAN0_IN;
+		canOut = CAN_ID_REF_CAN0_OUT;
+		break;
+	case 1:
+		canIn = CAN_ID_REF_CAN1_IN;
+		canOut = CAN_ID_REF_CAN1_OUT;
+		break;
+	case 2:
+		canIn = CAN_ID_REF_CAN2_IN;
+		canOut = CAN_ID_REF_CAN2_OUT;
+		break;
+	case 3:
+		canIn = CAN_ID_REF_CAN3_IN;
+		canOut = CAN_ID_REF_CAN3_OUT;
+	case 4:
+		canIn = CAN_ID_REF_CAN4_IN;
+		canOut = CAN_ID_REF_CAN4_OUT;
+		break;
+	case 5:
+		canIn = CAN_ID_REF_CAN5_IN;
+		canOut = CAN_ID_REF_CAN5_OUT;
+		break;
+	case 6:
+		canIn = CAN_ID_REF_CAN6_IN;
+		canOut = CAN_ID_REF_CAN6_OUT;
+		break;
+	case 7:
+		canIn = CAN_ID_REF_CAN7_IN;
+		canOut = CAN_ID_REF_CAN7_OUT;
+		break;
+	default:
+		error("Too many mrm-ref-cans\n\r");
+	}
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Calibrate the array
@@ -35,7 +70,7 @@ void Mrm_ref_can::calibrate(uint8_t deviceNumber) {
 			calibrate(i);
 	else {
 		canData[0] = COMMAND_REF_CAN_CALIBRATE;
-		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
 }
 
@@ -52,7 +87,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
@@ -82,7 +117,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 
 			if (any)
 				for (uint8_t i = 0; i <= 2; i++)
-					readings[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+					(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
 
 			return true;
 		}
@@ -95,9 +130,9 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - analog value
 */
 uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
-	if (deviceNumber > MAX_SENSORS_BASE || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT)
+	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT)
 		error("Device doesn't exist");
-	return readings[deviceNumber][receiverNumberInSensor];
+	return (*readings)[deviceNumber][receiverNumberInSensor];
 }
 
 /** Print all readings in a line
@@ -107,7 +142,7 @@ void Mrm_ref_can::readingsPrint() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 			if (alive(deviceNumber))
-				print(" %3i", readings[deviceNumber][irNo]);
+				print(" %3i", (*readings)[deviceNumber][irNo]);
 	}
 }
 
@@ -125,7 +160,7 @@ void Mrm_ref_can::test(BreakCondition breakWhen)
 				if (pass++)
 					print("| ");
 				for (uint8_t i = 0; i < MRM_REF_CAN_SENSOR_COUNT; i++)
-					print("%i ", readings[deviceNumber][i]);
+					print("%i ", (*readings)[deviceNumber][i]);
 			}
 		}
 		lastMs = millis();

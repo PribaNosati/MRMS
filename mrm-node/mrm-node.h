@@ -39,7 +39,7 @@ typedef bool(*BreakCondition)();
 
 class Mrm_node : public SensorBoard
 {
-	uint16_t readings[MAX_SENSORS_BASE][MRM_NODE_SENSOR_COUNT]; // Analog readings of all sensors
+	std::vector<uint16_t[MRM_NODE_SENSOR_COUNT]>* readings; // Analog readings of all sensors
 	bool switches[5];
 	uint16_t servoDegrees[3] = { 0xFFFF, 0xFFFF };
 	
@@ -49,7 +49,7 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0);
+	Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 2);
 
 	~Mrm_node();
 

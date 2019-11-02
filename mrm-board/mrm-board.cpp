@@ -4,13 +4,38 @@
 #define REPORT_STRAY 0
 #define REQUEST_NOTIFICATION 0
 
-Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllGroups, uint8_t devicesInAGroup, char nameGroup[]) {
+Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllBoards, uint8_t devicesInAGroup, char nameGroup[]) {
+	idIn = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
+	idOut = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
+	nameThis = new std::vector<char[10]>(devicesMaximumNumberInAllBoards);
 	esp32CANBus = esp32CANBusSingleton;
-	this->devicesInAGroup = devicesInAGroup;
-	this->devicesMaxNumberInAllGroups = devicesMaximumNumberInAllGroups;
+	this->devicesInABoard = devicesInAGroup;
+	this->devicesMaxNumberInAllBoards = devicesMaximumNumberInAllBoards;
 	strcpy(this->nameGroup, nameGroup);
 	aliveThis = 0;
 	nextFree = 0;
+}
+
+/** Add a device
+@param deviceName
+@param canIn
+@param canOut
+*/
+void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
+	if (nextFree >= this->devicesMaxNumberInAllBoards) {
+		print("Too many devices: %s\n\r", deviceName);
+		error("add");
+	}
+	if (deviceName != 0) {
+		if (strlen(deviceName) > 9)
+			error("Name too long");
+		strcpy((*nameThis)[nextFree], deviceName);
+	}
+
+	(*idIn)[nextFree] = canIn;
+	(*idOut)[nextFree] = canOut;
+
+	nextFree++;
 }
 
 /** Did it respond to last ping?
@@ -81,60 +106,11 @@ void Board::vprint(const char* fmt, va_list argp) {
 
 
 
-MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup) : Board(esp32CANBusSingleton, MAX_MOTORS_BASE, devicesInAGroup, nameGroup) {
+MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices) : 
+	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
+	encoderCount = new std::vector<uint32_t>(maxDevices);
+	reversed = new std::vector<bool>(maxDevices);
 }
-
-/** add in base class*/
-void MotorBoard::add(char* deviceName, uint16_t in0, uint16_t out0, uint16_t in1, uint16_t out1, uint16_t in2, uint16_t out2, uint16_t in3, uint16_t out3,
-	uint16_t in4, uint16_t out4, uint16_t in5, uint16_t out5, uint16_t in6, uint16_t out6, uint16_t in7, uint16_t out7) {
-	if (nextFree >= MAX_SENSORS_BASE) {
-		print("Too many devices: %s\n\r", deviceName);
-		error("add");
-	}
-	if (deviceName != 0) {
-		if (strlen(deviceName) > 9)
-			error("Name too long");
-		strcpy(nameThis[nextFree], deviceName);
-	}
-	switch (nextFree) {
-	case 0:
-		idIn[nextFree] = in0;
-		idOut[nextFree] = out0;
-		break;
-	case 1:
-		idIn[nextFree] = in1;
-		idOut[nextFree] = out1;
-		break;
-	case 2:
-		idIn[nextFree] = in2;
-		idOut[nextFree] = out2;
-		break;
-	case 3:
-		idIn[nextFree] = in3;
-		idOut[nextFree] = out3;
-		break;
-	case 4:
-		idIn[nextFree] = in4;
-		idOut[nextFree] = out4;
-		break;
-	case 5:
-		idIn[nextFree] = in5;
-		idOut[nextFree] = out5;
-		break;
-	case 6:
-		idIn[nextFree] = in6;
-		idOut[nextFree] = out6;
-		break;
-	case 7:
-		idIn[nextFree] = in7;
-		idOut[nextFree] = out7;
-		break;
-	default:
-		error("Too many devices\n\r");
-	}
-	nextFree++;
-}
-
 
 /** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -150,7 +126,7 @@ void MotorBoard::continuousReadingStart(uint8_t deviceNumber) {
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
 			canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 #endif
 		}
 	}
@@ -166,7 +142,7 @@ void MotorBoard::continuousReadingStop(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 		}
 	}
 }
@@ -178,15 +154,15 @@ void MotorBoard::devicesScan(bool verbose) {
 	for (uint8_t i = 0; i < nextFree; i++) {
 		canData[0] = COMMAND_REPORT_ALIVE;
 
-		esp32CANBus->messageSend(idIn[i], 1, canData);
-		//print("%s sent to 0x%4x\n\r", nameGroup, idIn[i]);
+		esp32CANBus->messageSend((*idIn)[i], 1, canData);
+		//print("%s sent to 0x%4x\n\r", nameGroup, (*idIn)[i]);
 		uint32_t nowMs = millis();
 		bool any = false;
 		while (millis() - nowMs < 4 && !any)
 			if (esp32CANBus->messageReceive()) {
-				if (esp32CANBus->rx_frame->MsgID == idOut[i]) {
+				if (esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
 					if (verbose)
-						print("%s found\n\r", nameThis[i]);
+						print("%s found\n\r", (*nameThis)[i]);
 					any = true;
 					aliveSet(true, i);
 				}
@@ -206,7 +182,7 @@ void MotorBoard::devicesScan(bool verbose) {
 void MotorBoard::fpsDisplay() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		if (alive(deviceNumber))
-			print("%s: %i FPS\n\r", nameThis[deviceNumber], fps(deviceNumber));
+			print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
 	}
 }
 
@@ -221,7 +197,7 @@ void MotorBoard::fpsRequest(uint8_t deviceNumber) {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_FPS_REQUEST;
 			;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 			fpsLast = 0;
 		}
 	}
@@ -236,7 +212,7 @@ void MotorBoard::fpsRequest(uint8_t deviceNumber) {
 bool MotorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(msgId, deviceNumber)) {
-			print("%s Id: 0x%04X", nameThis[deviceNumber], msgId);
+			print("%s Id: 0x%04X", (*nameThis)[deviceNumber], msgId);
 			if (dlc > 0) {
 				print(", data: ");
 				for (uint8_t i = 0; i < dlc; i++)
@@ -255,7 +231,7 @@ bool MotorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 void MotorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 	canData[0] = COMMAND_ID_CHANGE_REQUEST;
 	canData[1] = newDeviceNumber;
-	esp32CANBus->messageSend(idIn[deviceNumber], 2, canData);
+	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
 /** Is the frame addressed to this device?
@@ -266,7 +242,7 @@ void MotorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 bool MotorBoard::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree)
 		error("Device doesn't exist");
-	return canIdOut == idOut[deviceNumber];
+	return canIdOut == (*idOut)[deviceNumber];
 }
 
 /** Read CAN Bus message into local variables
@@ -283,13 +259,13 @@ bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 				break;
 			case COMMAND_SENSORS_MEASURE_SENDING: {
 				uint32_t enc = (data[4] << 24) | (data[3] << 16) | (data[2] << 8) | data[1];
-				encoderCount[motorNumber] = enc;
+				(*encoderCount)[motorNumber] = enc;
 				break;
 			}
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = motorNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[motorNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[motorNumber]);
 				break;
 			case COMMAND_NOTIFICATION:
 				break;
@@ -311,7 +287,7 @@ bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - name
 */
 char* MotorBoard::name(uint8_t deviceNumber) {
-	return nameThis[deviceNumber];
+	return (*nameThis)[deviceNumber];
 }
 
 /** Request notification
@@ -323,7 +299,7 @@ void MotorBoard::notificationRequest(uint8_t commandRequestingNotification, uint
 	while (tries < 10) {
 		tries++;
 		canData[0] = commandRequestingNotification;
-		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 		while (tries != 0xFF && esp32CANBus->messageReceive()) {
 			uint32_t id = esp32CANBus->rx_frame->MsgID;
 			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
@@ -342,9 +318,9 @@ void MotorBoard::notificationRequest(uint8_t commandRequestingNotification, uint
 @return - encoder value
 */
 uint16_t MotorBoard::reading(uint8_t deviceNumber) {
-	if (deviceNumber > MAX_MOTORS_BASE)
+	if (deviceNumber >= nextFree)
 		error("Device doesn't exist");
-	return encoderCount[deviceNumber];
+	return (*encoderCount)[deviceNumber];
 }
 
 /** Print all readings in a line
@@ -353,7 +329,7 @@ void MotorBoard::readingsPrint() {
 	print("Encoders:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %4i", encoderCount[deviceNumber]);
+			print(" %4i", (*encoderCount)[deviceNumber]);
 }
 
 
@@ -362,17 +338,17 @@ void MotorBoard::readingsPrint() {
 @param speed - in range -127 to 127
 */
 void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
-	if (motorNumber >= MAX_MOTORS_BASE) {
+	if (motorNumber >= nextFree) {
 		print("Mot. %i", motorNumber);
 		error(" doesn't exist");
 	}
 
-	if (reversed[motorNumber])
+	if ((*reversed)[motorNumber])
 		speed = -speed;
 
 	canData[0] = COMMAND_SPEED_SET;
 	canData[1] = speed + 128;
-	esp32CANBus->messageSend(idIn[motorNumber], 2, canData);
+	esp32CANBus->messageSend((*idIn)[motorNumber], 2, canData);
 
 
 }
@@ -440,7 +416,7 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 			if (!encodersStarted[motorNumber]) {
 				encodersStarted[motorNumber] = true;
 				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-				esp32CANBus->messageSend(idIn[motorNumber], 1, canData);
+				esp32CANBus->messageSend((*idIn)[motorNumber], 1, canData);
 			}
 
 			if (fixedSpeed) {
@@ -462,7 +438,7 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 				speedSet(motorNumber, speed);
 
 				if (millis() - lastMs > DISPLAY_PAUSE_MS) {
-					print("Mot. %i:%3i, en: %i\n\r", motorNumber, speed, encoderCount[motorNumber]);
+					print("Mot. %i:%3i, en: %i\n\r", motorNumber, speed, (*encoderCount)[motorNumber]);
 					lastMs = millis();
 				}
 				uint32_t startMs = millis();
@@ -482,7 +458,7 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 
 		if (encodersStarted[motorNumber]) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			esp32CANBus->messageSend(idIn[motorNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[motorNumber], 1, canData);
 		}
 	}
 }
@@ -491,58 +467,8 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 
 
 
-SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char nameGroup[]) : Board(esp32CANBusSingleton, MAX_SENSORS_BASE, devicesInAGroup, nameGroup) {
-}
-
-/** add in base class*/
-void SensorBoard::add(char* deviceName, uint16_t in0, uint16_t out0, uint16_t in1, uint16_t out1, uint16_t in2, uint16_t out2, uint16_t in3, uint16_t out3, 
-	uint16_t in4, uint16_t out4, uint16_t in5, uint16_t out5, uint16_t in6, uint16_t out6, uint16_t in7, uint16_t out7) {
-	if (nextFree >= MAX_SENSORS_BASE) {
-		print("Too many devices: %s\n\r", deviceName);
-		error("add");
-	}
-	if (deviceName != 0) {
-		if (strlen(deviceName) > 9)
-			error("Name too long");
-		strcpy(nameThis[nextFree], deviceName);
-	}
-	switch (nextFree) {
-	case 0:
-		idIn[nextFree] = in0;
-		idOut[nextFree] = out0;
-		break;
-	case 1:
-		idIn[nextFree] = in1;
-		idOut[nextFree] = out1;
-		break;
-	case 2:
-		idIn[nextFree] = in2;
-		idOut[nextFree] = out2;
-		break;
-	case 3:
-		idIn[nextFree] = in3;
-		idOut[nextFree] = out3;
-		break;
-	case 4:
-		idIn[nextFree] = in4;
-		idOut[nextFree] = out4;
-		break;
-	case 5:
-		idIn[nextFree] = in5;
-		idOut[nextFree] = out5;
-		break;
-	case 6:
-		idIn[nextFree] = in6;
-		idOut[nextFree] = out6;
-		break;
-	case 7:
-		idIn[nextFree] = in7;
-		idOut[nextFree] = out7;
-		break;
-	default:
-		error("Too many devices\n\r");
-	}
-	nextFree++;
+SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char nameGroup[], uint8_t maxDevices) : 
+	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
 }
 
 /** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
@@ -559,7 +485,29 @@ void SensorBoard::continuousReadingStart(uint8_t deviceNumber) {
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
 			canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+			//print("Sent to 0x%x\n\r, ", (*idIn)[deviceNumber]);
+#endif
+		}
+	}
+}
+
+/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			continuousReadingCalculatedDataStart(i);
+	else {
+		if (alive(deviceNumber)) {
+			print("Alive, start reading: %s\n\r", nameGroup);
+#if REQUEST_NOTIFICATION // todo
+			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
+#else
+			canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_AND_RETURN_CALCULATED_DATA;
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+			//print("Sent to 0x%x\n\r, ", (*idIn)[deviceNumber]);
 #endif
 		}
 	}
@@ -575,7 +523,7 @@ void SensorBoard::continuousReadingStop(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 		}
 	}
 }
@@ -586,9 +534,9 @@ void SensorBoard::fpsDisplay() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		if (alive(deviceNumber))
 			if (fpsLast == 0xFFFF)
-				print("%s: no response\n\r", nameThis[deviceNumber]);
+				print("%s: no response\n\r", (*nameThis)[deviceNumber]);
 			else
-				print("%s: %i FPS\n\r", nameThis[deviceNumber], fps(deviceNumber));
+				print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
 	}
 }
 
@@ -602,7 +550,7 @@ void SensorBoard::fpsRequest(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_FPS_REQUEST;
-			esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 			fpsLast = 0xFFFF;
 		}
 	}
@@ -615,7 +563,7 @@ void SensorBoard::fpsRequest(uint8_t deviceNumber) {
 void SensorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 	canData[0] = COMMAND_ID_CHANGE_REQUEST;
 	canData[1] = newDeviceNumber;
-	esp32CANBus->messageSend(idIn[deviceNumber], 2, canData);
+	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
 /** Is the frame addressed to this device?
@@ -626,7 +574,7 @@ void SensorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 bool SensorBoard::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree)
 		error("Device doesn't exist");
-	return canIdOut == idOut[deviceNumber];
+	return canIdOut == (*idOut)[deviceNumber];
 }
 
 /** Ping devices and refresh alive array
@@ -638,22 +586,22 @@ void SensorBoard::devicesScan(bool verbose) {
 #define SENSOR_BOARD_SCAN_TRIES 3
 		for (uint8_t j = 0; j < SENSOR_BOARD_SCAN_TRIES && !any; j++) {
 			canData[0] = COMMAND_REPORT_ALIVE;
-			esp32CANBus->messageSend(idIn[i], 1, canData);
-			//print("%s sent\n\r", nameGroup);
+			esp32CANBus->messageSend((*idIn)[i], 1, canData);
+			//print("%s sent to 0x%x\n\r", nameGroup, (*idIn)[i]);
 			uint32_t nowMs = millis();
-			while (millis() - nowMs < 1 && !any) {
+			while (millis() - nowMs < 10 && !any) { // 1 is not enough, stray msgs reported
 				//print("Sent at %i ms\n\r", millis());
 				if (esp32CANBus->messageReceive()) {
-					//print("Rcvd 0x%x\n\r", esp32CANBus->rx_frame->MsgID);
-					if (esp32CANBus->rx_frame->MsgID == idOut[i]) {
+					//print("Rcvd 0x%x, expected: 0x%x\n\r", esp32CANBus->rx_frame->MsgID, (*idOut)[i]);
+					if (esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
 						if (verbose)
-							print("%s found\n\r", nameThis[i]);
+							print("%s found\n\r", (*nameThis)[i]);
 						any = true;
 					}
 #if REPORT_STRAY
 					else
 						if (verbose)
-							print("stray id: %0x02X", (String)esp32CANBus->rx_frame->MsgID);
+							print("stray id: %0x02X\n\r", (String)esp32CANBus->rx_frame->MsgID);
 #endif
 				}
 			}
@@ -672,7 +620,7 @@ void SensorBoard::devicesScan(bool verbose) {
 bool SensorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(msgId, deviceNumber)) {
-			print("%s Id: 0x%04X", nameThis[deviceNumber], msgId);
+			print("%s Id: 0x%04X", (*nameThis)[deviceNumber], msgId);
 			if (dlc > 0) {
 				print(", data: ");
 				for (uint8_t i = 0; i < dlc; i++)
@@ -689,7 +637,7 @@ bool SensorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 @return - name
 */
 char* SensorBoard::name(uint8_t deviceNumber) {
-	return nameThis[deviceNumber];
+	return (*nameThis)[deviceNumber];
 }
 
 /** Request notification
@@ -701,7 +649,7 @@ void SensorBoard::notificationRequest(uint8_t commandRequestingNotification, uin
 	while (tries < 10) {
 		tries++;
 		canData[0] = commandRequestingNotification;
-		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 		while (tries != 0xFF && esp32CANBus->messageReceive()) {
 			uint32_t id = esp32CANBus->rx_frame->MsgID;
 			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
@@ -784,7 +732,7 @@ void MotorGroupStar::go(float speed, float angleDegrees, float rotation, uint8_t
 		if (speedLimit == 0)
 			stop();
 		else {
-			angleDegrees -= 45;
+			angleDegrees += 135;// -= 45;
 			float angleRadians = angleDegrees / 180 * 3.14;
 			float si = sin(angleRadians);
 			float co = cos(angleRadians);

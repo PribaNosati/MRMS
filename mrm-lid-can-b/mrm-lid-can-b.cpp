@@ -6,8 +6,10 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_lid_can_b::Mrm_lid_can_b(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Lid2m") {
+Mrm_lid_can_b::Mrm_lid_can_b(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial, uint8_t maxDevices) :
+	SensorBoard(esp32CANBusSingleton, 1, "Lid2m", maxDevices) {
 	serial = hardwareSerial;
+	readings = new std::vector<uint16_t>(maxDevices);
 }
 
 Mrm_lid_can_b::~Mrm_lid_can_b()
@@ -19,10 +21,75 @@ Mrm_lid_can_b::~Mrm_lid_can_b()
 */
 void Mrm_lid_can_b::add(char * deviceName)
 {
-	SensorBoard::add(deviceName, CAN_ID_LID_CAN_B0_IN, CAN_ID_LID_CAN_B0_OUT, CAN_ID_LID_CAN_B1_IN, CAN_ID_LID_CAN_B1_OUT,
-		CAN_ID_LID_CAN_B2_IN, CAN_ID_LID_CAN_B2_OUT, CAN_ID_LID_CAN_B3_IN, CAN_ID_LID_CAN_B3_OUT, CAN_ID_LID_CAN_B4_IN,
-		CAN_ID_LID_CAN_B4_OUT, CAN_ID_LID_CAN_B5_IN, CAN_ID_LID_CAN_B5_OUT, CAN_ID_LID_CAN_B6_IN, CAN_ID_LID_CAN_B6_OUT,
-		CAN_ID_LID_CAN_B7_IN, CAN_ID_LID_CAN_B7_OUT);
+	uint16_t canIn, canOut;
+	switch (nextFree) {
+	case 0:
+		canIn = CAN_ID_LID_CAN_B0_IN;
+		canOut = CAN_ID_LID_CAN_B0_OUT;
+		break;
+	case 1:
+		canIn = CAN_ID_LID_CAN_B1_IN;
+		canOut = CAN_ID_LID_CAN_B1_OUT;
+		break;
+	case 2:
+		canIn = CAN_ID_LID_CAN_B2_IN;
+		canOut = CAN_ID_LID_CAN_B2_OUT;
+		break;
+	case 3:
+		canIn = CAN_ID_LID_CAN_B3_IN;
+		canOut = CAN_ID_LID_CAN_B3_OUT;
+	case 4:
+		canIn = CAN_ID_LID_CAN_B4_IN;
+		canOut = CAN_ID_LID_CAN_B4_OUT;
+		break;
+	case 5:
+		canIn = CAN_ID_LID_CAN_B5_IN;
+		canOut = CAN_ID_LID_CAN_B5_OUT;
+		break;
+	case 6:
+		canIn = CAN_ID_LID_CAN_B6_IN;
+		canOut = CAN_ID_LID_CAN_B6_OUT;
+		break;
+	case 7:
+		canIn = CAN_ID_LID_CAN_B7_IN;
+		canOut = CAN_ID_LID_CAN_B7_OUT;
+		break;
+	case 8:
+		canIn = CAN_ID_LID_CAN_B8_IN;
+		canOut = CAN_ID_LID_CAN_B8_OUT;
+		break;
+	case 9:
+		canIn = CAN_ID_LID_CAN_B9_IN;
+		canOut = CAN_ID_LID_CAN_B9_OUT;
+		break;
+	case 10:
+		canIn = CAN_ID_LID_CAN_B10_IN;
+		canOut = CAN_ID_LID_CAN_B10_OUT;
+		break;
+	case 11:
+		canIn = CAN_ID_LID_CAN_B11_IN;
+		canOut = CAN_ID_LID_CAN_B11_OUT;
+		break;
+	case 12:
+		canIn = CAN_ID_LID_CAN_B12_IN;
+		canOut = CAN_ID_LID_CAN_B12_OUT;
+		break;
+	case 13:
+		canIn = CAN_ID_LID_CAN_B13_IN;
+		canOut = CAN_ID_LID_CAN_B13_OUT;
+		break;
+	case 14:
+		canIn = CAN_ID_LID_CAN_B14_IN;
+		canOut = CAN_ID_LID_CAN_B14_OUT;
+		break;
+	case 15:
+		canIn = CAN_ID_LID_CAN_B15_IN;
+		canOut = CAN_ID_LID_CAN_B15_OUT;
+		break;
+	default:
+		error("Too many mrm-lid-can-b\n\r");
+	}
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Calibration, only once after production
@@ -34,7 +101,7 @@ void Mrm_lid_can_b::calibration(uint8_t deviceNumber){
 			calibration(i);
 	else{
 		canData[0] = COMMAND_LID_CAN_B_CALIBRATE;
-		esp32CANBus->messageSend(idIn[deviceNumber], 1, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
 }
 
@@ -56,13 +123,13 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 				break;
 			case COMMAND_SENSORS_MEASURE_SENDING: {
 				uint16_t mm = (data[2] << 8) | data[1];
-				readings[deviceNumber] = mm;
+				(*readings)[deviceNumber] = mm;
 			}
 			break;
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 			default:
 				print("Unknown command 0x%x\n\r", data[0]);
@@ -81,9 +148,9 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 @return - analog value
 */
 uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
-	if (deviceNumber > MAX_SENSORS_BASE)
+	if (deviceNumber > nextFree)
 		error("Device doesn't exist");
-	return readings[deviceNumber];
+	return (*readings)[deviceNumber];
 }
 
 /** Print all readings in a line

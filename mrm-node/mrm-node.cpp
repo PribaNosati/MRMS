@@ -7,8 +7,10 @@ extern CAN_device_t CAN_cfg;
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial) : SensorBoard(esp32CANBusSingleton, 1, "Node") {
+Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
+	SensorBoard(esp32CANBusSingleton, 1, "Node", maxDevices) {
 	serial = hardwareSerial;
+	readings = new std::vector<uint16_t[MRM_NODE_SENSOR_COUNT]>(maxDevices);
 }
 
 Mrm_node::~Mrm_node()
@@ -20,10 +22,43 @@ Mrm_node::~Mrm_node()
 */
 void Mrm_node::add(char * deviceName)
 {
-	SensorBoard::add(deviceName, CAN_ID_NODE0_IN, CAN_ID_NODE0_OUT, CAN_ID_NODE1_IN, CAN_ID_NODE1_OUT,
-		CAN_ID_NODE2_IN, CAN_ID_NODE2_OUT, CAN_ID_NODE3_IN, CAN_ID_NODE3_OUT, CAN_ID_NODE4_IN,
-		CAN_ID_NODE4_OUT, CAN_ID_NODE5_IN, CAN_ID_NODE5_OUT, CAN_ID_NODE6_IN, CAN_ID_NODE6_OUT,
-		CAN_ID_NODE7_IN, CAN_ID_NODE7_OUT);
+	uint16_t canIn, canOut;
+	switch (nextFree) {
+	case 0:
+		canIn = CAN_ID_NODE0_IN;
+		canOut = CAN_ID_NODE0_OUT;
+		break;
+	case 1:
+		canIn = CAN_ID_NODE1_IN;
+		canOut = CAN_ID_NODE1_OUT;
+		break;
+	case 2:
+		canIn = CAN_ID_NODE2_IN;
+		canOut = CAN_ID_NODE3_OUT;
+		break;
+	case 3:
+		canIn = CAN_ID_NODE3_IN;
+		canOut = CAN_ID_NODE4_OUT;
+	case 4:
+		canIn = CAN_ID_NODE4_IN;
+		canOut = CAN_ID_NODE4_OUT;
+		break;
+	case 5:
+		canIn = CAN_ID_NODE5_IN;
+		canOut = CAN_ID_NODE5_OUT;
+		break;
+	case 6:
+		canIn = CAN_ID_NODE6_IN;
+		canOut = CAN_ID_NODE6_OUT;
+		break;
+	case 7:
+		canIn = CAN_ID_NODE7_IN;
+		canOut = CAN_ID_NODE7_OUT;
+		break;
+	default:
+		error("Too many mrm-nodes\n\r");
+	}
+	SensorBoard::add(deviceName, canIn, canOut);
 
 	switches[nextFree-1] = 0;
 }
@@ -41,7 +76,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, nameThis[deviceNumber]);
+				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 				break;
 			case COMMAND_FPS_SENDING:
@@ -79,7 +114,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 
 			if (any)
 				for (uint8_t i = 0; i <= 2; i++)
-					readings[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+					(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
 
 			return true;
 		}
@@ -92,9 +127,9 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - analog value
 */
 uint16_t Mrm_node::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
-	if (deviceNumber > MAX_SENSORS_BASE || receiverNumberInSensor > MRM_NODE_SENSOR_COUNT)
+	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_SENSOR_COUNT)
 		error("Device doesn't exist");
-	return readings[deviceNumber][receiverNumberInSensor];
+	return (*readings)[deviceNumber][receiverNumberInSensor];
 }
 
 /** Print all readings in a line
@@ -103,7 +138,7 @@ void Mrm_node::readingsPrint() {
 	print("Ref. array:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t irNo = 0; irNo < MRM_NODE_SENSOR_COUNT; irNo++)
-			print(" %3i", readings[deviceNumber][irNo]);
+			print(" %3i", (*readings)[deviceNumber][irNo]);
 	}
 }
 
@@ -143,7 +178,7 @@ void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceN
 		canData[3] = degrees & 0xFF;
 		servoDegrees[servoNumber] = degrees;
 
-		esp32CANBus->messageSend(idIn[deviceNumber], 4, canData);
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 4, canData);
 	}
 }
 
@@ -162,7 +197,7 @@ void Mrm_node::test(BreakCondition breakWhen)
 					print("| ");
 				print("An:");
 				for (uint8_t i = 0; i < MRM_NODE_SENSOR_COUNT; i++)
-					print("%i ", readings[deviceNumber][i]);
+					print("%i ", (*readings)[deviceNumber][i]);
 				print("Di:");
 				for (uint8_t i = 0; i < 5; i++)
 					print("%i ", switches[i]);
