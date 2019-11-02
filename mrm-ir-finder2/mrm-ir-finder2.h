@@ -10,7 +10,8 @@ Licence: You can use this code any way you like.
 
 #define MAX_IR_FINDER2s 1 //Maximum number of IR finders.
 #define IR_FINDERS_DETECTION_THRESHOLD 50 // Increasing this number mitigates noise problems but decreases sensitivity
-#define IR_FINDERS_MAXIMUM_ANALOG_READ 800 // Change this number according to Your system in order to get exact angles. Numbers close to 1023 are expected for 10-bit ADCs.
+#define IR_FINDERS_MAXIMUM_ANALOG_READ 3300 // Change this number according to Your system in order to get exact angles. 
+	//Numbers close to 1023 are expected for 10-bit ADCs and around 3500 for 12-bit ADCs (ESP32).
 typedef bool(*BreakCondition)();
 
 struct IRSource {

@@ -26,7 +26,9 @@ Licence: You can use this code any way you like.
 #define CAN_ID_NODE7_IN 0x17E
 #define CAN_ID_NODE7_OUT 0x17F
 
-#define MRM_NODE_SENSOR_COUNT 9
+#define MRM_NODE_ANALOG_COUNT 9
+#define MRM_NODE_SWITCHES_COUNT 5
+#define MRM_NODE_SERVO_COUNT 3
 
 //CANBus commands
 #define COMMAND_NODE_SENDING_SENSORS_1_TO_3 0x04
@@ -39,9 +41,9 @@ typedef bool(*BreakCondition)();
 
 class Mrm_node : public SensorBoard
 {
-	std::vector<uint16_t[MRM_NODE_SENSOR_COUNT]>* readings; // Analog readings of all sensors
-	bool switches[5];
-	uint16_t servoDegrees[3] = { 0xFFFF, 0xFFFF };
+	std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>* readings; // Analog readings of all sensors
+	std::vector<bool[MRM_NODE_SWITCHES_COUNT]>* switches;
+	std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>* servoDegrees;// = { 0xFFFF, 0xFFFF, 0xFFFF };
 	
 public:
 
@@ -86,6 +88,13 @@ public:
 	@degrees - 0 - 180 degrees
 	*/
 	void servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceNumber = 0);
+
+	/** Read digital
+	@param switchNumber
+	@deviceNumber - mrm-node id
+	@return
+	*/
+	bool switchRead (uint8_t switchNumber, uint8_t deviceNumber);
 
 	/**Test
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.

@@ -31,7 +31,9 @@ bool Mrm_ir_finder2::anyIRSource(uint8_t sensorNumber) {
 IRSource Mrm_ir_finder2::irSource(uint8_t sensorNumber) {
 	IRSource source;
 
-	source.angle = map(analogRead(anglePins[sensorNumber]), 0, IR_FINDERS_MAXIMUM_ANALOG_READ, -180, 180);
+	source.angle = map(analogRead(anglePins[sensorNumber]), 0, IR_FINDERS_MAXIMUM_ANALOG_READ, 0, -360);
+	if (source.angle < -180)
+		source.angle += 360;
 	source.distance = analogRead(distancePins[sensorNumber]);
 	source.any = false;
 
@@ -72,9 +74,9 @@ void Mrm_ir_finder2::test(BreakCondition breakWhen, bool updateByTimerInterrupts
 			if (pass++)
 				print(" ");
 			IRSource source = irSource(deviceNumber);
-			char buffer[] = "No source detected.                    ";
+			char buffer[] = "No source detected.                                                      ";
 			if (anyIRSource())
-				sprintf(buffer, "Angle: %4dº, distance: %4d.", source.angle, source.distance);
+				sprintf(buffer, "Angle: %4iº, distance: %4i (an: %i/%i).", source.angle, source.distance, analogRead(anglePins[deviceNumber]), analogRead(distancePins[deviceNumber]));
 			print(buffer);
 		}
 		lastMs = millis();

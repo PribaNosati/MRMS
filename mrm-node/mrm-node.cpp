@@ -10,7 +10,9 @@ extern CAN_device_t CAN_cfg;
 Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
 	SensorBoard(esp32CANBusSingleton, 1, "Node", maxDevices) {
 	serial = hardwareSerial;
-	readings = new std::vector<uint16_t[MRM_NODE_SENSOR_COUNT]>(maxDevices);
+	readings = new std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>(maxDevices);
+	switches = new std::vector<bool[MRM_NODE_SWITCHES_COUNT]>(maxDevices);
+	servoDegrees = new std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>(maxDevices);
 }
 
 Mrm_node::~Mrm_node()
@@ -59,9 +61,14 @@ void Mrm_node::add(char * deviceName)
 	default:
 		error("Too many mrm-nodes\n\r");
 	}
-	SensorBoard::add(deviceName, canIn, canOut);
 
-	switches[nextFree-1] = 0;
+	for (uint8_t i = 0; i < MRM_NODE_SWITCHES_COUNT; i++)
+		(*switches)[nextFree][i] = 0;
+
+	for (uint8_t i = 0; i < MRM_NODE_SERVO_COUNT; i++)
+		(*servoDegrees)[nextFree][i] = 0xFFFF;
+
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Read CAN Bus message into local variables
@@ -99,7 +106,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 				uint8_t switchNumber = data[1] >> 1;
 				if (switchNumber > 4)
 					error("No switch");
-				switches[switchNumber] = data[1] & 1;
+				(*switches)[deviceNumber][switchNumber] = data[1] & 1;
 			}
 				break;
 			case COMMAND_NOTIFICATION:
@@ -128,7 +135,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - analog value
 */
 uint16_t Mrm_node::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
-	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_SENSOR_COUNT)
+	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_ANALOG_COUNT)
 		error("Device doesn't exist");
 	return (*readings)[deviceNumber][receiverNumberInSensor];
 }
@@ -138,7 +145,7 @@ uint16_t Mrm_node::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber)
 void Mrm_node::readingsPrint() {
 	print("Ref. array:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-		for (uint8_t irNo = 0; irNo < MRM_NODE_SENSOR_COUNT; irNo++)
+		for (uint8_t irNo = 0; irNo < MRM_NODE_ANALOG_COUNT; irNo++)
 			print(" %3i", (*readings)[deviceNumber][irNo]);
 	}
 }
@@ -153,7 +160,7 @@ void Mrm_node::servoTest(BreakCondition breakWhen) {
 		for (uint8_t deg = 0; deg <= 180; deg += 5) {
 			for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 				if (alive(deviceNumber)) {
-					for (uint8_t servoNumber = 0; servoNumber < 3; servoNumber++)
+					for (uint8_t servoNumber = 0; servoNumber < MRM_NODE_SERVO_COUNT; servoNumber++)
 						servoWrite(servoNumber, deg, deviceNumber);
 				}
 			}
@@ -170,18 +177,30 @@ void Mrm_node::servoTest(BreakCondition breakWhen) {
 @deviceNumber - mrm-node id
 */
 void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceNumber) {
-	if (servoNumber > 3)
+	if (servoNumber >= MRM_NODE_SERVO_COUNT)
 		error("Servo not found");
-	if (degrees != servoDegrees[servoNumber]) {
+	if (degrees != (*servoDegrees)[deviceNumber][servoNumber]) {
 		canData[0] = COMMAND_NODE_SERVO_SET;
 		canData[1] = servoNumber;
 		canData[2] = degrees >> 8;
 		canData[3] = degrees & 0xFF;
-		servoDegrees[servoNumber] = degrees;
+		(*servoDegrees)[deviceNumber][servoNumber] = degrees;
 
 		esp32CANBus->messageSend((*idIn)[deviceNumber], 4, canData);
 	}
 }
+
+/** Read digital
+@param switchNumber
+@deviceNumber - mrm-node id
+@return
+*/
+bool Mrm_node::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
+	if (deviceNumber >= nextFree || switchNumber >= MRM_NODE_SWITCHES_COUNT)
+		error("Device doesn't exist");
+	return (*switches)[deviceNumber][switchNumber];
+}
+
 
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
@@ -197,11 +216,11 @@ void Mrm_node::test(BreakCondition breakWhen)
 				if (pass++)
 					print("| ");
 				print("An:");
-				for (uint8_t i = 0; i < MRM_NODE_SENSOR_COUNT; i++)
+				for (uint8_t i = 0; i < MRM_NODE_ANALOG_COUNT; i++)
 					print("%i ", (*readings)[deviceNumber][i]);
 				print("Di:");
-				for (uint8_t i = 0; i < 5; i++)
-					print("%i ", switches[i]);
+				for (uint8_t i = 0; i < MRM_NODE_SWITCHES_COUNT; i++)
+					print("%i ", (*switches)[deviceNumber][i]);
 			}
 		}
 		lastMs = millis();
