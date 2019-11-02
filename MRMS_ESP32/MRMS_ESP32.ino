@@ -7,6 +7,7 @@
 #include <mrm-imu.h>
 #include <mrm-pid.h>
 #include <mrm-ir-finder2.h>
+#include <mrm-ir-finder-can.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
 #include <mrm-mot2x50.h>
@@ -24,8 +25,8 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC, 2 - differential
-#define MRM_BOARD_COUNT 11
+#define MOTOR_GROUP 0 // 0 - Soccer BLDC, 1 - Soccer BDC, 2 - differential
+#define MRM_BOARD_COUNT 12
 
 
 // Structures
@@ -63,6 +64,8 @@ struct Command commandTestBluetooth;
 struct Command commandTestI2C;
 struct Command commandTestIMU;
 struct Command commandTestIRFinder;
+struct Command commandTestIRFinderCan;
+struct Command commandTestIRFinderCanCalculated;
 struct Command commandTestLidars2m;
 struct Command commandTestLidars4m;
 struct Command commandTestNode;
@@ -105,16 +108,17 @@ Mrm_bldc4x2_5 mrm_bldc4x2_5(&esp32CANBus, &SerialBT);
 Mrm_bldc2x50 mrm_bldc2x50(&esp32CANBus, &SerialBT);
 Mrm_imu mrm_imu;
 Mrm_ir_finder2 mrm_ir_finder2;
-Mrm_lid_can_b mrm_lid_can_b(&esp32CANBus, &SerialBT);
+Mrm_ir_finder_can mrm_ir_finder_can(&esp32CANBus, &SerialBT);
+Mrm_lid_can_b mrm_lid_can_b(&esp32CANBus, &SerialBT, 10);
 Mrm_lid_can_b2 mrm_lid_can_b2(&esp32CANBus, &SerialBT);
-Mrm_mot2x50 mrm_mot2x50(&esp32CANBus, &SerialBT);
+Mrm_mot2x50 mrm_mot2x50(&esp32CANBus, &SerialBT);//
 Mrm_mot4x10 mrm_mot4x10(&esp32CANBus, &SerialBT);
 Mrm_mot4x3_6can mrm_mot4x3_6can(&esp32CANBus, &SerialBT);
 Mrm_node mrm_node(&esp32CANBus, &SerialBT);
 Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
 Mrm_servo mrm_servo(&SerialBT);
 Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
-Board* deviceGroup[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
+Board* deviceGroup[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_ir_finder_can, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
 &mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
 Mrm_pid pidXY(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the plane
 Mrm_pid pidRotation(0.5, 100, 0); // PID controller, regulates rotation around z axis
@@ -287,7 +291,9 @@ void commandsAdd() {
 	menuAdd(&commandTest8x8, "led", "Test 8x8", &led8x8Test, 1);
 	menuAdd(&commandTestI2C, "i2c", "Test I2C", &i2cTest, 1);
 	menuAdd(&commandTestIMU, "imu", "Test IMU", &imuTest, 1);
-	menuAdd(&commandTestIRFinder, "irf", "Test IR finder", &irFinderTest, 1);
+	menuAdd(&commandTestIRFinder, "irf", "Test ball analog", &irFinderTest, 1);
+	menuAdd(&commandTestIRFinderCan, "irs", "Test ball CAN single", &irFinderTestCan, 1);
+	menuAdd(&commandTestIRFinderCanCalculated, "irc", "Test ball CAN calcul", &irFinderTestCanCalculated, 1);
 	menuAdd(&commandTestBluetooth, "blt", "Test Bluetooth", &bluetoothTest, 1);
 	menuAdd(&commandTestReflectanceArray, "ref", "Test refl. arr.", &reflectanceArrayTest, 1);
 	menuAdd(&commandTestNode, "nod", "Test node", &nodeTest, 1);
@@ -385,7 +391,6 @@ void commandUpdate() {
 
 void devicesScan(bool verbose) {
 	broadcastingStop();
-
 	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) 
 		deviceGroup[i]->devicesScan(verbose);
 }
@@ -471,6 +476,17 @@ void irFinderTest() {
 	mrm_ir_finder2.test();
 }
 
+void irFinderTestCan() {
+	if (commandTestIRFinderCan.firstProcess)
+		mrm_ir_finder_can.continuousReadingStart();
+	mrm_ir_finder_can.test();
+}
+
+void irFinderTestCanCalculated() {
+	if (commandTestIRFinderCanCalculated.firstProcess)
+		mrm_ir_finder_can.continuousReadingCalculatedDataStart();
+	mrm_ir_finder_can.testCalculated();
+}
 
 void initialize() {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
@@ -485,7 +501,7 @@ void initialize() {
 
 	// Motor groups
 #if MOTOR_GROUP == 2
-	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 3);
+	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 3);
 #elif MOTOR_GROUP == 3
 	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
 #else
@@ -494,7 +510,18 @@ void initialize() {
 
 	// 8x8 LED
 	mrm_8x8a.add("LED8x8_1");
-	mrm_8x8a.add("LED8x8_2");
+
+	// Motors mrm-bldc2x50
+	mrm_bldc2x50.add(false, "Mot2x50-1");
+	mrm_bldc2x50.add(false, "Mot2x50-2");
+	mrm_bldc2x50.add(false, "Mot2x50-3");
+	mrm_bldc2x50.add(false, "Mot2x50-4");
+
+	// Motors mrm-bldc4x2.5
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-1");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-2");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-3");
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-4");
 
 	// IMU
 	mrm_imu.add(true);
@@ -502,55 +529,26 @@ void initialize() {
 	// mrm-ir-finder2
 	mrm_ir_finder2.add(34, 33);
 
+	// mrm-ir-finder-can
+	mrm_ir_finder_can.add("IRFind-1");
+
 	// Motors mrm-mot2x50
 	mrm_mot2x50.add(false, "Mot2x50-1");
 	mrm_mot2x50.add(false, "Mot2x50-2");
 	mrm_mot2x50.add(false, "Mot2x50-3");
 	mrm_mot2x50.add(false, "Mot2x50-4");
-	mrm_mot2x50.add(false, "Mot2x50-5");
-	mrm_mot2x50.add(false, "Mot2x50-6");
-	mrm_mot2x50.add(false, "Mot2x50-7");
-	mrm_mot2x50.add(false, "Mot2x50-8");
 
 	// Motors mrm-mot4x10
 	mrm_mot4x10.add(false, "Mot4x10-1");
 	mrm_mot4x10.add(false, "Mot4x10-2");
 	mrm_mot4x10.add(false, "Mot4x10-3");
 	mrm_mot4x10.add(false, "Mot4x10-4");
-	mrm_mot4x10.add(false, "Mot4x10-5");
-	mrm_mot4x10.add(false, "Mot4x10-6");
-	mrm_mot4x10.add(false, "Mot4x10-7");
-	mrm_mot4x10.add(false, "Mot4x10-8");
 
 	// Motors mrm-mot4x3.6can
 	mrm_mot4x3_6can.add(false, "Mot3.6-1");
 	mrm_mot4x3_6can.add(false, "Mot3.6-2");
 	mrm_mot4x3_6can.add(false, "Mot3.6-3");
 	mrm_mot4x3_6can.add(false, "Mot3.6-4");
-	mrm_mot4x3_6can.add(false, "Mot3.6-5");
-	mrm_mot4x3_6can.add(false, "Mot3.6-6");
-	mrm_mot4x3_6can.add(false, "Mot3.6-7");
-	mrm_mot4x3_6can.add(false, "Mot3.6-8");
-
-	// Motors mrm-bldc2x50
-	mrm_bldc2x50.add(false, "Mot2x50-1");
-	mrm_bldc2x50.add(false, "Mot2x50-2");
-	mrm_bldc2x50.add(false, "Mot2x50-3");
-	mrm_bldc2x50.add(false, "Mot2x50-4");
-	mrm_bldc2x50.add(false, "Mot2x50-5");
-	mrm_bldc2x50.add(false, "Mot2x50-6");
-	mrm_bldc2x50.add(false, "Mot2x50-7");
-	mrm_bldc2x50.add(false, "Mot2x50-8");
-
-	// Motors mrm-bldc4x2.5
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-1");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-2");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-3");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-4");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-5");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-6");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-7");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-8");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
 	mrm_lid_can_b.add("Lidar2m-1");
@@ -561,6 +559,8 @@ void initialize() {
 	mrm_lid_can_b.add("Lidar2m-6");
 	mrm_lid_can_b.add("Lidar2m-7");
 	mrm_lid_can_b.add("Lidar2m-8");
+	mrm_lid_can_b.add("Lidar2m-9");
+	mrm_lid_can_b.add("Lidar2m10");
 
 	// Lidars mrm-lid-can-b2, VL53L1X, 4 m
 	mrm_lid_can_b2.add("Lidar4m-1");
@@ -575,22 +575,12 @@ void initialize() {
 	// CAN Bus node
 	mrm_node.add("Node-1");
 	mrm_node.add("Node-2");
-	mrm_node.add("Node-3");
-	mrm_node.add("Node-4");
-	mrm_node.add("Node-5");
-	mrm_node.add("Node-6");
-	mrm_node.add("Node-7");
-	mrm_node.add("Node-8");
 
 	// Reflective array
 	mrm_ref_can.add("RefArr-1");
 	mrm_ref_can.add("RefArr-2");
 	mrm_ref_can.add("RefArr-3");
 	mrm_ref_can.add("RefArr-4");
-	mrm_ref_can.add("RefArr-5");
-	mrm_ref_can.add("RefArr-6");
-	mrm_ref_can.add("RefArr-7");
-	mrm_ref_can.add("RefArr-8");
 
 	// Servo motors
 	mrm_servo.add(16, "Servo", 10);
@@ -600,10 +590,6 @@ void initialize() {
 	mrm_therm_b_can.add("Thermo-2");
 	mrm_therm_b_can.add("Thermo-3");
 	mrm_therm_b_can.add("Thermo-4");
-	mrm_therm_b_can.add("Thermo-5");
-	mrm_therm_b_can.add("Thermo-6");
-	mrm_therm_b_can.add("Thermo-7");
-	mrm_therm_b_can.add("Thermo-8");
 
 	commandsAdd();
 }
@@ -908,10 +894,18 @@ void testAll() {
 }
 
 void testAny() {
-	if (commandTestAny.firstProcess)
-		broadcastingStart();
-	print("%i\n\r", mrm_lid_can_b.reading(0));
-	delay(500);
+	if (mrm_ir_finder2.anyIRSource())
+		motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
+	else
+		motorGroupStar->stop();
+	//if (commandTestAny.firstProcess) {
+	//	mrm_lid_can_b.continuousReadingStart();
+	//	mrm_servo.servoWrite(90);
+	//}
+	//if(mrm_lid_can_b.reading(0)<100 || mrm_lid_can_b.reading(1)<100)
+	//	motorGroupDifferential->go(80, 0);
+	//else
+	//	motorGroupDifferential->go(0, 80);
 }
 
 void testOmniWheels() {
