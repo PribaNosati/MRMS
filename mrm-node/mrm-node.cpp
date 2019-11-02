@@ -39,6 +39,7 @@ void Mrm_node::add(char * deviceName)
 	case 3:
 		canIn = CAN_ID_NODE3_IN;
 		canOut = CAN_ID_NODE4_OUT;
+		break;
 	case 4:
 		canIn = CAN_ID_NODE4_IN;
 		canOut = CAN_ID_NODE4_OUT;

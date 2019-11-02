@@ -39,6 +39,7 @@ void Mrm_mot4x10::add(bool isReversed, char * deviceName)
 	case 3:
 		canIn = CAN_ID_MOT4X10_0_MOTOR3_IN;
 		canOut = CAN_ID_MOT4X10_0_MOTOR3_OUT;
+		break;
 	case 4:
 		canIn = CAN_ID_MOT4X10_1_MOTOR0_IN;
 		canOut = CAN_ID_MOT4X10_1_MOTOR0_OUT;

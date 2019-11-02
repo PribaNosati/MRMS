@@ -38,6 +38,7 @@ void Mrm_lid_can_b::add(char * deviceName)
 	case 3:
 		canIn = CAN_ID_LID_CAN_B3_IN;
 		canOut = CAN_ID_LID_CAN_B3_OUT;
+		break;
 	case 4:
 		canIn = CAN_ID_LID_CAN_B4_IN;
 		canOut = CAN_ID_LID_CAN_B4_OUT;

@@ -39,6 +39,7 @@ void Mrm_therm_b_can::add(char * deviceName)
 	case 3:
 		canIn = CAN_ID_THERM_B_CAN3_IN;
 		canOut = CAN_ID_THERM_B_CAN3_IN;
+		break;
 	case 4:
 		canIn = CAN_ID_THERM_B_CAN4_IN;
 		canOut = CAN_ID_THERM_B_CAN4_IN;

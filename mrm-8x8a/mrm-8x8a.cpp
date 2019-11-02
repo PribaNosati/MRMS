@@ -40,6 +40,7 @@ void Mrm_8x8a::add(char * deviceName)
 	case 3:
 		canIn = CAN_ID_8x8A3_IN;
 		canOut = CAN_ID_8x8A3_OUT;
+		break;
 	case 4:
 		canIn = CAN_ID_8x8A4_IN;
 		canOut = CAN_ID_8x8A4_OUT;

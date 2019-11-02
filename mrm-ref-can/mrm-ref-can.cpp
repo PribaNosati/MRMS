@@ -39,6 +39,7 @@ void Mrm_ref_can::add(char * deviceName)
 	case 3:
 		canIn = CAN_ID_REF_CAN3_IN;
 		canOut = CAN_ID_REF_CAN3_OUT;
+		break;
 	case 4:
 		canIn = CAN_ID_REF_CAN4_IN;
 		canOut = CAN_ID_REF_CAN4_OUT;
