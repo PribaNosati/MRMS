@@ -25,7 +25,7 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 0 // 0 - Soccer BLDC, 1 - Soccer BDC, 2 - differential
+#define MOTOR_GROUP 3 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential, 3 - Soccer BDC mrm-mot4x10
 #define MRM_BOARD_COUNT 12
 
 
@@ -82,7 +82,7 @@ struct Command* commandPrevious = commandCurrent;
 
 // Variables
 
-char errorMessage[40]; // Global variable enables functions to set it although no passed as parameter
+char errorMessage[40] = ""; // Global variable enables functions to set it although not passed as parameter
 
 uint8_t fpsNextIndex = 0; // To count frames per second
 uint32_t fpsMs[3] = { 0, 0, 0 };
@@ -155,6 +155,7 @@ void loop() {
 	fps(); // Measure FPS. Less than 30 - a bad thing.
 	messagesReceive(); // Receive all CAN Bus messages. This call should be included in any loop, like here.
 	verbosePrint(); // Print FPS and maybe some additional data
+	errors();
 }
 
 void blink() {
@@ -412,6 +413,16 @@ void error(char * message) {
 	while (1);
 }
 
+void errors() {
+	static uint32_t lastDisplayMs = 0;
+	if (strcmp(errorMessage, "") != 0) {
+		if (millis() - lastDisplayMs > 10000 || lastDisplayMs == 0) {
+			print("ERROR! %s\n\r", errorMessage);
+			commandStopAll(); // Stop all motors
+		}
+	}
+}
+
 void fps() {
 	fpsMs[fpsNextIndex] = millis();
 	if (++fpsNextIndex >= 3)
@@ -500,12 +511,14 @@ void initialize() {
 	digitalWrite(15, false);
 
 	// Motor groups
-#if MOTOR_GROUP == 2
-	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 3);
-#elif MOTOR_GROUP == 3
-	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
-#else
+#if MOTOR_GROUP == 0
 	motorGroupStar = new MotorGroupStar(&mrm_bldc2x50, 2, &mrm_bldc2x50, 3, &mrm_bldc2x50, 0, &mrm_bldc2x50, 1);
+#elif MOTOR_GROUP == 1
+	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
+#elif MOTOR_GROUP == 2
+	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 3);
+#else
+	motorGroupStar = new MotorGroupStar(&mrm_mot4x10, 2, &mrm_mot4x10, 3, &mrm_mot4x10, 0, &mrm_mot4x10, 1);
 #endif
 
 	// 8x8 LED
@@ -539,10 +552,10 @@ void initialize() {
 	mrm_mot2x50.add(false, "Mot2x50-4");
 
 	// Motors mrm-mot4x10
-	mrm_mot4x10.add(false, "Mot4x10-1");
-	mrm_mot4x10.add(false, "Mot4x10-2");
-	mrm_mot4x10.add(false, "Mot4x10-3");
-	mrm_mot4x10.add(false, "Mot4x10-4");
+	mrm_mot4x10.add(true, "Mot4x10-1");
+	mrm_mot4x10.add(true, "Mot4x10-2");
+	mrm_mot4x10.add(true, "Mot4x10-3");
+	mrm_mot4x10.add(true, "Mot4x10-4");
 
 	// Motors mrm-mot4x3.6can
 	mrm_mot4x3_6can.add(false, "Mot3.6-1");
@@ -894,12 +907,13 @@ void testAll() {
 }
 
 void testAny() {
-	if (mrm_ir_finder2.anyIRSource())
-		motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
-	else
-		motorGroupStar->stop();
-	//if (commandTestAny.firstProcess) {
-	//	mrm_lid_can_b.continuousReadingStart();
+	//if (mrm_ir_finder2.anyIRSource())
+	//	motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
+	//else
+	//	motorGroupStar->stop();
+	if (commandTestAny.firstProcess) 
+		mrm_lid_can_b2.continuousReadingStart();
+	print("%i\n\r", mrm_lid_can_b2.reading(0));
 	//	mrm_servo.servoWrite(90);
 	//}
 	//if(mrm_lid_can_b.reading(0)<100 || mrm_lid_can_b.reading(1)<100)
