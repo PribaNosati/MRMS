@@ -1,6 +1,7 @@
 #include "mrm-lid-can-b.h"
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -88,7 +89,8 @@ void Mrm_lid_can_b::add(char * deviceName)
 		canOut = CAN_ID_LID_CAN_B15_OUT;
 		break;
 	default:
-		error("Too many mrm-lid-can-b\n\r");
+		strcpy(errorMessage, "Too many mrm-lid-can-b");
+		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
 }
@@ -136,7 +138,6 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 				print("Unknown command 0x%x\n\r", data[0]);
 				errorCode = 206;
 				errorInDeviceNumber = deviceNumber;
-				//error("LidDeco");
 			}
 			return true;
 		}
@@ -149,8 +150,10 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 @return - analog value
 */
 uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
-	if (deviceNumber > nextFree)
-		error("Device doesn't exist");
+	if (deviceNumber > nextFree) {
+		strcpy(errorMessage, "mrm-lid-can-b doesn't exist");
+		return 0;
+	}
 	return (*readings)[deviceNumber];
 }
 
@@ -160,7 +163,7 @@ void Mrm_lid_can_b::readingsPrint() {
 	print("Lid2m:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %4i", readings[deviceNumber]);
+			print(" %4i", (*readings)[deviceNumber]);
 }
 
 /**Test
@@ -176,7 +179,7 @@ void Mrm_lid_can_b::test(BreakCondition breakWhen)
 			if (alive(deviceNumber)) {
 				if (pass++)
 					print(" ");
-				print("%i ", readings[deviceNumber]);
+				print("%4i ", (*readings)[deviceNumber]);
 			}
 		}
 		lastMs = millis();

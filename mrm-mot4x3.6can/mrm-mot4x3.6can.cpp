@@ -1,6 +1,7 @@
 #include "mrm-mot4x3.6can.h"
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -57,7 +58,8 @@ void Mrm_mot4x3_6can::add(bool isReversed, char * deviceName)
 		canOut = CAN_ID_MOT4X3_6_CAN1_MOTOR3_OUT;
 		break;
 	default:
-		error("Too many mrm-mot4x3.6s\n\r");
+		strcpy(errorMessage, "Too many mrm-mot4x3.6");
+		return;
 	}
 	MotorBoard::add(deviceName, canIn, canOut);
 

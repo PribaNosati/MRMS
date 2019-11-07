@@ -1,6 +1,7 @@
 #include "mrm-bldc4x2.5.h"
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -57,7 +58,7 @@ void Mrm_bldc4x2_5::add(bool isReversed, char * deviceName)
 		canOut = CAN_ID_BLDC4X2_5_1_MOTOR3_OUT;
 		break;
 	default:
-		error("Too many mr-bldc4x2.5s\n\r");
+		strcpy(errorMessage, "Too many mr-bldc4x2.5");
 	}
 	MotorBoard::add(deviceName, canIn, canOut);
 

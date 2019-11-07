@@ -1,14 +1,15 @@
 #include "mrm-8x8a.h"
 #include <ESP32CANBus.h>
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
 Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxDevices) {
-	on = new std::vector<bool>(maxDevices);
+	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
 	esp32CANBus = esp32CANBusSingleton;
 	serial = hardwareSerial;
 	nextFree = 0;
@@ -58,11 +59,12 @@ void Mrm_8x8a::add(char * deviceName)
 		canOut = CAN_ID_8x8A7_OUT;
 		break;
 	default:
-		error("Too many mrm-8x8as\n\r");
+		strcpy(errorMessage, "Too many mrm-8x8a");
 	}
-	SensorBoard::add(deviceName, canIn, canOut);
+	for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++)
+		(*on)[nextFree][i] = 0;
 
-	(*on)[nextFree-1] = false;
+	SensorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Display bitmap
@@ -84,10 +86,24 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
 			switch (data[0]) {
-			case COMMAND_8X8_SWITCH_ON: {
-				bool isOn = data[1];
-				(*on)[deviceNumber] = isOn;
+			case COMMAND_8X8_SWITCH_ON: 
+			case COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION:{
+				uint8_t switchNumber = data[1] >> 1;
+				if (switchNumber > 4) {
+					strcpy(errorMessage, "No 8x8a switch");
+					return false;
+				}
+				(*on)[deviceNumber][switchNumber] = data[1] & 1;
+				if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
+					canData[0] = COMMAND_NOTIFICATION;
+					canData[1] = switchNumber; //todo - deviceNumber not taken into account
+					esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+				}
 			}
+			break;
+			case COMMAND_8x8_TEST_CAN_BUS:
+				print("Test: %i\n\r", data[1]);
+				break;
 			case COMMAND_ERROR:
 				errorCode = data[1];
 				errorInDeviceNumber = deviceNumber;
@@ -105,26 +121,58 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 				print("Unknown command 0x%x\n\r", data[0]);
 				errorCode = 203;
 				errorInDeviceNumber = deviceNumber;
-				//error("8x8Deco");
 			}
 			return true;
 		}
 	return false;
 }
 
+/** Read switch
+@param switchNumber
+@deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - true if pressed, false otherwise
+*/
+bool Mrm_8x8a::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
+	if (deviceNumber >= nextFree || switchNumber >= MRM_8x8A_SWITCHES_COUNT) {
+		strcpy(errorMessage, "Switch doesn't exist");
+		return false;
+	}
+	return (*on)[deviceNumber][switchNumber];
+}
+
+
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
 void Mrm_8x8a::test(BreakCondition breakWhen)
 {
-	uint8_t bitmapId = 0;
-	while (!breakWhen()) {
-		print("Map %i\n\r", bitmapId);
-		bitmapDisplay(bitmapId);
-		if (++bitmapId > 3)
-			bitmapId = 0;
-		delay(500);
+#define MRM_8x8A_START_BITMAP_1 0x01
+#define MRM_8x8A_END_BITMAP_1 0x04
+#define MRM_8x8A_START_BITMAP_2 0x30
+#define MRM_8x8A_END_BITMAP_2 0x5A
+	static uint32_t lastMs = 0;
+	static uint8_t bitmapId = MRM_8x8A_START_BITMAP_1;
+
+	if (millis() - lastMs > 300) {
+		uint8_t pass = 0;
+		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+			if (alive(deviceNumber)) {
+				bitmapDisplay(bitmapId, deviceNumber);
+				if (pass++)
+					print("| ");
+				print("Map 0x%02x, sw:", bitmapId);
+				for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++)
+					print("%i ", (*on)[deviceNumber][i]);
+			}
+		}
+		lastMs = millis();
+		bitmapId++;
+		if (bitmapId > MRM_8x8A_END_BITMAP_1 && bitmapId < MRM_8x8A_START_BITMAP_2)
+			bitmapId = MRM_8x8A_START_BITMAP_2;
+		else if (bitmapId > MRM_8x8A_END_BITMAP_2)
+			bitmapId = MRM_8x8A_START_BITMAP_1;
+		if (pass)
+			print("\n\r");
 	}
-	print("\n\rTest over.\n\r");
 }
 

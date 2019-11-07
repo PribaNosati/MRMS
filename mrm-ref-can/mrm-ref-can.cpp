@@ -1,7 +1,8 @@
 #include "mrm-ref-can.h"
 #include <ESP32CANBus.h>
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -57,7 +58,8 @@ void Mrm_ref_can::add(char * deviceName)
 		canOut = CAN_ID_REF_CAN7_OUT;
 		break;
 	default:
-		error("Too many mrm-ref-cans\n\r");
+		strcpy(errorMessage, "Too many mrm-ref-cans");
+		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
 }
@@ -113,7 +115,6 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 				print("Unknown command 0x%x\n\r", data[0]);
 				errorCode = 201;
 				errorInDeviceNumber = deviceNumber;
-				//error("RefDeco1");
 			}
 
 			if (any)
@@ -131,8 +132,10 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - analog value
 */
 uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
-	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT)
-		error("Device doesn't exist");
+	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT) {
+		strcpy(errorMessage, "mrm-ref-can doesn't exist");
+		return 0;
+	}
 	return (*readings)[deviceNumber][receiverNumberInSensor];
 }
 

@@ -66,6 +66,3 @@ public:
 	*/
 	void test(BreakCondition breakWhen = 0, bool updateByTimerInterrupts = false);
 };
-
-//Declaration of error function. Definition is in Your code.
-void error(String message);

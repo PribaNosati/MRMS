@@ -1,6 +1,6 @@
 #include "mrm-ir-finder2.h"
 
-extern void error(char* message);
+extern char* errorMessage;
 
 /**Add a sensor
 @param angle - Analog pin for angle. Robot front is 0 degrees and positive angles are to the right. Total range is -180º to 180º.
@@ -8,8 +8,10 @@ extern void error(char* message);
 */
 void Mrm_ir_finder2::add(uint8_t anglePin, uint8_t distancePin)
 {
-	if (nextFree >= MAX_IR_FINDER2s)
-		error("Too many IR finders");
+	if (nextFree >= MAX_IR_FINDER2s) {
+		strcpy(errorMessage, "Too many mrm-ir-finder2");
+		return;
+	}
 	anglePins[nextFree] = anglePin;
 	distancePins[nextFree] = distancePin;
 	nextFree++;

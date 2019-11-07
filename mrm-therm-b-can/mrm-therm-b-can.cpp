@@ -1,7 +1,8 @@
 #include "mrm-therm-b-can.h"
 #include <ESP32CANBus.h>
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -26,38 +27,39 @@ void Mrm_therm_b_can::add(char * deviceName)
 	switch (nextFree) {
 	case 0:
 		canIn = CAN_ID_THERM_B_CAN0_IN;
-		canOut = CAN_ID_THERM_B_CAN0_IN;
+		canOut = CAN_ID_THERM_B_CAN0_OUT;
 		break;
 	case 1:
 		canIn = CAN_ID_THERM_B_CAN1_IN;
-		canOut = CAN_ID_THERM_B_CAN1_IN;
+		canOut = CAN_ID_THERM_B_CAN1_OUT;
 		break;
 	case 2:
 		canIn = CAN_ID_THERM_B_CAN2_IN;
-		canOut = CAN_ID_THERM_B_CAN2_IN;
+		canOut = CAN_ID_THERM_B_CAN2_OUT;
 		break;
 	case 3:
 		canIn = CAN_ID_THERM_B_CAN3_IN;
-		canOut = CAN_ID_THERM_B_CAN3_IN;
+		canOut = CAN_ID_THERM_B_CAN3_OUT;
 		break;
 	case 4:
 		canIn = CAN_ID_THERM_B_CAN4_IN;
-		canOut = CAN_ID_THERM_B_CAN4_IN;
+		canOut = CAN_ID_THERM_B_CAN4_OUT;
 		break;
 	case 5:
 		canIn = CAN_ID_THERM_B_CAN5_IN;
-		canOut = CAN_ID_THERM_B_CAN5_IN;
+		canOut = CAN_ID_THERM_B_CAN5_OUT;
 		break;
 	case 6:
 		canIn = CAN_ID_THERM_B_CAN6_IN;
-		canOut = CAN_ID_THERM_B_CAN6_IN;
+		canOut = CAN_ID_THERM_B_CAN6_OUT;
 		break;
 	case 7:
 		canIn = CAN_ID_THERM_B_CAN7_IN;
-		canOut = CAN_ID_THERM_B_CAN7_IN;
+		canOut = CAN_ID_THERM_B_CAN7_OUT;
 		break;
 	default:
-		error("Too many mrm-therm-b-can\n\r");
+		strcpy(errorMessage, "Too many mrm-therm-b-can\n\r");
+		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
 }
@@ -92,7 +94,6 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 				print("Unknown command 0x%x\n\r", data[0]);
 				errorCode = 205;
 				errorInDeviceNumber = deviceNumber;
-				//error("ThermBDeco");
 			}
 			return true;
 		}
@@ -105,9 +106,12 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 @return - analog value
 */
 int16_t Mrm_therm_b_can::reading(uint8_t deviceNumber){
-	if (deviceNumber >= nextFree)
-		error("Device doesn't exist");
-	return (*readings)[deviceNumber];
+	if (deviceNumber >= nextFree) {
+		strcpy(errorMessage, "Mrm_therm_b_can overflow.");
+		return 0;
+	}
+	else
+		return (*readings)[deviceNumber];
 }
 
 /** Print all readings in a line

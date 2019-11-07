@@ -33,9 +33,6 @@
 
 typedef bool(*BreakCondition)();
 
-//Declaration of error function. Definition is in Your code.
-extern void error(char* message);
-
 class Board{
 protected:
 	uint32_t aliveThis; // Responded to ping, maximum 32 devices of the same class

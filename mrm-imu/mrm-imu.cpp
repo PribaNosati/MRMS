@@ -1,11 +1,15 @@
 #include "mrm-imu.h"
 
+extern char* errorMessage;
+
 /**Add a BNO05
 @param defautI2CAddress - If true, 0x29. Otherwise 0x28.
 */
 void Mrm_imu::add(bool defaultI2CAddress) {
-	if (nextFree >= MAX_MRM_IMU)
-		error("Too many Bosch IMUs.");//Todo - enabling more sensors by changing bno055Initialize() call.
+	if (nextFree >= MAX_MRM_IMU) {
+		strcpy(errorMessage, "Too many Bosch IMUs.");//Todo - enabling more sensors by changing bno055Initialize() call.
+		return;
+	}
 
 	defaultI2CAddresses[nextFree] = defaultI2CAddress;
 	nextFree++;
@@ -48,7 +52,7 @@ uint8_t Mrm_imu::accelerationCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return acc;
 	else {
-		error("No acc.");
+		strcpy(errorMessage, "No accelerometer");
 		return 0;
 	}
 }
@@ -62,7 +66,7 @@ uint8_t Mrm_imu::gyroCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		error("No gyr.");
+		strcpy(errorMessage, "No gyroscope");
 		return 0;
 	}
 }
@@ -76,7 +80,7 @@ uint8_t Mrm_imu::magneticCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		error("No mag.");
+		strcpy(errorMessage, "No magnetometer.");
 		return 0;
 	}
 }
@@ -101,7 +105,7 @@ uint8_t Mrm_imu::systemCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		error("No sys.");
+		strcpy(errorMessage, "mrm-imu calibration error");
 		return 0;
 	}
 }
@@ -643,15 +647,17 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	bno055.delay_msec = BNO055_delay_msek;
 	bno055.dev_addr = defaultI2CAddress ? BNO055_I2C_ADDR2 : BNO055_I2C_ADDR1;
 	comres = bno055_init(&bno055);
-	if (comres != BNO055_SUCCESS)
-		error("IMU not initialized");
+	if (comres != BNO055_SUCCESS) {
+		strcpy(errorMessage, "mrm-imu not initialized");
+		return;
+	}
 
 	//comres = bno055_set_power_mode(BNO055_POWER_MODE_NORMAL);
 	//if (comres != BNO055_SUCCESS)
 	//	errorHandler();
 	bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
 	if (comres != BNO055_SUCCESS)
-		error("IMU not initialized");
+		strcpy(errorMessage, "mrm-imu not initialized");
 }
 
 /** Print to all serial ports, pointer to list

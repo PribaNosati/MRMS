@@ -1,5 +1,7 @@
 #include "mrm-servo.h"
 
+extern char* errorMessage;
+
 /** Constructor
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
@@ -19,12 +21,16 @@ Mrm_servo::~Mrm_servo()
 */
 void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
 {
-	if (nextFree >= MAX_SERVO_COUNT)
-		error("Too many servo motors");
+	if (nextFree >= MAX_SERVO_COUNT) {
+		strcpy(errorMessage, "Too many servo motors");
+		return;
+	}
 
 	if (deviceName != 0) {
-		if (strlen(deviceName) > 9)
-			error("Name too long");
+		if (strlen(deviceName) > 9) {
+			strcpy(errorMessage, "Device name too long");
+			return;
+		}
 		strcpy(nameThis[nextFree], deviceName);
 	}
 
@@ -90,8 +96,10 @@ void Mrm_servo::vprint(const char* fmt, va_list argp) {
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 */
 void Mrm_servo::servoWrite( uint16_t degrees, uint8_t servoNumber) {
-	if (servoNumber >= nextFree)
-		error("Servo");
+	if (servoNumber >= nextFree) {
+		strcpy(errorMessage, "Servo doesn't exist");
+		return;
+	}
 	degrees = constrain(degrees, 0, 180);
 	uint16_t period = (1 << timerWidthBits) - 1;
 	ledcWrite(servoNumber, map(degrees, 0, 180, period * 0.025, period * 0.125));// /20 /10

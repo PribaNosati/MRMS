@@ -1,7 +1,8 @@
 #include "mrm-node.h"
 #include <ESP32CANBus.h>
 
-extern CAN_device_t CAN_cfg;  
+extern CAN_device_t CAN_cfg;
+extern char* errorMessage;
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -59,7 +60,8 @@ void Mrm_node::add(char * deviceName)
 		canOut = CAN_ID_NODE7_OUT;
 		break;
 	default:
-		error("Too many mrm-nodes\n\r");
+		strcpy(errorMessage, "Too many mrm-node");
+		return;
 	}
 
 	for (uint8_t i = 0; i < MRM_NODE_SWITCHES_COUNT; i++)
@@ -104,8 +106,10 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 				break;
 			case COMMAND_NODE_SWITCH_ON: {
 				uint8_t switchNumber = data[1] >> 1;
-				if (switchNumber > 4)
-					error("No switch");
+				if (switchNumber > 4) {
+					strcpy(errorMessage, "No mrm-switch");
+					return false;
+				}
 				(*switches)[deviceNumber][switchNumber] = data[1] & 1;
 			}
 				break;
@@ -117,7 +121,6 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 				print("Unknown command 0x%x\n\r", data[0]);
 				errorCode = 204;
 				errorInDeviceNumber = deviceNumber;
-				//error("NodeDec");
 			}
 
 			if (any)
@@ -135,8 +138,10 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - analog value
 */
 uint16_t Mrm_node::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
-	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_ANALOG_COUNT)
-		error("Device doesn't exist");
+	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_ANALOG_COUNT) {
+		strcpy(errorMessage, "mrm-node doesn't exist");
+		return 0;
+	}
 	return (*readings)[deviceNumber][receiverNumberInSensor];
 }
 
@@ -177,8 +182,10 @@ void Mrm_node::servoTest(BreakCondition breakWhen) {
 @deviceNumber - mrm-node id
 */
 void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceNumber) {
-	if (servoNumber >= MRM_NODE_SERVO_COUNT)
-		error("Servo not found");
+	if (servoNumber >= MRM_NODE_SERVO_COUNT) {
+		strcpy(errorMessage, "Servo not found");
+		return;
+	}
 	if (degrees != (*servoDegrees)[deviceNumber][servoNumber]) {
 		canData[0] = COMMAND_NODE_SERVO_SET;
 		canData[1] = servoNumber;
@@ -196,8 +203,10 @@ void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceN
 @return
 */
 bool Mrm_node::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
-	if (deviceNumber >= nextFree || switchNumber >= MRM_NODE_SWITCHES_COUNT)
-		error("Device doesn't exist");
+	if (deviceNumber >= nextFree || switchNumber >= MRM_NODE_SWITCHES_COUNT) {
+		strcpy(errorMessage, "Switch doesn't exist");
+		return false;
+	}
 	return (*switches)[deviceNumber][switchNumber];
 }
 

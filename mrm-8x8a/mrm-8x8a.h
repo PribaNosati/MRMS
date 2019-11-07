@@ -29,10 +29,14 @@ Licence: You can use this code any way you like.
 //CANBus commands
 #define COMMAND_8X8_DISPLAY 0x00
 #define COMMAND_8X8_SWITCH_ON 0x01
+#define COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION 0x02
+#define COMMAND_8x8_TEST_CAN_BUS 0x03
+
+#define MRM_8x8A_SWITCHES_COUNT 4
 
 class Mrm_8x8a : public SensorBoard
 {
-	std::vector<bool>* on;
+	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* on;
 	
 public:
 	
@@ -61,6 +65,13 @@ public:
 	@return - true if canId for this class
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
+
+	/** Read switch
+	@param switchNumber
+	@deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - true if pressed, false otherwise
+	*/
+	bool switchRead(uint8_t switchNumber, uint8_t deviceNumber = 0);
 
 	/**Test
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
