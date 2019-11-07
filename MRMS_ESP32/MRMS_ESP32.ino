@@ -82,7 +82,7 @@ struct Command* commandPrevious = commandCurrent;
 
 // Variables
 
-char errorMessage[40] = ""; // Global variable enables functions to set it although not passed as parameter
+char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
 
 uint8_t fpsNextIndex = 0; // To count frames per second
 uint32_t fpsMs[3] = { 0, 0, 0 };
@@ -159,15 +159,31 @@ void loop() {
 }
 
 void blink() {
-	#define LED_ON_MS 100
-	#define LED_OFF_MS 1000
-		static uint32_t lastBlinkMs = 0;
-		static bool isOn = false;
-		if ((millis() - lastBlinkMs > LED_OFF_MS && !isOn) || (millis() - lastBlinkMs > LED_ON_MS && isOn)) {
-			digitalWrite(LED_OK, !isOn);
+	const uint16_t onMs = 100; 
+	const uint16_t offMs = 1000;
+	uint8_t repeatOnTimes;
+	static uint32_t lastBlinkMs = 0;
+	static uint8_t isOn = 0;
+	static uint8_t pass = 0;
+
+	if (strcmp(errorMessage, "") == 0)
+		repeatOnTimes = 1;
+	else 
+		repeatOnTimes = 2;
+
+	if (pass < repeatOnTimes) {
+		if (millis() - lastBlinkMs > onMs) {
 			isOn = !isOn;
+			if (!isOn)
+				pass++;
+			digitalWrite(LED_OK, isOn);
 			lastBlinkMs = millis();
 		}
+	}
+	else if (millis() - lastBlinkMs > offMs) {
+		pass = 0;
+		lastBlinkMs = 0;
+	}
 }
 
 
@@ -256,13 +272,18 @@ void canIdChange() {
 						selectedDevice = deviceGroup[deviceNumber];
 						selectedSubDevice = subDeviceNumber;
 					}
+			//print("%i %i\n\r", selectedDevice->devicesMaximumNumberInAllGroups(), selectedDevice->devicesIn1Group());
 			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesIn1Group();
 			print("%i. %s\n\rEnter new board id [1..%i]: ", last, selectedDevice->name(selectedSubDevice), maxInput);
 			lastMs = millis();
-			uint8_t newDeviceNumber = 0xFF;
-			while (millis() - lastMs < 30000 && newDeviceNumber > maxInput && newDeviceNumber != 0)
-				if (Serial.available())
-					newDeviceNumber = Serial.read() - 48;
+			uint8_t newDeviceNumber = 0;
+			bool any = false;
+			while ((millis() - lastMs < 30000 && !any || maxInput > 9 && millis() - lastMs < 500 && any) && newDeviceNumber <= maxInput)
+				if (Serial.available()) {
+					newDeviceNumber = newDeviceNumber * 10 + (Serial.read() - 48);
+					any = true;
+					lastMs = millis();
+				}
 
 			if (newDeviceNumber > maxInput || newDeviceNumber == 0)
 				print("timeout\n\r");
@@ -404,13 +425,6 @@ void devicesScan() {
 }
 
 void doNothing() {
-}
-
-// If anything goes wrong, display the source and stop.
-void error(char * message) {
-	print("%s\n\r", message);
-	digitalWrite(LED_ERROR, true);
-	while (1);
 }
 
 void errors() {
@@ -609,7 +623,6 @@ void initialize() {
 
 void led8x8Test() {
 	mrm_8x8a.test(userBreak);
-	commandCurrent = NULL;
 }
 
 void lidar2mTest() {
@@ -730,8 +743,10 @@ void menu() {
 
 void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel) {
 	static uint8_t nextFree = 0;
-	if (nextFree >= COMMANDS_LIMIT)
-		error("COMMANDS_LIMIT exceeded.");
+	if (nextFree >= COMMANDS_LIMIT) {
+		strcpy(errorMessage, "COMMANDS_LIMIT exceeded.");
+		return;
+	}
 	if (shortcut != 0)
 		strcpy(command->shortcut, shortcut);
 	if (text != 0)
@@ -907,13 +922,15 @@ void testAll() {
 }
 
 void testAny() {
+	print("%i %i %i %i %i %i %3\n\r", analogRead(2), analogRead(13), analogRead(15), analogRead(25), analogRead(26), analogRead(33), analogRead(34));
+	delay(300);
 	//if (mrm_ir_finder2.anyIRSource())
 	//	motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
 	//else
 	//	motorGroupStar->stop();
-	if (commandTestAny.firstProcess) 
-		mrm_lid_can_b2.continuousReadingStart();
-	print("%i\n\r", mrm_lid_can_b2.reading(0));
+	//if (commandTestAny.firstProcess) 
+	//	mrm_lid_can_b.continuousReadingStart();
+	//print("%i\n\r", mrm_lid_can_b.reading(9));
 	//	mrm_servo.servoWrite(90);
 	//}
 	//if(mrm_lid_can_b.reading(0)<100 || mrm_lid_can_b.reading(1)<100)
