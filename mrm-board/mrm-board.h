@@ -368,8 +368,8 @@ public:
 
 class MotorGroupDifferential : public MotorGroup {
 public: 
-	MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberFor135Degrees,
-		MotorBoard* motorBoardForMinus135Degrees = NULL, uint8_t motorNumberForMinus135Degrees = 0, MotorBoard* motorBoardForMinus45Degrees = NULL, uint8_t motorNumberForMinus45Degrees = 0);
+	MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
+		MotorBoard* motorBoardForLeft2 = NULL, uint8_t motorNumberForLeft2 = 0, MotorBoard* motorBoardForRight2 = NULL, uint8_t motorNumberForRight2 = 0);
 
 	/** Start all motors
 	@param leftSpeed

@@ -714,9 +714,9 @@ MotorGroupDifferential::MotorGroupDifferential(MotorBoard* motorBoardForLeft1, u
 void MotorGroupDifferential::go(int8_t leftSpeed, int8_t rightSpeed, int8_t lateralSpeedToRight) {
 	if (motorBoard[0] != NULL) {
 		motorBoard[0]->speedSet(motorNumber[0], leftSpeed - lateralSpeedToRight);
-		motorBoard[1]->speedSet(motorNumber[1], rightSpeed + lateralSpeedToRight);
+		motorBoard[1]->speedSet(motorNumber[1], -rightSpeed + lateralSpeedToRight);
 		motorBoard[2]->speedSet(motorNumber[2], leftSpeed - lateralSpeedToRight);
-		motorBoard[3]->speedSet(motorNumber[3], rightSpeed + lateralSpeedToRight);
+		motorBoard[3]->speedSet(motorNumber[3], -rightSpeed + lateralSpeedToRight);
 	}
 }
 
