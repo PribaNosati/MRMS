@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 #include <BluetoothSerial.h>
 #include <mrm-8x8a.h>
 #include <mrm-board.h>
@@ -25,7 +25,7 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10
+#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
 #define MRM_BOARD_COUNT 12
 
 
@@ -531,8 +531,10 @@ void initialize() {
 	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
 #elif MOTOR_GROUP == 2
 	motorGroupDifferential = new MotorGroupDifferential(&mrm_mot4x3_6can, 0, &mrm_mot4x3_6can, 2, &mrm_mot4x3_6can, 1, &mrm_mot4x3_6can, 3);
-#else
+#elif MOTOR_GROUP == 3
 	motorGroupStar = new MotorGroupStar(&mrm_mot4x10, 2, &mrm_mot4x10, 3, &mrm_mot4x10, 0, &mrm_mot4x10, 1);
+#else
+	motorGroupDifferential = new MotorGroupDifferential(&mrm_bldc2x50, 0, &mrm_bldc2x50, 2, &mrm_bldc2x50, 1, &mrm_bldc2x50, 3);
 #endif
 
 	// 8x8 LED
@@ -574,8 +576,8 @@ void initialize() {
 	// Motors mrm-mot4x3.6can
 	mrm_mot4x3_6can.add(false, "Mot3.6-1");
 	mrm_mot4x3_6can.add(false, "Mot3.6-2");
-	mrm_mot4x3_6can.add(false, "Mot3.6-3");
-	mrm_mot4x3_6can.add(false, "Mot3.6-4");
+	mrm_mot4x3_6can.add(true, "Mot3.6-3");
+	mrm_mot4x3_6can.add(true, "Mot3.6-4");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
 	mrm_lid_can_b.add("Lidar2m-1");
@@ -922,8 +924,9 @@ void testAll() {
 }
 
 void testAny() {
-	print("%i %i %i %i %i %i %3\n\r", analogRead(2), analogRead(13), analogRead(15), analogRead(25), analogRead(26), analogRead(33), analogRead(34));
-	delay(300);
+	motorGroupDifferential->go(0, 50);
+	//if (mrm_ref_can.reading(0, 2) < 500)
+	//	motorGroupDifferential->stop();
 	//if (mrm_ir_finder2.anyIRSource())
 	//	motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
 	//else
@@ -933,10 +936,14 @@ void testAny() {
 	//print("%i\n\r", mrm_lid_can_b.reading(9));
 	//	mrm_servo.servoWrite(90);
 	//}
-	//if(mrm_lid_can_b.reading(0)<100 || mrm_lid_can_b.reading(1)<100)
+	//if (mrm_lid_can_b.reading(0) < 100 || mrm_lid_can_b.reading(1) < 100) {
 	//	motorGroupDifferential->go(80, 0);
-	//else
+	///*	print˝*/
+	//}
+	//else {
 	//	motorGroupDifferential->go(0, 80);
+	//}
+	
 }
 
 void testOmniWheels() {
