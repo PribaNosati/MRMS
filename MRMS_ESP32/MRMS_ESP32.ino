@@ -25,7 +25,7 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
+#define MOTOR_GROUP 1 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
 #define MRM_BOARD_COUNT 12
 
 
@@ -136,7 +136,7 @@ void print(const char* fmt, ...);
 */
 void setup() {
 	Serial.begin(115200);
-	SerialBT.begin("ESP32"); //Start Bluetooth. ESP32 - Bluetooth device name
+	SerialBT.begin("ESP32Dinko"); //Start Bluetooth. ESP32 - Bluetooth device name
 	Wire.begin(); // Start I2C
 	delay(50);
 	print("ESP32-Arduino-CAN\r\n");
@@ -488,6 +488,23 @@ void i2cScan() {
 }
 
 void i2cTest() {
+	print("Scanning.\n\r");
+
+	bool any = false;
+	for (byte address = 1; address < 127; address++)
+	{
+		Wire.beginTransmission(address); // Transmission tried
+		byte status = Wire.endTransmission(); // Was it successful?
+		if (status == 0)
+		{
+			print("Found at address 0x%02x", address);
+			any = true;
+		}
+		else if (status == 4)
+			print("Found at address 0x%02x", address);
+	}
+	if (!any)
+		print("Nothing found.\n\n\r");
 
 	commandCurrent = NULL;
 }
@@ -526,7 +543,7 @@ void initialize() {
 
 	// Motor groups
 #if MOTOR_GROUP == 0
-	motorGroupStar = new MotorGroupStar(&mrm_bldc2x50, 2, &mrm_bldc2x50, 3, &mrm_bldc2x50, 0, &mrm_bldc2x50, 1);
+	motorGroupStar = new MotorGroupStar(&mrm_bldc2x50, 0, &mrm_bldc2x50, 1, &mrm_bldc2x50, 2, &mrm_bldc2x50, 3);
 #elif MOTOR_GROUP == 1
 	motorGroupStar = new MotorGroupStar(&mrm_mot2x50, 0, &mrm_mot2x50, 1, &mrm_mot2x50, 2, &mrm_mot2x50, 3);
 #elif MOTOR_GROUP == 2
@@ -553,7 +570,7 @@ void initialize() {
 	mrm_bldc4x2_5.add(false, "Mo4x2.5-4");
 
 	// IMU
-	mrm_imu.add(true);
+	mrm_imu.add();
 
 	// mrm-ir-finder2
 	mrm_ir_finder2.add(34, 33);
@@ -924,7 +941,28 @@ void testAll() {
 }
 
 void testAny() {
-	motorGroupDifferential->go(0, 50);
+	//static uint8_t ledRed[8];
+	//static uint8_t ledGreen[8];
+	//if (commandTestAny.firstProcess) {
+	//	ledRed[0] = 0b01111111;
+	//	ledRed[1] = 0b01001001;
+	//	ledRed[2] = 0b10101010;
+	//	ledRed[3] = 0b10101100;
+	//	ledRed[4] = 0b10101100;
+	//	ledRed[5] = 0b10101010;
+	//	ledRed[6] = 0b01001001;
+	//	ledRed[7] = 0b00000000;
+	//	ledGreen[0] = 0b00000000;
+	//	ledGreen[1] = 0b10110110;
+	//	ledGreen[2] = 0b01010101;
+	//	ledGreen[3] = 0b01010011;
+	//	ledGreen[4] = 0b01010011;
+	//	ledGreen[5] = 0b01010101;
+	//	ledGreen[6] = 0b10110110;
+	//	ledGreen[7] = 0b11111111;
+	//	mrm_8x8a.bitmapDisplayCustom(ledRed, ledGreen);
+	//}
+	//motorGroupDifferential->go(0, 50);
 	//if (mrm_ref_can.reading(0, 2) < 500)
 	//	motorGroupDifferential->stop();
 	//if (mrm_ir_finder2.anyIRSource())
@@ -932,18 +970,38 @@ void testAny() {
 	//else
 	//	motorGroupStar->stop();
 	//if (commandTestAny.firstProcess) 
-	//	mrm_lid_can_b.continuousReadingStart();
+	//	mrm_lid_can_b.cont
+	//	mrm_servo.servoWrite(90);inuousReadingStart();
 	//print("%i\n\r", mrm_lid_can_b.reading(9));
-	//	mrm_servo.servoWrite(90);
 	//}
-	//if (mrm_lid_can_b.reading(0) < 100 || mrm_lid_can_b.reading(1) < 100) {
-	//	motorGroupDifferential->go(80, 0);
-	///*	print˝*/
-	//}
-	//else {
-	//	motorGroupDifferential->go(0, 80);
-	//}
-	
+	if (commandTestAny.firstProcess) {
+		mrm_lid_can_b.continuousReadingStart();
+		mrm_ref_can.continuousReadingStart();
+	}
+	if (mrm_ref_can.reading(0) < 425 || mrm_ref_can.reading(1) < 425 || mrm_ref_can.reading(2) < 425 ||
+		mrm_ref_can.reading(3) < 425 || mrm_ref_can.reading(4) < 425 || mrm_ref_can.reading(5) < 425 ||
+		mrm_ref_can.reading(6) < 425 || mrm_ref_can.reading(7)<425 || mrm_ref_can.reading(8) < 425 )
+	{
+		//print("a")
+		if (mrm_ref_can.reading(0) < 425 || mrm_ref_can.reading(1) < 425 || mrm_ref_can.reading(2) < 425 ||
+			mrm_ref_can.reading(3) < 425)
+			motorGroupDifferential->go(10, 50);
+		else
+			if (mrm_ref_can.reading(5) < 425 || mrm_ref_can.reading(6) < 425 || mrm_ref_can.reading(7) < 425 ||
+				mrm_ref_can.reading(8) < 425)
+				motorGroupDifferential->go(50, 10);
+			else
+				motorGroupDifferential->go(50, 50);
+	}
+	else {
+		if (mrm_lid_can_b.reading(0) < 100 || mrm_lid_can_b.reading(1) < 100) {
+			motorGroupDifferential->go(80, 0);
+			print("%i\n\r", mrm_lid_can_b.reading(0));
+		}
+		else {
+			motorGroupDifferential->go(0, 80);
+		}
+	}
 }
 
 void testOmniWheels() {
