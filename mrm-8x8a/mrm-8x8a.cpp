@@ -77,6 +77,29 @@ void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
 	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
+/** Display custom bitmap
+@param red - 8-byte array for red
+@param green - 8-byte array for green
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_8x8a::bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t deviceNumber) {
+	canData[0] = COMMAND_8X8_BITMAP_PART1;
+	for (uint8_t i = 0; i < 7; i++)
+		canData[i + 1] = red[i];
+	esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+
+	canData[0] = COMMAND_8X8_BITMAP_PART2;
+	canData[1] = red[7];
+	for (uint8_t i = 0; i < 6; i++)
+		canData[i + 1] = green[i];
+	esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+
+	canData[0] = COMMAND_8X8_BITMAP_PART3;
+	for (uint8_t i = 0; i < 5; i++)
+		canData[i + 1] = green[i + 2];
+	esp32CANBus->messageSend((*idIn)[deviceNumber], 6, canData);
+}
+
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
 @param data - 8 bytes from CAN Bus message.

@@ -31,6 +31,9 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_SWITCH_ON 0x01
 #define COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION 0x02
 #define COMMAND_8x8_TEST_CAN_BUS 0x03
+#define COMMAND_8X8_BITMAP_PART1 0x04
+#define COMMAND_8X8_BITMAP_PART2 0x05
+#define COMMAND_8X8_BITMAP_PART3 0x06
 
 #define MRM_8x8A_SWITCHES_COUNT 4
 
@@ -58,6 +61,13 @@ public:
 	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber = 0);
+
+	/** Display custom bitmap
+	@param red - 8-byte array for red
+	@param green - 8-byte array for green
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t deviceNumber = 0);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
