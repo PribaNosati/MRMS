@@ -1,4 +1,4 @@
-﻿#include <Arduino.h>
+#include <Arduino.h>
 #include <BluetoothSerial.h>
 #include <mrm-8x8a.h>
 #include <mrm-board.h>
@@ -25,7 +25,7 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 1 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
+#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
 #define MRM_BOARD_COUNT 12
 
 
@@ -136,7 +136,7 @@ void print(const char* fmt, ...);
 */
 void setup() {
 	Serial.begin(115200);
-	SerialBT.begin("ESP32Dinko"); //Start Bluetooth. ESP32 - Bluetooth device name
+	SerialBT.begin("ESP32 A"); //Start Bluetooth. ESP32 - Bluetooth device name
 	Wire.begin(); // Start I2C
 	delay(50);
 	print("ESP32-Arduino-CAN\r\n");
@@ -199,8 +199,6 @@ void bluetoothTest() {
 void broadcastingStart() {
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
 		deviceGroup[deviceNumber]->continuousReadingStart();
-
-	commandCurrent = NULL;
 }
 
 void broadcastingStop() {
@@ -274,22 +272,22 @@ void canIdChange() {
 					}
 			//print("%i %i\n\r", selectedDevice->devicesMaximumNumberInAllGroups(), selectedDevice->devicesIn1Group());
 			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesIn1Group();
-			print("%i. %s\n\rEnter new board id [1..%i]: ", last, selectedDevice->name(selectedSubDevice), maxInput);
+			print("%i. %s\n\rEnter new board id [0..%i]: ", last - 1, selectedDevice->name(selectedSubDevice), maxInput);
 			lastMs = millis();
 			uint8_t newDeviceNumber = 0;
 			bool any = false;
-			while ((millis() - lastMs < 30000 && !any || maxInput > 9 && millis() - lastMs < 500 && any) && newDeviceNumber <= maxInput)
+			while ((millis() - lastMs < 30000 && !any || maxInput > 9 && millis() - lastMs < 500 && any) && newDeviceNumber < maxInput)
 				if (Serial.available()) {
 					newDeviceNumber = newDeviceNumber * 10 + (Serial.read() - 48);
 					any = true;
 					lastMs = millis();
 				}
 
-			if (newDeviceNumber > maxInput || newDeviceNumber == 0)
+			if (newDeviceNumber >= maxInput)
 				print("timeout\n\r");
 			else {
 				print("%i\n\rChange requested.\n\r", newDeviceNumber);
-				selectedDevice->idChange(newDeviceNumber - 1, selectedSubDevice);
+				selectedDevice->idChange(newDeviceNumber, selectedSubDevice);
 				delay(500); // Delay for firmware handling of devices with the same ids.
 			}
 		}
@@ -558,16 +556,16 @@ void initialize() {
 	mrm_8x8a.add("LED8x8_1");
 
 	// Motors mrm-bldc2x50
-	mrm_bldc2x50.add(false, "Mot2x50-1");
-	mrm_bldc2x50.add(false, "Mot2x50-2");
-	mrm_bldc2x50.add(false, "Mot2x50-3");
-	mrm_bldc2x50.add(false, "Mot2x50-4");
+	mrm_bldc2x50.add(false, "BL2x50-0");
+	mrm_bldc2x50.add(false, "BL2x50-1");
+	mrm_bldc2x50.add(false, "BL2x50-2");
+	mrm_bldc2x50.add(false, "BL2x50-3");
 
 	// Motors mrm-bldc4x2.5
+	mrm_bldc4x2_5.add(false, "Mo4x2.5-0");
 	mrm_bldc4x2_5.add(false, "Mo4x2.5-1");
 	mrm_bldc4x2_5.add(false, "Mo4x2.5-2");
 	mrm_bldc4x2_5.add(false, "Mo4x2.5-3");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-4");
 
 	// IMU
 	mrm_imu.add();
@@ -579,24 +577,25 @@ void initialize() {
 	mrm_ir_finder_can.add("IRFind-1");
 
 	// Motors mrm-mot2x50
+	mrm_mot2x50.add(false, "Mot2x50-0");
 	mrm_mot2x50.add(false, "Mot2x50-1");
 	mrm_mot2x50.add(false, "Mot2x50-2");
 	mrm_mot2x50.add(false, "Mot2x50-3");
-	mrm_mot2x50.add(false, "Mot2x50-4");
 
 	// Motors mrm-mot4x10
+	mrm_mot4x10.add(true, "Mot4x10-0");
 	mrm_mot4x10.add(true, "Mot4x10-1");
 	mrm_mot4x10.add(true, "Mot4x10-2");
 	mrm_mot4x10.add(true, "Mot4x10-3");
-	mrm_mot4x10.add(true, "Mot4x10-4");
 
 	// Motors mrm-mot4x3.6can
+	mrm_mot4x3_6can.add(false, "Mot3.6-0");
 	mrm_mot4x3_6can.add(false, "Mot3.6-1");
-	mrm_mot4x3_6can.add(false, "Mot3.6-2");
+	mrm_mot4x3_6can.add(true, "Mot3.6-2");
 	mrm_mot4x3_6can.add(true, "Mot3.6-3");
-	mrm_mot4x3_6can.add(true, "Mot3.6-4");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
+	mrm_lid_can_b.add("Lidar2m-0");
 	mrm_lid_can_b.add("Lidar2m-1");
 	mrm_lid_can_b.add("Lidar2m-2");
 	mrm_lid_can_b.add("Lidar2m-3");
@@ -606,9 +605,9 @@ void initialize() {
 	mrm_lid_can_b.add("Lidar2m-7");
 	mrm_lid_can_b.add("Lidar2m-8");
 	mrm_lid_can_b.add("Lidar2m-9");
-	mrm_lid_can_b.add("Lidar2m10");
 
 	// Lidars mrm-lid-can-b2, VL53L1X, 4 m
+	mrm_lid_can_b2.add("Lidar4m-0");
 	mrm_lid_can_b2.add("Lidar4m-1");
 	mrm_lid_can_b2.add("Lidar4m-2");
 	mrm_lid_can_b2.add("Lidar4m-3");
@@ -616,26 +615,25 @@ void initialize() {
 	mrm_lid_can_b2.add("Lidar4m-5");
 	mrm_lid_can_b2.add("Lidar4m-6");
 	mrm_lid_can_b2.add("Lidar4m-7");
-	mrm_lid_can_b2.add("Lidar4m-8");
 
 	// CAN Bus node
+	mrm_node.add("Node-0");
 	mrm_node.add("Node-1");
-	mrm_node.add("Node-2");
 
 	// Reflective array
+	mrm_ref_can.add("RefArr-0");
 	mrm_ref_can.add("RefArr-1");
 	mrm_ref_can.add("RefArr-2");
 	mrm_ref_can.add("RefArr-3");
-	mrm_ref_can.add("RefArr-4");
 
 	// Servo motors
 	mrm_servo.add(16, "Servo", 10);
 
 	// Thermal array
+	mrm_therm_b_can.add("Thermo-0");
 	mrm_therm_b_can.add("Thermo-1");
 	mrm_therm_b_can.add("Thermo-2");
 	mrm_therm_b_can.add("Thermo-3");
-	mrm_therm_b_can.add("Thermo-4");
 
 	commandsAdd();
 }
@@ -941,67 +939,18 @@ void testAll() {
 }
 
 void testAny() {
-	//static uint8_t ledRed[8];
-	//static uint8_t ledGreen[8];
-	//if (commandTestAny.firstProcess) {
-	//	ledRed[0] = 0b01111111;
-	//	ledRed[1] = 0b01001001;
-	//	ledRed[2] = 0b10101010;
-	//	ledRed[3] = 0b10101100;
-	//	ledRed[4] = 0b10101100;
-	//	ledRed[5] = 0b10101010;
-	//	ledRed[6] = 0b01001001;
-	//	ledRed[7] = 0b00000000;
-	//	ledGreen[0] = 0b00000000;
-	//	ledGreen[1] = 0b10110110;
-	//	ledGreen[2] = 0b01010101;
-	//	ledGreen[3] = 0b01010011;
-	//	ledGreen[4] = 0b01010011;
-	//	ledGreen[5] = 0b01010101;
-	//	ledGreen[6] = 0b10110110;
-	//	ledGreen[7] = 0b11111111;
-	//	mrm_8x8a.bitmapDisplayCustom(ledRed, ledGreen);
-	//}
-	//motorGroupDifferential->go(0, 50);
-	//if (mrm_ref_can.reading(0, 2) < 500)
-	//	motorGroupDifferential->stop();
-	//if (mrm_ir_finder2.anyIRSource())
-	//	motorGroupStar->go(mrm_ir_finder2.irSource().angle, 15);
+	if (commandTestAny.firstProcess)
+		broadcastingStart();
+	
+	print("%i\n\r", mrm_ir_finder_can.reading(0));
+	delay(500);
+	//if (mrm_lid_can_b.reading(1) < 100)
+	//	motorGroupDifferential->go(-60, 60);
+	//else if (mrm_lid_can_b.reading(2) > 100)
+	//	motorGroupDifferential->go(80, 20);
 	//else
-	//	motorGroupStar->stop();
-	//if (commandTestAny.firstProcess) 
-	//	mrm_lid_can_b.cont
-	//	mrm_servo.servoWrite(90);inuousReadingStart();
-	//print("%i\n\r", mrm_lid_can_b.reading(9));
-	//}
-	if (commandTestAny.firstProcess) {
-		mrm_lid_can_b.continuousReadingStart();
-		mrm_ref_can.continuousReadingStart();
-	}
-	if (mrm_ref_can.reading(0) < 425 || mrm_ref_can.reading(1) < 425 || mrm_ref_can.reading(2) < 425 ||
-		mrm_ref_can.reading(3) < 425 || mrm_ref_can.reading(4) < 425 || mrm_ref_can.reading(5) < 425 ||
-		mrm_ref_can.reading(6) < 425 || mrm_ref_can.reading(7)<425 || mrm_ref_can.reading(8) < 425 )
-	{
-		//print("a")
-		if (mrm_ref_can.reading(0) < 425 || mrm_ref_can.reading(1) < 425 || mrm_ref_can.reading(2) < 425 ||
-			mrm_ref_can.reading(3) < 425)
-			motorGroupDifferential->go(10, 50);
-		else
-			if (mrm_ref_can.reading(5) < 425 || mrm_ref_can.reading(6) < 425 || mrm_ref_can.reading(7) < 425 ||
-				mrm_ref_can.reading(8) < 425)
-				motorGroupDifferential->go(50, 10);
-			else
-				motorGroupDifferential->go(50, 50);
-	}
-	else {
-		if (mrm_lid_can_b.reading(0) < 100 || mrm_lid_can_b.reading(1) < 100) {
-			motorGroupDifferential->go(80, 0);
-			print("%i\n\r", mrm_lid_can_b.reading(0));
-		}
-		else {
-			motorGroupDifferential->go(0, 80);
-		}
-	}
+	//	motorGroupDifferential->go(20, 80);
+
 }
 
 void testOmniWheels() {
