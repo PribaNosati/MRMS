@@ -4,6 +4,7 @@
 #include <mrm-board.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
+#include <mrm-common.h>
 #include <mrm-imu.h>
 #include <mrm-pid.h>
 #include <mrm-ir-finder2.h>
@@ -25,20 +26,11 @@
 #define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
 #define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
+#define MOTOR_GROUP 3 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
 #define MRM_BOARD_COUNT 12
 
 
-// Structures
-
-// A command can be executed (processed) after user enters its shortcut, but also act as a state machine.
-struct Command {
-	bool firstProcess = true;
-	char shortcut[4];
-	char text[20];
-	void (*pointer)();
-	uint8_t menuLevel;
-};
+// Commands
 
 struct Command commandCanSniff;
 struct Command commandDoNothing;
@@ -118,7 +110,7 @@ Mrm_node mrm_node(&esp32CANBus, &SerialBT);
 Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
 Mrm_servo mrm_servo(&SerialBT);
 Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
-Board* deviceGroup[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_ir_finder_can, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
+Board* board[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_ir_finder_can, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
 &mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
 Mrm_pid pidXY(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the plane
 Mrm_pid pidRotation(0.5, 100, 0); // PID controller, regulates rotation around z axis
@@ -198,14 +190,14 @@ void bluetoothTest() {
 
 void broadcastingStart() {
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		deviceGroup[deviceNumber]->continuousReadingStart();
+		board[deviceNumber]->continuousReadingStart();
 }
 
 void broadcastingStop() {
-	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		deviceGroup[deviceNumber]->continuousReadingStop();
-
-	commandCurrent = NULL;
+	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++) {
+		board[deviceNumber]->continuousReadingStop();
+		delay(1); // TODO
+	}
 }
 
 void canBusSniff() {
@@ -214,7 +206,7 @@ void canBusSniff() {
 		bool found = false;
 		if (mrm_ref_can.esp32CANBus->messageReceive()) {
 			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-				if (deviceGroup[deviceNumber]->framePrint(mrm_lid_can_b.esp32CANBus->rx_frame->MsgID, mrm_lid_can_b.esp32CANBus->rx_frame->FIR.B.DLC,
+				if (board[deviceNumber]->framePrint(mrm_lid_can_b.esp32CANBus->rx_frame->MsgID, mrm_lid_can_b.esp32CANBus->rx_frame->FIR.B.DLC,
 					mrm_lid_can_b.esp32CANBus->rx_frame->data.u8)) {
 					found = true;
 					break;
@@ -237,9 +229,9 @@ void canBusSniff() {
 void canIdChange() {
 	uint8_t last = 0;
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		for (uint8_t subDeviceNumber = 0; subDeviceNumber < deviceGroup[deviceNumber]->deadOrAliveCount(); subDeviceNumber++)
-			if (deviceGroup[deviceNumber]->alive(subDeviceNumber)) 
-				print("%i. %s\n\r", ++last, deviceGroup[deviceNumber]->name(subDeviceNumber));
+		for (uint8_t subDeviceNumber = 0; subDeviceNumber < board[deviceNumber]->deadOrAliveCount(); subDeviceNumber++)
+			if (board[deviceNumber]->alive(subDeviceNumber)) 
+				print("%i. %s\n\r", ++last, board[deviceNumber]->name(subDeviceNumber));
 	if (last == 0)
 		print("No devices\n\r");
 	else{
@@ -265,9 +257,9 @@ void canIdChange() {
 			Board * selectedDevice = NULL;
 			uint8_t selectedSubDevice = 0xFF;
 			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT && selectedSubDevice == 0xFF; deviceNumber++)
-				for (uint8_t subDeviceNumber = 0; subDeviceNumber < deviceGroup[deviceNumber]->deadOrAliveCount() && selectedSubDevice == 0xFF; subDeviceNumber++)
-					if (deviceGroup[deviceNumber]->alive(subDeviceNumber) && ++last == selectedNumber) {
-						selectedDevice = deviceGroup[deviceNumber];
+				for (uint8_t subDeviceNumber = 0; subDeviceNumber < board[deviceNumber]->deadOrAliveCount() && selectedSubDevice == 0xFF; subDeviceNumber++)
+					if (board[deviceNumber]->alive(subDeviceNumber) && ++last == selectedNumber) {
+						selectedDevice = board[deviceNumber];
 						selectedSubDevice = subDeviceNumber;
 					}
 			//print("%i %i\n\r", selectedDevice->devicesMaximumNumberInAllGroups(), selectedDevice->devicesIn1Group());
@@ -283,7 +275,7 @@ void canIdChange() {
 					lastMs = millis();
 				}
 
-			if (newDeviceNumber >= maxInput)
+			if (newDeviceNumber > maxInput)
 				print("timeout\n\r");
 			else {
 				print("%i\n\rChange requested.\n\r", newDeviceNumber);
@@ -366,53 +358,60 @@ void commandUpdate() {
 	static char uartRxCommandCumulative[10];
 	const uint16_t TIMEOUT_MS = 2000;
 
-	if (Serial.available() || SerialBT.available()) {
-		lastUserActionMs = millis();
-		uint8_t ch;
-		if (Serial.available())
-			ch = Serial.read();
-		else
-			ch = SerialBT.read();
+	Command* action;
+	// If a button pressed, first execute its action
+	if (mrm_8x8a.alive() && (action = mrm_8x8a.actionCheck()) != NULL)
+		commandCurrent = action;
+	else { // Check keyboard
+		if (Serial.available() || SerialBT.available()) {
+			lastUserActionMs = millis();
+			uint8_t ch;
+			if (Serial.available())
+				ch = Serial.read();
+			else
+				ch = SerialBT.read();
 
-		if (ch != 13) //if received data different from ascii 13 (enter)
-			uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
+			if (ch != 13) //if received data different from ascii 13 (enter)
+				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
 
-		if (ch == 13 || uartRxCommandIndex >= 3 || ch == 'x') //if received data = 13
-		{
-			uartRxCommandCumulative[uartRxCommandIndex] = 0;
-			uartRxCommandIndex = 0;
+			if (ch == 13 || uartRxCommandIndex >= 3 || ch == 'x') //if received data = 13
+			{
+				uartRxCommandCumulative[uartRxCommandIndex] = 0;
+				uartRxCommandIndex = 0;
 
-			print("Command: %s", uartRxCommandCumulative);
+				print("Command: %s", uartRxCommandCumulative);
 
-			uint8_t found = 0;
-			for (uint8_t i = 0; i < COMMANDS_LIMIT; i++) {
-				if (strcmp(commands[i]->shortcut, uartRxCommandCumulative) == 0) {
-					print(" ok.\r\n");
-					commandSet(commands[i]);
-					//commandPrevious = commandCurrent;
-					//commandCurrent = commands[i];
-					//commandCurrent->firstProcess = true;
-					found = 1;
-					break;
+				uint8_t found = 0;
+				for (uint8_t i = 0; i < COMMANDS_LIMIT; i++) {
+					if (strcmp(commands[i]->shortcut, uartRxCommandCumulative) == 0) {
+						print(" ok.\r\n");
+						commandSet(commands[i]);
+						//commandPrevious = commandCurrent;
+						//commandCurrent = commands[i];
+						//commandCurrent->firstProcess = true;
+						found = 1;
+						break;
+					}
+				}
+				if (!found) {
+					print(" not found.\r\n");
+					uartRxCommandIndex = 0;
 				}
 			}
-			if (!found) {
-				print(" not found.\r\n");
-				uartRxCommandIndex = 0;
-			}
 		}
-	}
 
-	if (uartRxCommandIndex != 0 && millis() - lastUserActionMs > TIMEOUT_MS) {
-		print(" Timeout.\r\n");
-		uartRxCommandIndex = 0;
+		if (uartRxCommandIndex != 0 && millis() - lastUserActionMs > TIMEOUT_MS) {
+			print(" Timeout.\r\n");
+			uartRxCommandIndex = 0;
+		}
 	}
 }
 
 void devicesScan(bool verbose) {
 	broadcastingStop();
 	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) 
-		deviceGroup[i]->devicesScan(verbose);
+		board[i]->devicesScan(verbose);
+	commandCurrent = NULL;
 }
 
 void devicesScan() {
@@ -430,6 +429,7 @@ void errors() {
 	if (strcmp(errorMessage, "") != 0) {
 		if (millis() - lastDisplayMs > 10000 || lastDisplayMs == 0) {
 			print("ERROR! %s\n\r", errorMessage);
+			lastDisplayMs = millis();
 			commandStopAll(); // Stop all motors
 		}
 	}
@@ -443,17 +443,17 @@ void fps() {
 
 void fpsPrint() {
 	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++){
-		deviceGroup[i]->fpsRequest();
+		board[i]->fpsRequest();
 		uint32_t startMs = millis();
 		while(millis() - startMs < 50)
 			messagesReceive();
-		deviceGroup[i]->fpsDisplay();
+		board[i]->fpsDisplay();
 	}
 	commandCurrent = NULL;
 }
 
 void goAhead() {
-	const uint8_t speed = 50;
+	const uint8_t speed = 127;
 	if (motorGroupDifferential != NULL)
 		motorGroupDifferential->go(30, 30);
 	if (motorGroupStar != NULL)
@@ -562,10 +562,10 @@ void initialize() {
 	mrm_bldc2x50.add(false, "BL2x50-3");
 
 	// Motors mrm-bldc4x2.5
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-0");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-1");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-2");
-	mrm_bldc4x2_5.add(false, "Mo4x2.5-3");
+	mrm_bldc4x2_5.add(false, "BL4x2.5-0");
+	mrm_bldc4x2_5.add(false, "BL4x2.5-1");
+	mrm_bldc4x2_5.add(false, "BL4x2.5-2");
+	mrm_bldc4x2_5.add(false, "BL4x2.5-3");
 
 	// IMU
 	mrm_imu.add();
@@ -730,7 +730,7 @@ void lineFollow() {
 
 void menu() {
 	// Print menu
-	devicesScan(false);
+	//devicesScan(false);
 	print("\r\n");
 	bool any = false;
 	uint8_t column = 1;
@@ -752,8 +752,8 @@ void menu() {
 
 	// Display errors
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		if (deviceGroup[deviceNumber]->errorCodeLast() != 0)
-			print("Error %i in %s\n\r", deviceGroup[deviceNumber]->errorCodeLast(), deviceGroup[deviceNumber]->name(deviceGroup[deviceNumber]->errorWasInDeviceNumber()));
+		if (board[deviceNumber]->errorCodeLast() != 0)
+			print("Error %i in %s\n\r", board[deviceNumber]->errorCodeLast(), board[deviceNumber]->name(board[deviceNumber]->errorWasInDeviceNumber()));
 
 	commandCurrent = &commandDoNothing;
 }
@@ -785,7 +785,7 @@ void messagesReceive() {
 		uint32_t id = esp32CANBus.rx_frame->MsgID;
 		bool any = false;
 		for (uint8_t deviceGroupNumber = 0; deviceGroupNumber < MRM_BOARD_COUNT; deviceGroupNumber++) {
-			if (deviceGroup[deviceGroupNumber]->messageDecode(id, esp32CANBus.rx_frame->data.u8)) {
+			if (board[deviceGroupNumber]->messageDecode(id, esp32CANBus.rx_frame->data.u8)) {
 				any = true;
 				break;
 			}
@@ -904,20 +904,15 @@ void soccerPlayStart() {
 		return;
 	}
 	headingToMaintain = mrm_imu.heading();
-	mrm_lid_can_b2.continuousReadingStart();
-	mrm_ref_can.continuousReadingStart();
-	mrm_8x8a.continuousReadingStart();
+	broadcastingStart();
 	commandSet(&commandSoccerIdle);
 }
 
 void testAll() {
 	static uint32_t lastMs = 0;
-	if (commandTestAll.firstProcess) {
-		mrm_lid_can_b.continuousReadingStart();
-		mrm_lid_can_b2.continuousReadingStart();
-		mrm_therm_b_can.continuousReadingStart();
-		mrm_ref_can.continuousReadingStart();
-	}
+	if (commandTestAll.firstProcess) 
+		broadcastingStart();
+
 	if (millis() - lastMs > 300) {
 		if (mrm_lid_can_b.aliveCount() > 0) {
 			mrm_lid_can_b.readingsPrint();
@@ -939,18 +934,29 @@ void testAll() {
 }
 
 void testAny() {
-	if (commandTestAny.firstProcess)
-		broadcastingStart();
-	
-	print("%i\n\r", mrm_ir_finder_can.reading(0));
-	delay(500);
-	//if (mrm_lid_can_b.reading(1) < 100)
-	//	motorGroupDifferential->go(-60, 60);
-	//else if (mrm_lid_can_b.reading(2) > 100)
-	//	motorGroupDifferential->go(80, 20);
-	//else
-	//	motorGroupDifferential->go(20, 80);
-
+	static uint32_t k = 0;
+	broadcastingStop();
+	Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_bldc2x50, &mrm_ref_can};
+	uint8_t count[4] = { 1, 0, 4, 4};
+	static uint32_t errors[4] = { 0, 0, 0, 0 };
+	if (commandTestAny.firstProcess) {
+		k = 0;
+		for (uint8_t l = 0; l < 4; l++)
+			errors[l] = 0;
+	}
+	for (uint8_t i = 0; i < 4; i++) {
+		delay(1);
+		uint8_t cnt = boardTest[i]->devicesScan(true);
+		if (cnt != count[i]) {
+			errors[i]++;
+			print("***** %s: %i < %i\n\r", boardTest[i]->name(), cnt, count[i]);
+		}
+	}
+	//commandCurrent = NULL;
+	if (++k >= 100) {
+		print("Errors: %i %i %i %i \n\r", errors[0], errors[1], errors[2], errors[3]);
+		commandCurrent = NULL;
+	}
 }
 
 void testOmniWheels() {
