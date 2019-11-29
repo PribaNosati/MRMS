@@ -39,7 +39,9 @@ Licence: You can use this code any way you like.
 
 class Mrm_8x8a : public SensorBoard
 {
+	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* lastOn;
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* on;
+	std::vector<Command*[MRM_8x8A_SWITCHES_COUNT]>* offOnAction;
 	
 public:
 	
@@ -50,6 +52,10 @@ public:
 	Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 1);
 
 	~Mrm_8x8a();
+
+	Command* actionCheck();
+
+	void actionSet(Command* action, uint8_t switchNumber, uint8_t deviceNumber = 0);
 
 	/** Add a mrm-8x8a board
 	@param deviceName - device's name

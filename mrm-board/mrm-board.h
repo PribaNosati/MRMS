@@ -3,6 +3,7 @@
 #include "Arduino.h"
 #include <BluetoothSerial.h>
 #include <ESP32CANBus.h>
+#include <mrm-common.h>
 #include <mrm-pid.h>
 #include <vector>
 
@@ -32,6 +33,7 @@
 #endif
 
 typedef bool(*BreakCondition)();
+typedef void (*Action)();
 
 class Board{
 protected:
@@ -50,15 +52,15 @@ protected:
 	int nextFree;
 	BluetoothSerial* serial; // Additional serial port
 
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
+	///** Print to all serial ports
+	//@param fmt - C format string
+	//@param ... - variable arguments
+	//*/
+	//void print(const char* fmt, ...);
 
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
+	///** Print to all serial ports, pointer to list
+	//*/
+	//void vprint(const char* fmt, va_list argp);
 
 public:
 
@@ -92,12 +94,12 @@ public:
 	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
-	virtual void continuousReadingStart(uint8_t deviceNumber = 0xFF) = 0;
+	void continuousReadingStart(uint8_t deviceNumber = 0xFF);
 
 	/** Stops periodical CANBus messages that refresh values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
-	virtual void continuousReadingStop(uint8_t deviceNumber = 0xFF) = 0;
+	void continuousReadingStop(uint8_t deviceNumber = 0xFF);
 
 	/** Count all the devices, alive or not
 	@return - count
@@ -116,8 +118,9 @@ public:
 
 	/** Ping devices and refresh alive array
 	@param verbose - prints statuses
+	@return - alive count
 	*/
-	virtual void devicesScan(bool verbose = true) = 0;
+	uint8_t devicesScan(bool verbose = true);
 
 	/** Last error code
 	@return - last error code from all devices of this kind
@@ -134,73 +137,6 @@ public:
 	@return - FPS
 	*/
 	uint16_t fps(uint8_t deviceNumber = 0);
-
-	/** Display FPS for all devices
-	*/
-	virtual void fpsDisplay() = 0;
-
-	/** Request Frames Per Second
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
-	*/
-	virtual void fpsRequest(uint8_t deviceNumber = 0xFF) = 0;
-
-	/** Prints a frame
-	@param msgId - CAN Bus message id
-	@param dlc - data load byte count
-	@param data - data
-	@return - if true, found and printed
-	*/
-	virtual bool framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) = 0;
-
-	/** Change CAN Bus id
-	@param newDeviceNumber - new number
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	virtual void idChange(uint16_t newDeviceNumber, uint8_t deviceNumber = 0) = 0;
-
-	/** Read CAN Bus message into local variables
-	@param canId - CAN Bus id
-	@param data - 8 bytes from CAN Bus message.
-	@return - true if canId for this class
-	*/
-	virtual bool messageDecode(uint32_t canId, uint8_t data[8]) = 0;
-
-	/** Returns device's name
-	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - name
-	*/
-	virtual char * name(uint8_t deviceNumber) = 0;
-
-	/** Returns device group's name
-	@return - name
-	*/
-	char* name() {return nameGroup;	}
-};
-
-
-
-class MotorBoard : public Board {
-protected:
-	std::vector<uint32_t>* encoderCount; // Encoder count
-	std::vector<bool>* reversed; // Change rotation
-public:
-
-	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char * nameGroup, uint8_t maxDevices);
-
-	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void continuousReadingStart(uint8_t deviceNumber = 0xFF);
-
-	/** Stops periodical CANBus messages that refresh values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void continuousReadingStop(uint8_t deviceNumber = 0xFF);
-
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
-	*/
-	void devicesScan(bool verbose = true);
 
 	/** Display FPS for all devices
 	*/
@@ -237,7 +173,7 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	@return - true if canId for this class
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	virtual bool messageDecode(uint32_t canId, uint8_t data[8]) = 0;
 
 	/** Returns device's name
 	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -245,11 +181,34 @@ public:
 	*/
 	char * name(uint8_t deviceNumber);
 
+	/** Returns device group's name
+	@return - name
+	*/
+	char* name() {return nameGroup;	}
+
 	/** Request notification
 	@param commandRequestingNotification
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
+};
+
+
+
+class MotorBoard : public Board {
+protected:
+	std::vector<uint32_t>* encoderCount; // Encoder count
+	std::vector<bool>* reversed; // Change rotation
+public:
+
+	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char * nameGroup, uint8_t maxDevices);
+
+	/** Read CAN Bus message into local variables
+	@param canId - CAN Bus id
+	@param data - 8 bytes from CAN Bus message.
+	@return - true if canId for this class
+	*/
+	bool messageDecode(uint32_t canId, uint8_t data[8]);
 
 	/** Encoder readings
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -282,55 +241,10 @@ class SensorBoard : public Board {
 public:
 	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices);
 
-	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void continuousReadingStart(uint8_t deviceNumber = 0xFF);
-
 	/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void continuousReadingCalculatedDataStart(uint8_t deviceNumber = 0xFF);
-
-	/** Stops periodical CANBus messages that refresh values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void continuousReadingStop(uint8_t deviceNumber = 0xFF);
-
-	/** Ping devices and refresh alive array
-	@param verbose - prints statuses
-	*/
-	void devicesScan(bool verbose = true);
-
-	/** Display FPS for all devices
-	*/
-	void fpsDisplay();
-
-	/** Request Frames Per Second
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
-	*/
-	void fpsRequest(uint8_t deviceNumber = 0xFF);
-
-	/** Prints a frame
-	@param msgId - CAN Bus message id
-	@param dlc - data load byte count
-	@param data - data
-	@return - if true, found and printed
-	*/
-	bool framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]);
-
-	/** Change CAN Bus id
-	@param newDeviceNumber - new number
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void idChange(uint16_t newDeviceNumber, uint8_t deviceNumber = 0);
-
-	/** Is the frame addressed to this device?
-	@param canIdOut - CAN Bus id.
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - if true, it is
-	*/
-	bool isForMe(uint32_t canIdOut, uint8_t deviceNumber = 0);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -338,18 +252,6 @@ public:
 	@return - true if canId for this class
 	*/
 	virtual bool messageDecode(uint32_t canId, uint8_t data[8]){}
-
-	/** Returns device's name
-	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - name
-	*/
-	char * name(uint8_t deviceNumber);
-
-	/** Request notification
-	@param commandRequestingNotification
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
 };
 
 typedef void (*SpeedSetFunction)(uint8_t motorNumber, int8_t speed);
@@ -372,8 +274,8 @@ public:
 		MotorBoard* motorBoardForLeft2 = NULL, uint8_t motorNumberForLeft2 = 0, MotorBoard* motorBoardForRight2 = NULL, uint8_t motorNumberForRight2 = 0);
 
 	/** Start all motors
-	@param leftSpeed
-	@param right Speed
+	@param leftSpeed, in range -127 to 127
+	@param right Speed, in range -127 to 127
 	*/
 	void go(int8_t leftSpeed = 0, int8_t rightSpeed = 0, int8_t lateralSpeedToRight = 0);
 };

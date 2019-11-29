@@ -9,7 +9,9 @@ extern char* errorMessage;
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
 Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxDevices) {
+	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
 	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
+	offOnAction = new std::vector<Command* [MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
 	esp32CANBus = esp32CANBusSingleton;
 	serial = hardwareSerial;
 	nextFree = 0;
@@ -17,6 +19,23 @@ Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardware
 
 Mrm_8x8a::~Mrm_8x8a()
 {
+}
+
+
+Command* Mrm_8x8a::actionCheck() {
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+		for (uint8_t switchNumber = 0; switchNumber < MRM_8x8A_SWITCHES_COUNT; switchNumber++)
+			if ((*lastOn)[deviceNumber][switchNumber] == false && (*on)[deviceNumber][switchNumber] == true && (*offOnAction)[deviceNumber][switchNumber] != NULL) {
+				((*lastOn)[deviceNumber][switchNumber]) = true;
+				return (*offOnAction)[deviceNumber][switchNumber];
+			} else if ((*lastOn)[deviceNumber][switchNumber] == true && (*on)[deviceNumber][switchNumber] == false)
+				((*lastOn)[deviceNumber][switchNumber]) = false;
+	}
+	return NULL;
+}
+
+void Mrm_8x8a::actionSet(Command* action, uint8_t switchNumber, uint8_t deviceNumber) {
+	(*offOnAction)[deviceNumber][switchNumber] = action;
 }
 
 /** Add a mrm-8x8a board
@@ -61,8 +80,12 @@ void Mrm_8x8a::add(char * deviceName)
 	default:
 		strcpy(errorMessage, "Too many mrm-8x8a");
 	}
-	for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++)
-		(*on)[nextFree][i] = 0;
+
+	for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++) {
+		(*on)[nextFree][i] = false;
+		(*lastOn)[nextFree][i] = false;
+		(*offOnAction)[nextFree][i] = NULL;
+	}
 
 	SensorBoard::add(deviceName, canIn, canOut);
 }

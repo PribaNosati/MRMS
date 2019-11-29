@@ -8,7 +8,7 @@ extern char* errorMessage;
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
 Mrm_mot2x50::Mrm_mot2x50(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	MotorBoard(esp32CANBusSingleton, 4, "Mot4x3.6", maxDevices){
+	MotorBoard(esp32CANBusSingleton, 4, "Mot2x50", maxDevices){
 	serial = hardwareSerial;
 }
 

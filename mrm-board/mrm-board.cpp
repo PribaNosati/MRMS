@@ -1,8 +1,9 @@
 #include "mrm-board.h"
 #include <mrm-pid.h>
 
-#define REPORT_STRAY 0
+#define REPORT_STRAY 1
 #define REQUEST_NOTIFICATION 0
+#define ENABLE_DEVICE_DISCONNECT 1
 
 extern char* errorMessage;
 
@@ -64,19 +65,6 @@ uint8_t Board::aliveCount() {
 	return cnt;
 }
 
-/** Count all the devices, alive or not
-@return - count
-*/
-uint8_t Board::deadOrAliveCount() { return nextFree; }
-
-/** Frames Per Second
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
-@return - FPS
-*/
-uint16_t Board::fps(uint8_t deviceNumber) {
-	return fpsLast;
-}
-
 /** Set aliveness
 @param yesOrNo
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -89,41 +77,10 @@ void Board::aliveSet(bool yesOrNo, uint8_t deviceNumber) {
 	aliveThis = (aliveThis & ~(1 << deviceNumber)) | (yesOrNo << deviceNumber);
 }
 
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Board::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
-}
-
-/** Print to all serial ports, pointer to list
-*/
-void Board::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serial != 0)
-		serial->print(buffer);
-}
-
-
-
-MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices) : 
-	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
-	encoderCount = new std::vector<uint32_t>(maxDevices);
-	reversed = new std::vector<bool>(maxDevices);
-}
-
 /** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void MotorBoard::continuousReadingStart(uint8_t deviceNumber) {
+void Board::continuousReadingStart(uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			continuousReadingStart(i);
@@ -143,7 +100,7 @@ void MotorBoard::continuousReadingStart(uint8_t deviceNumber) {
 /** Stops periodical CANBus messages that refresh values that can be read by reading()
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void MotorBoard::continuousReadingStop(uint8_t deviceNumber) {
+void Board::continuousReadingStop(uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			continuousReadingStop(i);
@@ -155,49 +112,79 @@ void MotorBoard::continuousReadingStop(uint8_t deviceNumber) {
 	}
 }
 
+/** Count all the devices, alive or not
+@return - count
+*/
+uint8_t Board::deadOrAliveCount() { return nextFree; }
+
 /** Ping devices and refresh alive array
 @param verbose - prints statuses
+@return - alive count
 */
-void MotorBoard::devicesScan(bool verbose) {
+uint8_t Board::devicesScan(bool verbose) {
+	uint8_t count = 0;
 	for (uint8_t i = 0; i < nextFree; i++) {
-		canData[0] = COMMAND_REPORT_ALIVE;
-
-		esp32CANBus->messageSend((*idIn)[i], 1, canData);
-		//print("%s sent to 0x%4x\n\r", nameGroup, (*idIn)[i]);
-		uint32_t nowMs = millis();
 		bool any = false;
-		while (millis() - nowMs < 4 && !any)
-			if (esp32CANBus->messageReceive()) {
-				if (esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
-					if (verbose)
-						print("%s found\n\r", (*nameThis)[i]);
-					any = true;
-					aliveSet(true, i);
-				}
+#define BOARD_SCAN_TRIES 1
+		for (uint8_t j = 0; j < BOARD_SCAN_TRIES && !any; j++) {
+			canData[0] = COMMAND_REPORT_ALIVE;
+			esp32CANBus->messageSend((*idIn)[i], 1, canData);
+			//print("%s sent to 0x%x\n\r", nameGroup, (*idIn)[i]);
+			uint32_t nowMs = millis();
+			while (millis() - nowMs < 4 && !any) { // 1 is not enough, stray msgs reported
+				//print("Sent at %i ms\n\r", millis());
+				if (esp32CANBus->messageReceive()) {
+					//print("Rcvd 0x%x, expected: 0x%x\n\r", esp32CANBus->rx_frame->MsgID, (*idOut)[i]);
+					if (esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
+						if (verbose)
+							print("%s found\n\r", (*nameThis)[i]);
+						any = true;
+						count++;
+					}
 #if REPORT_STRAY
-				else
-					if (verbose)
-						print("stray id: %0x02X", (String)esp32CANBus->rx_frame->MsgID);
+					else
+						if (verbose)
+							print("stray id: %0x02X\n\r", (String)esp32CANBus->rx_frame->MsgID);
 #endif
+				}
 			}
-		if (!any)
-			aliveSet(false, i);
+		}
+#if ENABLE_DEVICE_DISCONNECT
+		aliveSet(any, i);
+#else
+		if (any)
+			aliveSet(true, i);
+#endif
 	}
+	//print("%s OVER\n\r", nameGroup);
+	return count;
+}
+
+
+/** Frames Per Second
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
+@return - FPS
+*/
+uint16_t Board::fps(uint8_t deviceNumber) {
+	return fpsLast;
 }
 
 /** Display FPS for all devices
 */
-void MotorBoard::fpsDisplay() {
+void Board::fpsDisplay() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		if (alive(deviceNumber))
-			print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
+			if (fpsLast == 0xFFFF)
+				print("%s: no response\n\r", (*nameThis)[deviceNumber]);
+			else
+				print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
 	}
 }
 
 /** Request Frames Per Second
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.  0xFF - for all devices.
 */
-void MotorBoard::fpsRequest(uint8_t deviceNumber) {
+void Board::fpsRequest(uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			fpsRequest(i);
@@ -205,7 +192,7 @@ void MotorBoard::fpsRequest(uint8_t deviceNumber) {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_FPS_REQUEST;
 			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-			fpsLast = 0;
+			fpsLast = 0xFFFF;
 		}
 	}
 }
@@ -216,7 +203,7 @@ void MotorBoard::fpsRequest(uint8_t deviceNumber) {
 @param data - data
 @return - if true, found and printed
 */
-bool MotorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
+bool Board::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(msgId, deviceNumber)) {
 			print("%s Id: 0x%04X", (*nameThis)[deviceNumber], msgId);
@@ -235,7 +222,7 @@ bool MotorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
 @param newId - CAN Bus id
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void MotorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
+void Board::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 	canData[0] = COMMAND_ID_CHANGE_REQUEST;
 	canData[1] = newDeviceNumber;
 	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
@@ -246,12 +233,51 @@ void MotorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the deviceNumber, starting with 0.
 @return - if true, it is
 */
-bool MotorBoard::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
+bool Board::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree) {
-		strcpy(errorMessage, "Device doesn't exist");
+		strcpy(errorMessage, "Board doesn't exist");
 		return false;
 	}
 	return canIdOut == (*idOut)[deviceNumber];
+}
+
+/** Returns device's name
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - name
+*/
+char* Board::name(uint8_t deviceNumber) {
+	return (*nameThis)[deviceNumber];
+}
+
+/** Request notification
+@param commandRequestingNotification
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Board::notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber) {
+	uint8_t tries = 0;
+	while (tries < 10) {
+		tries++;
+		canData[0] = commandRequestingNotification;
+		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+		while (tries != 0xFF && esp32CANBus->messageReceive()) {
+			uint32_t id = esp32CANBus->rx_frame->MsgID;
+			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
+			if (isForMe(id, deviceNumber) && esp32CANBus->rx_frame->data.u8[0] == COMMAND_NOTIFICATION) {
+				tries = 0xFF;
+				//print("OK...\n\r");
+			}
+		}
+	}
+	if (tries != 0xFF)
+		strcpy(errorMessage, "Notification failed");
+}
+
+
+
+MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices) : 
+	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
+	encoderCount = new std::vector<uint32_t>(maxDevices);
+	reversed = new std::vector<bool>(maxDevices);
 }
 
 /** Read CAN Bus message into local variables
@@ -288,37 +314,6 @@ bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 			return true;
 		}
 	return false;
-}
-
-/** Returns device's name
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@return - name
-*/
-char* MotorBoard::name(uint8_t deviceNumber) {
-	return (*nameThis)[deviceNumber];
-}
-
-/** Request notification
-@param commandRequestingNotification
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void MotorBoard::notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber) {
-	uint8_t tries = 0;
-	while (tries < 10) {
-		tries++;
-		canData[0] = commandRequestingNotification;
-		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-		while (tries != 0xFF && esp32CANBus->messageReceive()) {
-			uint32_t id = esp32CANBus->rx_frame->MsgID;
-			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
-			if (isForMe(id, deviceNumber) && esp32CANBus->rx_frame->data.u8[0] == COMMAND_NOTIFICATION) {
-				tries = 0xFF;
-				//print("OK...\n\r");
-			}
-		}
-	}
-	if (tries != 0xFF)
-		strcpy(errorMessage, "Notification failed");
 }
 
 /** Encoder readings
@@ -481,27 +476,6 @@ SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGr
 	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
 }
 
-/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void SensorBoard::continuousReadingStart(uint8_t deviceNumber) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStart(i);
-	else {
-		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", nameGroup);
-#if REQUEST_NOTIFICATION
-			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
-#else
-			canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-			//print("Sent to 0x%x\n\r, ", (*idIn)[deviceNumber]);
-#endif
-		}
-	}
-}
-
 /** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
@@ -523,158 +497,7 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 	}
 }
 
-/** Stops periodical CANBus messages that refresh values that can be read by reading()
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void SensorBoard::continuousReadingStop(uint8_t deviceNumber) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStop(i);
-	else {
-		if (alive(deviceNumber)) {
-			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-		}
-	}
-}
 
-
-/** Ping devices and refresh alive array
-@param verbose - prints statuses
-*/
-void SensorBoard::devicesScan(bool verbose) {
-	for (uint8_t i = 0; i < nextFree; i++) {
-		bool any = false;
-#define SENSOR_BOARD_SCAN_TRIES 3
-		for (uint8_t j = 0; j < SENSOR_BOARD_SCAN_TRIES && !any; j++) {
-			canData[0] = COMMAND_REPORT_ALIVE;
-			esp32CANBus->messageSend((*idIn)[i], 1, canData);
-			//print("%s sent to 0x%x\n\r", nameGroup, (*idIn)[i]);
-			uint32_t nowMs = millis();
-			while (millis() - nowMs < 10 && !any) { // 1 is not enough, stray msgs reported
-				//print("Sent at %i ms\n\r", millis());
-				if (esp32CANBus->messageReceive()) {
-					//print("Rcvd 0x%x, expected: 0x%x\n\r", esp32CANBus->rx_frame->MsgID, (*idOut)[i]);
-					if (esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
-						if (verbose)
-							print("%s found\n\r", (*nameThis)[i]);
-						any = true;
-					}
-#if REPORT_STRAY
-					else
-						if (verbose)
-							print("stray id: %0x02X\n\r", (String)esp32CANBus->rx_frame->MsgID);
-#endif
-				}
-			}
-		}
-		aliveSet(any, i);
-	}
-	//print("%s OVER\n\r", nameGroup);
-}
-
-/** Display FPS for all devices
-*/
-void SensorBoard::fpsDisplay() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-		if (alive(deviceNumber))
-			if (fpsLast == 0xFFFF)
-				print("%s: no response\n\r", (*nameThis)[deviceNumber]);
-			else
-				print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
-	}
-}
-
-/** Request Frames Per Second
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.  0xFF - for all devices.
-*/
-void SensorBoard::fpsRequest(uint8_t deviceNumber) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			fpsRequest(i);
-	else {
-		if (alive(deviceNumber)) {
-			canData[0] = COMMAND_FPS_REQUEST;
-			esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-			fpsLast = 0xFFFF;
-		}
-	}
-}
-
-/** Change CAN Bus id
-@param newId - CAN Bus id
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void SensorBoard::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
-	canData[0] = COMMAND_ID_CHANGE_REQUEST;
-	canData[1] = newDeviceNumber;
-	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
-}
-
-/** Is the frame addressed to this device?
-@param canIdOut - CAN Bus id.
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the deviceNumber, starting with 0.
-@return - if true, it is
-*/
-bool SensorBoard::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
-	if (deviceNumber >= nextFree) {
-		strcpy(errorMessage, "SensorBoard doesn't exist");
-		return false;
-	}
-	return canIdOut == (*idOut)[deviceNumber];
-}
-
-/** Prints a frame
-@param msgId - CAN Bus message id
-@param dlc - data load byte count
-@param data - data
-@return - if true, found and printed
-*/
-bool SensorBoard::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
-		if (isForMe(msgId, deviceNumber)) {
-			print("%s Id: 0x%04X", (*nameThis)[deviceNumber], msgId);
-			if (dlc > 0) {
-				print(", data: ");
-				for (uint8_t i = 0; i < dlc; i++)
-					print("0x%02X ", data[i]);
-			}
-			print("\n\r");
-			return true;
-		}
-	return false;
-}
-
-/** Returns device's name
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@return - name
-*/
-char* SensorBoard::name(uint8_t deviceNumber) {
-	return (*nameThis)[deviceNumber];
-}
-
-/** Request notification
-@param commandRequestingNotification
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void SensorBoard::notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber) {
-	uint8_t tries = 0;
-	while (tries < 10) {
-		tries++;
-		canData[0] = commandRequestingNotification;
-		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-		while (tries != 0xFF && esp32CANBus->messageReceive()) {
-			uint32_t id = esp32CANBus->rx_frame->MsgID;
-			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
-			if (isForMe(id, deviceNumber) && esp32CANBus->rx_frame->data.u8[0] == COMMAND_NOTIFICATION) {
-				tries = 0xFF;
-				//print("OK...\n\r");
-			}
-		}
-	}
-	if (tries != 0xFF)
-		strcpy(errorMessage, "Notification failed");
-}
 
 MotorGroup::MotorGroup(){
 }
@@ -708,8 +531,8 @@ MotorGroupDifferential::MotorGroupDifferential(MotorBoard* motorBoardForLeft1, u
 }
 
 /** Start all motors
-@param leftSpeed
-@param right Speed
+@param leftSpeed, in range -127 to 127
+@param right Speed, in range -127 to 127
 */
 void MotorGroupDifferential::go(int8_t leftSpeed, int8_t rightSpeed, int8_t lateralSpeedToRight) {
 	if (motorBoard[0] != NULL) {
