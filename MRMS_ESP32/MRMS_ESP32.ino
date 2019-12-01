@@ -263,7 +263,7 @@ void canIdChange() {
 						selectedSubDevice = subDeviceNumber;
 					}
 			//print("%i %i\n\r", selectedDevice->devicesMaximumNumberInAllGroups(), selectedDevice->devicesIn1Group());
-			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesIn1Group();
+			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesOnASingleBoard();
 			print("%i. %s\n\rEnter new board id [0..%i]: ", last - 1, selectedDevice->name(selectedSubDevice), maxInput);
 			lastMs = millis();
 			uint8_t newDeviceNumber = 0;
@@ -318,7 +318,7 @@ void commandsAdd() {
 	menuAdd(&commandGoAhead, "ahe", "Go ahead", &goAhead, 1);
 	menuAdd(&commandBroadcastingStart, "bro", "Start sensors", &broadcastingStart, 1);
 	menuAdd(&commandTestAny, "any", "Any test", &testAny, 1);
-	menuAdd(&commandTestAll, "all", "All tests", &testAll, 1);
+	menuAdd(&commandTestAll, "all", "CAN Bus stress", &testAll, 1);
 	menuAdd(&commandTestOmniWheels, "omn", "Test omni wheels", &testOmniWheels, 1);
 	menuAdd(&commandReflectanceArrayCalibrate, "cal", "Calibrate refl.", &reflectanceArrayCalibrate, 1);
 	menuAdd(&commandTestThermo, "the", "Test thermo", &thermoTest, 1);
@@ -730,7 +730,7 @@ void lineFollow() {
 
 void menu() {
 	// Print menu
-	//devicesScan(false);
+	devicesScan(false);
 	print("\r\n");
 	bool any = false;
 	uint8_t column = 1;
@@ -909,50 +909,57 @@ void soccerPlayStart() {
 }
 
 void testAll() {
-	static uint32_t lastMs = 0;
-	if (commandTestAll.firstProcess) 
-		broadcastingStart();
-
-	if (millis() - lastMs > 300) {
-		if (mrm_lid_can_b.aliveCount() > 0) {
-			mrm_lid_can_b.readingsPrint();
-			print(" ");
+	static uint32_t k = 0;
+	broadcastingStop();
+	const uint8_t COUNT = 4;
+	// Boards to be tested
+	//Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_ref_can };
+	Board* boardTest[4] = { &mrm_ref_can, &mrm_mot2x50, &mrm_lid_can_b2, &mrm_8x8a };
+	// Each board's count
+	uint8_t count[COUNT] = { 2, 4, 6, 1 };
+	static uint32_t errors[COUNT] = { 0, 0, 0, 0 };
+	if (commandTestAll.firstProcess) {
+		k = 0;
+		for (uint8_t l = 0; l < COUNT; l++)
+			errors[l] = 0;
+	}
+	for (uint8_t i = 0; i < COUNT; i++) {
+		delay(1);
+		uint8_t cnt = boardTest[i]->devicesScan(true);
+		if (cnt != count[i]) {
+			errors[i]++;
+			print("***** %s: %i <> %i\n\r", boardTest[i]->name(), cnt, count[i]);
 		}
-		if (mrm_lid_can_b2.aliveCount() > 0) {
-			mrm_lid_can_b2.readingsPrint();
-			print(" ");
-		}
-		if (mrm_therm_b_can.aliveCount() > 0) {
-			mrm_therm_b_can.readingsPrint();
-			print(" ");
-		}
-		if (mrm_ref_can.aliveCount() > 0)
-			mrm_ref_can.readingsPrint();
+	}
+	//commandCurrent = NULL; // Uncomment for only 1 run
+	if (++k >= 100) { // 100 tests
+		print("Errors: ");
+		for (uint8_t i = 0; i < COUNT; i++)
+			print(" %i", errors[i]);
 		print("\n\r");
-		lastMs = millis();
+		commandCurrent = NULL;
 	}
 }
 
 void testAny() {
 	static uint32_t k = 0;
-	broadcastingStop();
-	Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_bldc2x50, &mrm_ref_can};
-	uint8_t count[4] = { 1, 0, 4, 4};
+	//broadcastingStop();
+	Board* boardTest[4] = { &mrm_ref_can, &mrm_lid_can_b2, &mrm_bldc2x50, &mrm_8x8a};
+	uint8_t count[4] = { 1, 6, 4, 1};
 	static uint32_t errors[4] = { 0, 0, 0, 0 };
 	if (commandTestAny.firstProcess) {
 		k = 0;
 		for (uint8_t l = 0; l < 4; l++)
 			errors[l] = 0;
 	}
-	for (uint8_t i = 0; i < 4; i++) {
-		delay(1);
+	for (uint8_t i = 0; i < 1; i++) {
 		uint8_t cnt = boardTest[i]->devicesScan(true);
 		if (cnt != count[i]) {
 			errors[i]++;
 			print("***** %s: %i < %i\n\r", boardTest[i]->name(), cnt, count[i]);
 		}
 	}
-	//commandCurrent = NULL;
+	commandCurrent = NULL;
 	if (++k >= 100) {
 		print("Errors: %i %i %i %i \n\r", errors[0], errors[1], errors[2], errors[3]);
 		commandCurrent = NULL;
