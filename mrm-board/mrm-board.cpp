@@ -7,12 +7,15 @@
 
 extern char* errorMessage;
 
-Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllBoards, uint8_t devicesInAGroup, char nameGroup[]) {
+/*
+@param devicesMaximumNumberInAllBoards - maximum number of devices in all boards
+*/
+Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllBoards, uint8_t devicesOn1Board, char nameGroup[]) {
 	idIn = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
 	idOut = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
 	nameThis = new std::vector<char[10]>(devicesMaximumNumberInAllBoards);
 	esp32CANBus = esp32CANBusSingleton;
-	this->devicesInABoard = devicesInAGroup;
+	this->devicesOnABoard = devicesOn1Board;
 	this->devicesMaxNumberInAllBoards = devicesMaximumNumberInAllBoards;
 	strcpy(this->nameGroup, nameGroup);
 	aliveThis = 0;
@@ -274,8 +277,8 @@ void Board::notificationRequest(uint8_t commandRequestingNotification, uint8_t d
 
 
 
-MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices) : 
-	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
+MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char* nameGroup, uint8_t maxDevices) : 
+	Board(esp32CANBusSingleton, maxDevices, devicesOnABoard, nameGroup) {
 	encoderCount = new std::vector<uint32_t>(maxDevices);
 	reversed = new std::vector<bool>(maxDevices);
 }
@@ -471,9 +474,11 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 
 
 
-
-SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char nameGroup[], uint8_t maxDevices) : 
-	Board(esp32CANBusSingleton, maxDevices, devicesInAGroup, nameGroup) {
+/*
+@param maxDevices - maximum number of devices in all boards
+*/
+SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char nameGroup[], uint8_t maxDevices) : 
+	Board(esp32CANBusSingleton, maxDevices, devicesOnABoard, nameGroup) {
 }
 
 /** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values

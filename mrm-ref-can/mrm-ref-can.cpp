@@ -7,6 +7,7 @@ extern char* errorMessage;
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param maxDevices - maximum number of devices in all boards
 */
 Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
 	SensorBoard(esp32CANBusSingleton, 1, "ReflArray", maxDevices) {

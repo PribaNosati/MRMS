@@ -40,7 +40,7 @@ protected:
 	uint32_t aliveThis; // Responded to ping, maximum 32 devices of the same class
 	uint8_t canData[8];
 	uint8_t commandLastReceivedByTarget = 0xFE;
-	uint8_t devicesInABoard;
+	uint8_t devicesOnABoard;
 	uint8_t devicesMaxNumberInAllBoards;
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
@@ -109,7 +109,7 @@ public:
 	/** Number of devices in each group (board)
 	@return - number of devices
 	*/
-	uint8_t devicesIn1Group() { return this->devicesInABoard; }
+	uint8_t devicesOnASingleBoard() { return this->devicesOnABoard; }
 
 	/** Maximum number of devices in all groups (boards)
 	@raturn - number of devices
