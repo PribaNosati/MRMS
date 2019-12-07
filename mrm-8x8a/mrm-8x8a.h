@@ -3,7 +3,7 @@
 #include <mrm-board.h>
 
 /**
-Purpose: mrm-node interface to CANBus.
+Purpose: mrm-8x8a interface to CANBus.
 @author MRMS team
 @version 0.3 2019-09-07
 Licence: You can use this code any way you like.
