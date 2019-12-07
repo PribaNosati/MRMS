@@ -17,6 +17,7 @@
 #include <mrm-node.h>
 #include <mrm-ref-can.h>
 #include <mrm-servo.h>
+#include <mrm-switch.h>
 #include <mrm-therm-b-can.h>
 #include <Wire.h>
 
@@ -109,6 +110,7 @@ Mrm_mot4x3_6can mrm_mot4x3_6can(&esp32CANBus, &SerialBT);
 Mrm_node mrm_node(&esp32CANBus, &SerialBT);
 Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
 Mrm_servo mrm_servo(&SerialBT);
+Mrm_switch mrm_switch(&esp32CANBus, &SerialBT);
 Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
 Board* board[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_ir_finder_can, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
 &mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
@@ -361,6 +363,8 @@ void commandUpdate() {
 	Command* action;
 	// If a button pressed, first execute its action
 	if (mrm_8x8a.alive() && (action = mrm_8x8a.actionCheck()) != NULL)
+		commandCurrent = action;
+	else if ((action = mrm_switch.actionCheck()) != NULL)
 		commandCurrent = action;
 	else { // Check keyboard
 		if (Serial.available() || SerialBT.available()) {
@@ -628,6 +632,11 @@ void initialize() {
 
 	// Servo motors
 	mrm_servo.add(16, "Servo", 10);
+
+	// Switch
+	mrm_switch.add(18, 19, "Switch");
+	mrm_switch.actionSet(&commandTestAny, 0);
+	mrm_switch.actionSet(&commandStop, 1);
 
 	// Thermal array
 	mrm_therm_b_can.add("Thermo-0");
@@ -914,9 +923,9 @@ void testAll() {
 	const uint8_t COUNT = 4;
 	// Boards to be tested
 	//Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_ref_can };
-	Board* boardTest[4] = { &mrm_ref_can, &mrm_mot2x50, &mrm_lid_can_b2, &mrm_8x8a };
+	Board* boardTest[4] = { &mrm_ref_can, &mrm_mot4x3_6can, &mrm_lid_can_b, &mrm_8x8a };
 	// Each board's count
-	uint8_t count[COUNT] = { 2, 4, 6, 1 };
+	uint8_t count[COUNT] = { 2, 4, 3, 0 };
 	static uint32_t errors[COUNT] = { 0, 0, 0, 0 };
 	if (commandTestAll.firstProcess) {
 		k = 0;
@@ -942,28 +951,8 @@ void testAll() {
 }
 
 void testAny() {
-	static uint32_t k = 0;
-	//broadcastingStop();
-	Board* boardTest[4] = { &mrm_ref_can, &mrm_lid_can_b2, &mrm_bldc2x50, &mrm_8x8a};
-	uint8_t count[4] = { 1, 6, 4, 1};
-	static uint32_t errors[4] = { 0, 0, 0, 0 };
-	if (commandTestAny.firstProcess) {
-		k = 0;
-		for (uint8_t l = 0; l < 4; l++)
-			errors[l] = 0;
-	}
-	for (uint8_t i = 0; i < 1; i++) {
-		uint8_t cnt = boardTest[i]->devicesScan(true);
-		if (cnt != count[i]) {
-			errors[i]++;
-			print("***** %s: %i < %i\n\r", boardTest[i]->name(), cnt, count[i]);
-		}
-	}
-	commandCurrent = NULL;
-	if (++k >= 100) {
-		print("Errors: %i %i %i %i \n\r", errors[0], errors[1], errors[2], errors[3]);
-		commandCurrent = NULL;
-	}
+	print("%i %i\n\r", mrm_switch.read(0), mrm_switch.read(1));
+	delay(100);
 }
 
 void testOmniWheels() {
