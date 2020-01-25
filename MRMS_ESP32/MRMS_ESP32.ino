@@ -192,7 +192,7 @@ void bluetoothTest() {
 
 void broadcastingStart() {
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		board[deviceNumber]->continuousReadingStart();
+		broadcastingStart();
 }
 
 void broadcastingStop() {
@@ -925,7 +925,7 @@ void testAll() {
 	//Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_ref_can };
 	Board* boardTest[4] = { &mrm_ref_can, &mrm_mot4x3_6can, &mrm_lid_can_b, &mrm_8x8a };
 	// Each board's count
-	uint8_t count[COUNT] = { 2, 4, 3, 0 };
+	uint8_t count[COUNT] = { 1, 0, 3, 1 };
 	static uint32_t errors[COUNT] = { 0, 0, 0, 0 };
 	if (commandTestAll.firstProcess) {
 		k = 0;
@@ -941,7 +941,8 @@ void testAll() {
 		}
 	}
 	//commandCurrent = NULL; // Uncomment for only 1 run
-	if (++k >= 100) { // 100 tests
+	static uint16_t LOOP_COUNT = 10000;
+	if (++k >= LOOP_COUNT) { 
 		print("Errors: ");
 		for (uint8_t i = 0; i < COUNT; i++)
 			print(" %i", errors[i]);
@@ -951,8 +952,14 @@ void testAll() {
 }
 
 void testAny() {
-	print("%i %i\n\r", mrm_switch.read(0), mrm_switch.read(1));
-	delay(100);
+	/*if (commandTestAny.firstProcess)
+		mrm_ref_can.continuousReadingStart();
+	print("%i\n\r", mrm_ref_can.reading(3));
+	delay(100);*/
+ mrm_bldc2x50.speedSet(0,50);
+ delay(2000);
+  mrm_bldc2x50.speedSet(0,0);
+  delay(2000);
 }
 
 void testOmniWheels() {
@@ -1008,7 +1015,7 @@ void thermoTest() {
 }
 
 bool userBreak() {
-	if (/*switchOn() ||*/ Serial.available()) {
+	if (/*switchOn() ||*/ Serial.available() || SerialBT.available()) {
 		return true;
 	}
 	else
