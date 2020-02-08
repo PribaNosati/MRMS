@@ -192,7 +192,7 @@ void bluetoothTest() {
 
 void broadcastingStart() {
 	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		broadcastingStart();
+		board[deviceNumber]->continuousReadingStart();
 }
 
 void broadcastingStop() {
@@ -228,16 +228,31 @@ void canBusSniff() {
 	commandCurrent = NULL;
 }
 
+
 void canIdChange() {
+	// Print all devices alive
 	uint8_t last = 0;
-	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		for (uint8_t subDeviceNumber = 0; subDeviceNumber < board[deviceNumber]->deadOrAliveCount(); subDeviceNumber++)
-			if (board[deviceNumber]->alive(subDeviceNumber)) 
-				print("%i. %s\n\r", ++last, board[deviceNumber]->name(subDeviceNumber));
+	for (uint8_t boardNumber = 0; boardNumber < MRM_BOARD_COUNT; boardNumber++) {
+		uint8_t currentCount = 0;
+		for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount(); deviceNumber++)
+			if (board[boardNumber]->alive(deviceNumber)) {
+				if (currentCount == 0)
+					print("%i.", ++last);
+				else
+					print(",");
+				print(" %s", board[boardNumber]->name(deviceNumber));
+				if (++currentCount == board[boardNumber]->devicesOnASingleBoard()) {
+					currentCount = 0;
+					print("\n\r");
+				}
+			}
+	}
 	if (last == 0)
-		print("No devices\n\r");
+		print("No boards\n\r");
 	else{
-		print("Enter device [1 - %i]: ", last);
+
+		// Choose device to be changed
+		print("Enter board [1 - %i]: ", last);
 		uint32_t lastMs = millis();
 		uint8_t selectedNumber = 0;
 		bool any = false;
@@ -255,18 +270,32 @@ void canIdChange() {
 				print("timeout\n\r");
 		}
 		else {
+
+			// Find selected board
 			last = 0;
-			Board * selectedDevice = NULL;
-			uint8_t selectedSubDevice = 0xFF;
-			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT && selectedSubDevice == 0xFF; deviceNumber++)
-				for (uint8_t subDeviceNumber = 0; subDeviceNumber < board[deviceNumber]->deadOrAliveCount() && selectedSubDevice == 0xFF; subDeviceNumber++)
-					if (board[deviceNumber]->alive(subDeviceNumber) && ++last == selectedNumber) {
-						selectedDevice = board[deviceNumber];
-						selectedSubDevice = subDeviceNumber;
+			Board* selectedBoard = NULL;
+			uint8_t selectedDeviceIndex = 0xFF;
+			uint8_t maxInput = 0;
+			for (uint8_t boardNumber = 0; boardNumber < MRM_BOARD_COUNT && selectedDeviceIndex == 0xFF; boardNumber++){
+				uint8_t currentCount = 0;
+				for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && selectedDeviceIndex == 0xFF; deviceNumber++)
+					if (board[boardNumber]->alive(deviceNumber)) {
+						if (currentCount == 0) {
+							if (++last == selectedNumber) {
+								selectedBoard = board[boardNumber];
+								selectedDeviceIndex = deviceNumber;
+								maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
+								break;
+							}
+						}
+
+						if (++currentCount == board[boardNumber]->devicesOnASingleBoard()) 
+							currentCount = 0;
 					}
-			//print("%i %i\n\r", selectedDevice->devicesMaximumNumberInAllGroups(), selectedDevice->devicesIn1Group());
-			uint8_t maxInput = selectedDevice->devicesMaximumNumberInAllGroups() / selectedDevice->devicesOnASingleBoard();
-			print("%i. %s\n\rEnter new board id [0..%i]: ", last - 1, selectedDevice->name(selectedSubDevice), maxInput);
+			}
+
+			// Enter new id
+			print("%i. %s\n\rEnter new board id [0..%i]: ", last, selectedBoard->name(), maxInput);
 			lastMs = millis();
 			uint8_t newDeviceNumber = 0;
 			bool any = false;
@@ -280,8 +309,10 @@ void canIdChange() {
 			if (newDeviceNumber > maxInput)
 				print("timeout\n\r");
 			else {
+
+				// Change
 				print("%i\n\rChange requested.\n\r", newDeviceNumber);
-				selectedDevice->idChange(newDeviceNumber, selectedSubDevice);
+				selectedBoard->idChange(newDeviceNumber, selectedDeviceIndex);
 				delay(500); // Delay for firmware handling of devices with the same ids.
 			}
 		}
@@ -597,6 +628,11 @@ void initialize() {
 	mrm_mot4x3_6can.add(false, "Mot3.6-1");
 	mrm_mot4x3_6can.add(true, "Mot3.6-2");
 	mrm_mot4x3_6can.add(true, "Mot3.6-3");
+
+	mrm_mot4x3_6can.add(false, "Mot3.6-4");
+	mrm_mot4x3_6can.add(false, "Mot3.6-5");
+	mrm_mot4x3_6can.add(true, "Mot3.6-6");
+	mrm_mot4x3_6can.add(true, "Mot3.6-7");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
 	mrm_lid_can_b.add("Lidar2m-0");
@@ -918,48 +954,86 @@ void soccerPlayStart() {
 }
 
 void testAll() {
-	static uint32_t k = 0;
-	broadcastingStop();
-	const uint8_t COUNT = 4;
-	// Boards to be tested
-	//Board* boardTest[4] = { &mrm_8x8a, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_ref_can };
-	Board* boardTest[4] = { &mrm_ref_can, &mrm_mot4x3_6can, &mrm_lid_can_b, &mrm_8x8a };
-	// Each board's count
-	uint8_t count[COUNT] = { 1, 0, 3, 1 };
-	static uint32_t errors[COUNT] = { 0, 0, 0, 0 };
+	const bool STOP_ON_ERROR = false;
+	const uint16_t LOOP_COUNT = 10000;
+
+	// Setup
+	static uint32_t pass;
+	static uint8_t lastPercent = 101;
+	static uint8_t count[MRM_BOARD_COUNT];
+	static uint32_t errors[MRM_BOARD_COUNT];
 	if (commandTestAll.firstProcess) {
-		k = 0;
-		for (uint8_t l = 0; l < COUNT; l++)
-			errors[l] = 0;
+		print("Before test.\n\r");
+		pass = 0;
+		broadcastingStop();
+		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++)
+			errors[i] = 0;
+		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) {
+			delay(1);
+			count[i] = board[i]->devicesScan(true);
+		}
+		print("Start.\n\r");
 	}
-	for (uint8_t i = 0; i < COUNT; i++) {
-		delay(1);
-		uint8_t cnt = boardTest[i]->devicesScan(true);
-		if (cnt != count[i]) {
-			errors[i]++;
-			print("***** %s: %i <> %i\n\r", boardTest[i]->name(), cnt, count[i]);
+
+	// Stress test
+	uint8_t percent = 100 * pass / LOOP_COUNT;
+	if (percent != lastPercent) {
+		lastPercent = percent;
+		print("%i %%\n\r", percent);
+	}
+	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) {
+		if (count[i] > 0) {
+			delay(1);
+			uint8_t cnt = board[i]->devicesScan(false);
+			if (cnt != count[i]) {
+				errors[i]++;
+				print("***** %s: found %i, not %i.\n\r", board[i]->name(), cnt, count[i]);
+				if (STOP_ON_ERROR)
+					break;
+			}
 		}
 	}
-	//commandCurrent = NULL; // Uncomment for only 1 run
-	static uint16_t LOOP_COUNT = 10000;
-	if (++k >= LOOP_COUNT) { 
-		print("Errors: ");
-		for (uint8_t i = 0; i < COUNT; i++)
-			print(" %i", errors[i]);
+
+	// Results
+	if (++pass >= LOOP_COUNT) {
+		bool allOK = true;
+		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++)
+			if (count[i] > 0 && errors[i] > 0) {
+				print("%s: %i errors.\n\r", board[i]->name(), errors[i]);
+				allOK = false;
+			}
+		if (allOK)
+			print("No errors.");
 		print("\n\r");
 		commandCurrent = NULL;
 	}
 }
 
 void testAny() {
-	/*if (commandTestAny.firstProcess)
-		mrm_ref_can.continuousReadingStart();
-	print("%i\n\r", mrm_ref_can.reading(3));
-	delay(100);*/
- mrm_bldc2x50.speedSet(0,50);
- delay(2000);
-  mrm_bldc2x50.speedSet(0,0);
-  delay(2000);
+	const uint8_t LOW_SPEED = 80;
+	const uint8_t HIGH_SPEED = 127;
+	static uint8_t speed = LOW_SPEED;
+	static uint32_t lastChangeMs = 0;
+	static bool up = true;
+
+	if (commandTestAny.firstProcess) {
+		broadcastingStart();
+		print("Test started.\n\r");
+	}
+
+	if (millis() - lastChangeMs > 25) {
+		if (up)
+			speed++;
+		else
+			speed--;
+		if (speed == HIGH_SPEED || speed == LOW_SPEED)
+			up = !up;
+		lastChangeMs = millis();
+		for (uint8_t i = 0; i < 4; i++) {
+			mrm_mot4x3_6can.speedSet(i, speed);
+		}
+		print("%3i cm, %2i deg, refl: %i\n\r", mrm_lid_can_b2.reading(3), mrm_therm_b_can.reading(0), mrm_ref_can.reading(3, 0));
+	}
 }
 
 void testOmniWheels() {
