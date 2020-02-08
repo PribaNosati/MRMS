@@ -1,14 +1,15 @@
 #include "mrm-mot2x50.h"
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param maxNumberOfBoards - maximum number of boards
 */
-Mrm_mot2x50::Mrm_mot2x50(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	MotorBoard(esp32CANBusSingleton, 4, "Mot2x50", maxDevices){
+Mrm_mot2x50::Mrm_mot2x50(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
+	MotorBoard(esp32CANBusSingleton, 4, "Mot2x50", maxNumberOfBoards){
 	serial = hardwareSerial;
 }
 

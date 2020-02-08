@@ -1,6 +1,6 @@
 #include "mrm-ir-finder2.h"
 
-extern char* errorMessage;
+extern char errorMessage[];
 
 /**Add a sensor
 @param angle - Analog pin for angle. Robot front is 0 degrees and positive angles are to the right. Total range is -180º to 180º.

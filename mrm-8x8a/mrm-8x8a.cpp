@@ -2,16 +2,17 @@
 #include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param maxNumberOfBoards - maximum number of boards
 */
-Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxDevices) {
-	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
-	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
-	offOnAction = new std::vector<Command* [MRM_8x8A_SWITCHES_COUNT]>(maxDevices);
+Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxNumberOfBoards) {
+	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
+	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
+	offOnAction = new std::vector<Command* [MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	esp32CANBus = esp32CANBusSingleton;
 	serial = hardwareSerial;
 	nextFree = 0;

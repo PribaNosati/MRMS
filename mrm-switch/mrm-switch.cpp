@@ -1,7 +1,7 @@
 #include "mrm-switch.h"
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.

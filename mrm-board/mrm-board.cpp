@@ -5,19 +5,24 @@
 #define REQUEST_NOTIFICATION 0
 #define ENABLE_DEVICE_DISCONNECT 1
 
-extern char* errorMessage;
+extern char errorMessage[];
 
-/*
-@param devicesMaximumNumberInAllBoards - maximum number of devices in all boards
+/** Board is a single instance for all boards of the same type, not a single board (if there are more than 1 of the same type)! */
+
+/**
+@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+@param maxNumberOfBoards - maximum number of boards
+@param devicesOn1Board - number of devices on each board
+@param boardName - board's name
 */
-Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllBoards, uint8_t devicesOn1Board, char nameGroup[]) {
-	idIn = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
-	idOut = new std::vector<uint32_t>(devicesMaximumNumberInAllBoards);
-	nameThis = new std::vector<char[10]>(devicesMaximumNumberInAllBoards);
+Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[]) {
+	idIn = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
+	idOut = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
+	nameThis = new std::vector<char[10]>(maxNumberOfBoards * devicesOn1Board);
 	esp32CANBus = esp32CANBusSingleton;
 	this->devicesOnABoard = devicesOn1Board;
-	this->devicesMaxNumberInAllBoards = devicesMaximumNumberInAllBoards;
-	strcpy(this->nameGroup, nameGroup);
+	this->maximumNumberOfBoards = maxNumberOfBoards;
+	strcpy(this->boardsName, boardName);
 	aliveThis = 0;
 	nextFree = 0;
 }
@@ -28,7 +33,7 @@ Board::Board(ESP32CANBus * esp32CANBusSingleton, uint8_t devicesMaximumNumberInA
 @param canOut
 */
 void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
-	if (nextFree >= this->devicesMaxNumberInAllBoards) {
+	if (nextFree >= devicesMaximumNumberInAllBoards()) {
 		sprintf(errorMessage, "Too many devices: %s", deviceName);
 		return;
 	}
@@ -39,10 +44,8 @@ void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
 		}
 		strcpy((*nameThis)[nextFree], deviceName);
 	}
-
 	(*idIn)[nextFree] = canIn;
 	(*idOut)[nextFree] = canOut;
-
 	nextFree++;
 }
 
@@ -89,7 +92,7 @@ void Board::continuousReadingStart(uint8_t deviceNumber) {
 			continuousReadingStart(i);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", nameGroup);
+			print("Alive, start reading: %s\n\r", boardsName);
 #if REQUEST_NOTIFICATION
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
@@ -277,10 +280,16 @@ void Board::notificationRequest(uint8_t commandRequestingNotification, uint8_t d
 
 
 
-MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char* nameGroup, uint8_t maxDevices) : 
-	Board(esp32CANBusSingleton, maxDevices, devicesOnABoard, nameGroup) {
-	encoderCount = new std::vector<uint32_t>(maxDevices);
-	reversed = new std::vector<bool>(maxDevices);
+/**
+@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+@param devicesOnABoard - number of devices on each board
+@param boardName - board's name
+@param maxNumberOfBoards - maximum number of boards
+*/
+MotorBoard::MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards) :
+	Board(esp32CANBusSingleton, maxNumberOfBoards, devicesOnABoard, boardName) {
+	encoderCount = new std::vector<uint32_t>(devicesOnABoard * maxNumberOfBoards);
+	reversed = new std::vector<bool>(devicesOnABoard * maxNumberOfBoards);
 }
 
 /** Read CAN Bus message into local variables
@@ -474,11 +483,14 @@ void MotorBoard::test(BreakCondition breakWhen, void (*periodicFunction1)(), voi
 
 
 
-/*
-@param maxDevices - maximum number of devices in all boards
+/**
+@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+@param devicesOnABoard - number of devices on each board
+@param boardName - board's name
+@param maxNumberOfBoards - maximum number of boards
 */
-SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char nameGroup[], uint8_t maxDevices) : 
-	Board(esp32CANBusSingleton, maxDevices, devicesOnABoard, nameGroup) {
+SensorBoard::SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char boardName[], uint8_t maxNumberOfBoards) : 
+	Board(esp32CANBusSingleton, maxNumberOfBoards, devicesOnABoard, boardName) {
 }
 
 /** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
@@ -490,7 +502,7 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 			continuousReadingCalculatedDataStart(i);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", nameGroup);
+			print("Alive, start reading: %s\n\r", boardsName);
 #if REQUEST_NOTIFICATION // todo
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else

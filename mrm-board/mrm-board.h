@@ -41,14 +41,14 @@ protected:
 	uint8_t canData[8];
 	uint8_t commandLastReceivedByTarget = 0xFE;
 	uint8_t devicesOnABoard;
-	uint8_t devicesMaxNumberInAllBoards;
+	uint8_t maximumNumberOfBoards;
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
 	uint16_t fpsLast = 0xFFFF;
 	std::vector<uint32_t>* idIn;  // Inbound message id
 	std::vector<uint32_t>* idOut; // Outbound message id
 	std::vector<char[10]>* nameThis;// Device's name
-	char nameGroup[12];
+	char boardsName[12];
 	int nextFree;
 	BluetoothSerial* serial; // Additional serial port
 
@@ -66,7 +66,13 @@ public:
 
 	ESP32CANBus* esp32CANBus; // CANBus interface
 	
-	Board(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesMaximumNumberInAllGroups, uint8_t devicesInAGroup, char * nameGroup);
+	/**
+	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+	@param maxNumberOfBoards - maximum number of boards
+	@param devicesOnABoard - number of devices on each board
+	@param boardName - board's name
+	*/
+	Board(ESP32CANBus* esp32CANBusSingleton, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName);
 
 	/** Add a device
 	@param deviceName
@@ -114,7 +120,7 @@ public:
 	/** Maximum number of devices in all groups (boards)
 	@raturn - number of devices
 	*/
-	uint8_t devicesMaximumNumberInAllGroups() { return this->devicesMaxNumberInAllBoards; }
+	uint8_t devicesMaximumNumberInAllBoards() { return this->devicesOnABoard * this->maximumNumberOfBoards; }
 
 	/** Ping devices and refresh alive array
 	@param verbose - prints statuses
@@ -184,7 +190,7 @@ public:
 	/** Returns device group's name
 	@return - name
 	*/
-	char* name() {return nameGroup;	}
+	char* name() {return boardsName;}
 
 	/** Request notification
 	@param commandRequestingNotification
@@ -201,7 +207,13 @@ protected:
 	std::vector<bool>* reversed; // Change rotation
 public:
 
-	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char * nameGroup, uint8_t maxDevices);
+	/**
+	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+	@param devicesOnABoard - number of devices on each board
+	@param boardName - board's name
+	@param maxNumberOfBoards - maximum number of boards
+	*/
+	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char * boardName, uint8_t maxNumberOfBoards);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -239,7 +251,13 @@ public:
 
 class SensorBoard : public Board {
 public:
-	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesInAGroup, char* nameGroup, uint8_t maxDevices);
+	/**
+	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+	@param devicesOnABoard - number of devices on each board
+	@param boardName - board's name
+	@param maxNumberOfBoards - maximum number of boards
+	*/
+	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards);
 
 	/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

@@ -2,18 +2,19 @@
 #include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param maxNumberOfBoards - maximum number of boards
 */
-Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	SensorBoard(esp32CANBusSingleton, 1, "Node", maxDevices) {
+Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
+	SensorBoard(esp32CANBusSingleton, 1, "Node", maxNumberOfBoards) {
 	serial = hardwareSerial;
-	readings = new std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>(maxDevices);
-	switches = new std::vector<bool[MRM_NODE_SWITCHES_COUNT]>(maxDevices);
-	servoDegrees = new std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>(maxDevices);
+	readings = new std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>(maxNumberOfBoards);
+	switches = new std::vector<bool[MRM_NODE_SWITCHES_COUNT]>(maxNumberOfBoards);
+	servoDegrees = new std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>(maxNumberOfBoards);
 }
 
 Mrm_node::~Mrm_node()

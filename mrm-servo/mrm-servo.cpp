@@ -1,6 +1,6 @@
 #include "mrm-servo.h"
 
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication

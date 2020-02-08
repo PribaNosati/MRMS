@@ -2,17 +2,17 @@
 #include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
-@param maxDevices - maximum number of devices in all boards
+@param maxNumberOfBoards - maximum number of boards
 */
-Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	SensorBoard(esp32CANBusSingleton, 1, "ReflArray", maxDevices) {
+Mrm_ref_can::Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
+	SensorBoard(esp32CANBusSingleton, 1, "ReflArray", maxNumberOfBoards) {
 	serial = hardwareSerial;
-	readings = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxDevices);
+	readings = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 }
 
 Mrm_ref_can::~Mrm_ref_can()

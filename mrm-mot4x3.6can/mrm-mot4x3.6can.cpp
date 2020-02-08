@@ -1,14 +1,15 @@
 #include "mrm-mot4x3.6can.h"
 
 extern CAN_device_t CAN_cfg;
-extern char* errorMessage;
+extern char errorMessage[];
 
 /** Constructor
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param maxNumberOfBoards - maximum number of boards
 */
-Mrm_mot4x3_6can::Mrm_mot4x3_6can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	MotorBoard(esp32CANBusSingleton, 4, "Mot4x3.6", maxDevices){
+Mrm_mot4x3_6can::Mrm_mot4x3_6can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
+	MotorBoard(esp32CANBusSingleton, 4, "Mot4x3.6", maxNumberOfBoards){
 	serial = hardwareSerial;
 }
 
@@ -62,6 +63,5 @@ void Mrm_mot4x3_6can::add(bool isReversed, char * deviceName)
 		return;
 	}
 	MotorBoard::add(deviceName, canIn, canOut);
-
 	(*reversed)[nextFree-1] = isReversed;
 }

@@ -1,6 +1,6 @@
 #include "mrm-imu.h"
 
-extern char* errorMessage;
+extern char errorMessage[];
 
 /**Add a BNO05
 @param defautI2CAddress - If true, 0x29. Otherwise 0x28.
