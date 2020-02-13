@@ -138,11 +138,11 @@ uint16_t Mrm_ir_finder_can::reading(uint8_t receiverNumberInSensor, uint8_t devi
 */
 void Mrm_ir_finder_can::readingsPrint() {
 	print("IRBall:");
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-		for (uint8_t irNo = 0; irNo < MRM_IR_FINDER_CAN_SENSOR_COUNT; irNo++)
-			if (alive(deviceNumber))
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
+		if (alive(deviceNumber)) {
+			for (uint8_t irNo = 0; irNo < MRM_IR_FINDER_CAN_SENSOR_COUNT; irNo++)
 				print(" %3i", (*readings)[deviceNumber][irNo]);
-	}
+		}
 }
 
 /**Test
@@ -174,15 +174,11 @@ void Mrm_ir_finder_can::test(BreakCondition breakWhen)
 void Mrm_ir_finder_can::testCalculated(BreakCondition breakWhen)
 {
 	static uint32_t lastMs = 0;
-
 	if (millis() - lastMs > 300) {
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-			if (alive(deviceNumber)) {
-				if (pass++)
-					print("| ");
-				print("%i deg., dist: %i", angle, distance);
-			}
+			if (alive(deviceNumber)) 
+				print("%i deg., dist: %i\n\r", angle, distance);
 		}
 		lastMs = millis();
 		if (pass)
