@@ -609,7 +609,7 @@ void initialize() {
 	mrm_ir_finder2.add(34, 33);
 
 	// mrm-ir-finder-can
-	mrm_ir_finder_can.add("IRFind-1");
+	mrm_ir_finder_can.add("IRFind-0");
 
 	// Motors mrm-mot2x50
 	mrm_mot2x50.add(false, "Mot2x50-0");
@@ -1010,30 +1010,12 @@ void testAll() {
 }
 
 void testAny() {
-	const uint8_t LOW_SPEED = 80;
-	const uint8_t HIGH_SPEED = 127;
-	static uint8_t speed = LOW_SPEED;
-	static uint32_t lastChangeMs = 0;
-	static bool up = true;
-
-	if (commandTestAny.firstProcess) {
-		broadcastingStart();
-		print("Test started.\n\r");
-	}
-
-	if (millis() - lastChangeMs > 25) {
-		if (up)
-			speed++;
-		else
-			speed--;
-		if (speed == HIGH_SPEED || speed == LOW_SPEED)
-			up = !up;
-		lastChangeMs = millis();
-		for (uint8_t i = 0; i < 4; i++) {
-			mrm_mot4x3_6can.speedSet(i, speed);
-		}
-		print("%3i cm, %2i deg, refl: %i\n\r", mrm_lid_can_b2.reading(3), mrm_therm_b_can.reading(0), mrm_ref_can.reading(3, 0));
-	}
+	print("Start\n\r");
+	mrm_ir_finder_can.devicesScan(true);
+	print("Alive: %i\n\r", mrm_ir_finder_can.alive(0));
+	delay(10000);
+	print("End\n\r");
+	commandCurrent = NULL;
 }
 
 void testOmniWheels() {
