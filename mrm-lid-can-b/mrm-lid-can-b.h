@@ -54,11 +54,12 @@ class Mrm_lid_can_b : public SensorBoard
 public:
 	
 	/** Constructor
+	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	@param maxNumberOfBoards - maximum number of boards
 	*/
-	Mrm_lid_can_b(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxNumberOfBoards = 12);
+	Mrm_lid_can_b(Robot* robot, uint8_t maxNumberOfBoards = 12);
 
 	~Mrm_lid_can_b();
 

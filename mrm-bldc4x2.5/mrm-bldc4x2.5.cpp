@@ -4,12 +4,12 @@ extern CAN_device_t CAN_cfg;
 extern char* errorMessage;
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_bldc4x2_5::Mrm_bldc4x2_5(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : 
-	MotorBoard(esp32CANBusSingleton, 4, "Mot4x2.5", maxDevices){
-	serial = hardwareSerial;
+Mrm_bldc4x2_5::Mrm_bldc4x2_5(Robot* robot, uint8_t maxDevices) : 
+	MotorBoard(robot, 4, "Mot4x2.5", maxDevices){
 }
 
 Mrm_bldc4x2_5::~Mrm_bldc4x2_5()
@@ -58,7 +58,7 @@ void Mrm_bldc4x2_5::add(bool isReversed, char * deviceName)
 		canOut = CAN_ID_BLDC4X2_5_1_MOTOR3_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mr-bldc4x2.5");
+		strcpy(robotContainer->errorMessage, "Too many mr-bldc4x2.5");
 	}
 	MotorBoard::add(deviceName, canIn, canOut);
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "Arduino.h"
-#include <BluetoothSerial.h>
 #include <esp32-hal-ledc.h>
+#include <mrm-board.h>
 
 /**
 Purpose: MRMS servo library
@@ -20,24 +20,13 @@ class Mrm_servo
 	char nameThis[MAX_SERVO_COUNT][10]; // Device's name
 	int nextFree;
 	uint8_t timerWidthBits;
-	BluetoothSerial* serial; // Additional serial port
-
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
+	Robot* robotContainer;
 
 public:
 	/** Constructor
-	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
-	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+	@param robot - robot containing this board
 	*/
-	Mrm_servo(BluetoothSerial* hardwareSerial = 0);
+	Mrm_servo(Robot* robot);
 
 	~Mrm_servo();
 
@@ -48,6 +37,8 @@ public:
 	*/
 	void add(uint8_t gpioPin = 16, char* deviceName = "", uint8_t timerWidth = 16);
 
+	void sweep();
+
 	/**Test
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
@@ -57,10 +48,7 @@ public:
 	@param degrees - Servo's target angle, 0 - 180
 	@param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 	*/
-	void servoWrite(uint16_t degrees = 90, uint8_t servoNumber = 0);
+	void write(uint16_t degrees = 90, uint8_t servoNumber = 0);
 };
-
-//Declaration of error function. Definition is in Your code.
-extern void error(char* message);
 
 

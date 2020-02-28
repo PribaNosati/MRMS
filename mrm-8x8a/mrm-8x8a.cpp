@@ -1,20 +1,19 @@
 #include "mrm-8x8a.h"
-#include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_8x8a::Mrm_8x8a(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxNumberOfBoards) {
+Mrm_8x8a::Mrm_8x8a(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "LED8x8", maxNumberOfBoards) {
 	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	offOnAction = new std::vector<Command* [MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
-	esp32CANBus = esp32CANBusSingleton;
-	serial = hardwareSerial;
+	//esp32CANBus = esp32CANBusSingleton;
 	nextFree = 0;
 }
 
@@ -79,7 +78,7 @@ void Mrm_8x8a::add(char * deviceName)
 		canOut = CAN_ID_8x8A7_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-8x8a");
+		strcpy(robotContainer->errorMessage, "Too many mrm-8x8a");
 	}
 
 	for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++) {
@@ -98,7 +97,7 @@ void Mrm_8x8a::add(char * deviceName)
 void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
 	canData[0] = COMMAND_8X8_DISPLAY;
 	canData[1] = bitmapId;
-	esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
 /** Display custom bitmap
@@ -110,18 +109,18 @@ void Mrm_8x8a::bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t devic
 	canData[0] = COMMAND_8X8_BITMAP_PART1;
 	for (uint8_t i = 0; i < 7; i++)
 		canData[i + 1] = red[i];
-	esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
 
 	canData[0] = COMMAND_8X8_BITMAP_PART2;
 	canData[1] = red[7];
 	for (uint8_t i = 0; i < 6; i++)
 		canData[i + 1] = green[i];
-	esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
 
 	canData[0] = COMMAND_8X8_BITMAP_PART3;
 	for (uint8_t i = 0; i < 5; i++)
 		canData[i + 1] = green[i + 2];
-	esp32CANBus->messageSend((*idIn)[deviceNumber], 6, canData);
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 6, canData);
 }
 
 /** Read CAN Bus message into local variables
@@ -132,19 +131,20 @@ void Mrm_8x8a::bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t devic
 bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
+			messageDecodeCommon(deviceNumber);
 			switch (data[0]) {
 			case COMMAND_8X8_SWITCH_ON: 
 			case COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION:{
 				uint8_t switchNumber = data[1] >> 1;
 				if (switchNumber > 4) {
-					strcpy(errorMessage, "No 8x8a switch");
+					strcpy(robotContainer->errorMessage, "No 8x8a switch");
 					return false;
 				}
 				(*on)[deviceNumber][switchNumber] = data[1] & 1;
 				if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
 					canData[0] = COMMAND_NOTIFICATION;
 					canData[1] = switchNumber; //todo - deviceNumber not taken into account
-					esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+					robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 				}
 			}
 			break;
@@ -181,7 +181,7 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 */
 bool Mrm_8x8a::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree || switchNumber >= MRM_8x8A_SWITCHES_COUNT) {
-		strcpy(errorMessage, "Switch doesn't exist");
+		strcpy(robotContainer->errorMessage, "Switch doesn't exist");
 		return false;
 	}
 	return (*on)[deviceNumber][switchNumber];

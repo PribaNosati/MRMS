@@ -1,17 +1,15 @@
 #include "mrm-therm-b-can.h"
-#include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_therm_b_can::Mrm_therm_b_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
-	SensorBoard(esp32CANBusSingleton, 1, "Thermo", maxNumberOfBoards) {
-	serial = hardwareSerial;
+Mrm_therm_b_can::Mrm_therm_b_can(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "Thermo", maxNumberOfBoards) {
 	readings = new std::vector<int16_t>(maxNumberOfBoards);
 }
 
@@ -59,7 +57,7 @@ void Mrm_therm_b_can::add(char * deviceName)
 		canOut = CAN_ID_THERM_B_CAN7_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-therm-b-can\n\r");
+		strcpy(robotContainer->errorMessage, "Too many mrm-therm-b-can\n\r");
 		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
@@ -73,6 +71,7 @@ void Mrm_therm_b_can::add(char * deviceName)
 bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)){
+			messageDecodeCommon(deviceNumber);
 			switch (data[0]) {
 			case COMMAND_ERROR:
 				errorCode = data[1];
@@ -108,7 +107,7 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 */
 int16_t Mrm_therm_b_can::reading(uint8_t deviceNumber){
 	if (deviceNumber >= nextFree) {
-		strcpy(errorMessage, "Mrm_therm_b_can overflow.");
+		strcpy(robotContainer->errorMessage, "Mrm_therm_b_can overflow.");
 		return 0;
 	}
 	else

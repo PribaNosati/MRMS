@@ -1,5 +1,6 @@
 #pragma once
 #include "Arduino.h"
+#include <mrm-board.h>
 
 /**
 Purpose: Using MRMS IR finder. Separate sensors can be used or as a group, for detection of a RCJ ball.
@@ -26,19 +27,13 @@ class Mrm_ir_finder2
 	int nextFree;
 	uint8_t anglePins[MAX_IR_FINDER2s];
 	uint8_t distancePins[MAX_IR_FINDER2s];
-	HardwareSerial * serial; //Additional serial port
-
-	/** Print to all serial ports
-	@param message
-	@param eol - end of line
-	*/
-	void print(String message, bool eol = false);
+	Robot* robotContainer;
 
 public:
 	/**Constructor
-	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+	@param robot - robot containing this board
 	*/
-	Mrm_ir_finder2(HardwareSerial * hardwareSerial = 0);
+	Mrm_ir_finder2(Robot* robot);
 
 	~Mrm_ir_finder2();
 

@@ -35,19 +35,59 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_SENDING_SENSORS_4_TO_6 0x07
 #define COMMAND_REF_CAN_SENDING_SENSORS_7_TO_9 0x08
 #define COMMAND_REF_CAN_CALIBRATE 0x09
+#define COMMAND_REF_CAN_CALIBRATION_DATA_1_TO_3 0x0A
+#define COMMAND_REF_CAN_CALIBRATION_DATA_4_TO_6 0x0B
+#define COMMAND_REF_CAN_CALIBRATION_DATA_7_TO_9 0x0C
+#define COMMAND_REF_CAN_CALIBRATION_DATA_REQUEST 0x0D
+#define COMMAND_REF_CAN_SENDING_SENSORS_CENTER 0x0E
 
 class Mrm_ref_can : public SensorBoard
 {
+	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationData; // 
+	std::vector<uint8_t>* dataFresh; // All the data refreshed, bitwise stored. 
+									// Most significant bit 0: readings 1 - 3, 
+									// bit 1: 4 - 6, 
+									// bit 2: 7 - 9, 
+									// bit 3: calibration data 1 - 3, 
+									// bit 4: 4 - 6, 
+									// bit 5: 7 - 9
+	bool readingOnlyCenter = true; // Reading only center and transistors as bits. Otherwise reading all transistors as analog values.
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* readings; // Analog readings of all sensors
+	std::vector<uint16_t>* centerOfMeasurements; // Center of the dark sensors.
+
+	/** Calibration data fresh?
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - yes or no
+	*/
+	bool dataCalibrationFreshAsk(uint8_t deviceNumber) { return (*dataFresh)[deviceNumber] & 0x11100000 == 0x11100000; }
+
+	/** All data fresh?
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - yes or no
+	*/
+	bool dataFreshAsk(uint8_t deviceNumber) { return (*dataFresh)[deviceNumber] == 0xFF; }
+
+	/** Set calibration data freshness
+	@param areFresh - set value
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
+	*/
+	void dataFreshCalibrationSet(bool areFresh, uint8_t deviceNumber = 0);
+
+	/** Set readings data freshness
+	@param areFresh - set value
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
+	*/
+	void dataFreshReadingsSet(bool areFresh, uint8_t deviceNumber = 0);
 	
 public:
-	
+
 	/** Constructor
+	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	@param maxNumberOfBoards - maximum number of boards
 	*/
-	Mrm_ref_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxNumberOfBoards = 4);
+	Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards = 4);
 
 	~Mrm_ref_can();
 
@@ -60,6 +100,37 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 	*/
 	void calibrate(uint8_t deviceNumber = 0);
+
+	/** Get local calibration data
+	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - analog value
+	*/
+	uint16_t calibrationDataGet(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
+
+	/** Print all calibration data in a line
+	*/
+	void calibrationPrint();
+
+	/** Request sensor to send calibration data
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+	@param waitForResult - Blocks program flow till results return.
+	*/
+	void calibrationDataRequest(uint8_t deviceNumber = 0, bool waitForResult = false);
+
+	/** Center of measurements, like center of the line
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+	@return - 0 - nothing found. 1000 - 9000 for mrm-ref-can, 1000 - 8000 for ref-can8, 1000 - 6000 for mrm-ref-can6, and 1000 - 4000 for mrm-ref-can4. 
+		1000 means center exactly under first sensor (the one closer to the biggest pin group).
+	*/
+	uint16_t center(uint8_t deviceNumber = 0) { return (*centerOfMeasurements)[deviceNumber]; }
+
+	/** Dark?
+	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - yes or no.
+	*/
+	bool dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 	
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -67,7 +138,7 @@ public:
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
 	
-	/** Analog readings
+	/** Readings, can be analog or digital, depending on measuring mode
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - analog value

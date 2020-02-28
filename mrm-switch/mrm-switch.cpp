@@ -1,17 +1,17 @@
 #include "mrm-switch.h"
 
 extern CAN_device_t CAN_cfg;
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Mrm_switch::Mrm_switch(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxDevices) : SensorBoard(esp32CANBusSingleton, 1, "LED8x8", maxDevices) {
+Mrm_switch::Mrm_switch(Robot* robot, uint8_t maxDevices) : 
+	SensorBoard(robot, 1, "LED8x8", maxDevices) {
 	lastOn = new std::vector<bool[MRM_SWITCHES_COUNT]>(maxDevices);
 	offOnAction = new std::vector<Command* [MRM_SWITCHES_COUNT]>(maxDevices);
 	pin = new std::vector<uint8_t[MRM_SWITCHES_COUNT]>(maxDevices);
-	serial = hardwareSerial;
 	nextFree = 0;
 }
 
@@ -66,7 +66,7 @@ void Mrm_switch::add(uint8_t pin1, uint8_t pin2, char* deviceName)
 */
 bool Mrm_switch::read(uint8_t switchNumber, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree || switchNumber >= MRM_SWITCHES_COUNT) {
-		strcpy(errorMessage, "Switch doesn't exist");
+		strcpy(robotContainer->errorMessage, "Switch doesn't exist");
 		return false;
 	}
 	return digitalRead((*pin)[deviceNumber][switchNumber]) == HIGH;

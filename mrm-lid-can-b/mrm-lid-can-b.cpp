@@ -1,16 +1,15 @@
 #include "mrm-lid-can-b.h"
 
 extern CAN_device_t CAN_cfg;
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_lid_can_b::Mrm_lid_can_b(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial* hardwareSerial, uint8_t maxNumberOfBoards) :
-	SensorBoard(esp32CANBusSingleton, 1, "Lid2m", maxNumberOfBoards) {
-	serial = hardwareSerial;
+Mrm_lid_can_b::Mrm_lid_can_b(Robot* robot, uint8_t maxNumberOfBoards) :
+	SensorBoard(robot, 1, "Lid2m", maxNumberOfBoards) {
 	readings = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 
@@ -90,7 +89,7 @@ void Mrm_lid_can_b::add(char * deviceName)
 		canOut = CAN_ID_LID_CAN_B15_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-lid-can-b");
+		strcpy(robotContainer->errorMessage, "Too many mrm-lid-can-b");
 		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
@@ -105,7 +104,7 @@ void Mrm_lid_can_b::calibration(uint8_t deviceNumber){
 			calibration(i);
 	else{
 		canData[0] = COMMAND_LID_CAN_B_CALIBRATE;
-		esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
 }
 
@@ -117,6 +116,7 @@ void Mrm_lid_can_b::calibration(uint8_t deviceNumber){
 bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		if (isForMe(canId, deviceNumber)) {
+			messageDecodeCommon(deviceNumber);
 			switch (data[0]) {
 			case COMMAND_FPS_SENDING:
 				fpsLast = (data[1] << 8) | data[2];
@@ -152,7 +152,7 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 */
 uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
 	if (deviceNumber > nextFree) {
-		strcpy(errorMessage, "mrm-lid-can-b doesn't exist");
+		strcpy(robotContainer->errorMessage, "mrm-lid-can-b doesn't exist");
 		return 0;
 	}
 	return (*readings)[deviceNumber];

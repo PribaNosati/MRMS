@@ -1,17 +1,13 @@
 #include "mrm-ir-finder-can.h"
-#include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;  
-extern char errorMessage[];
 
 /** Constructor
-@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param robot - robot containing this board
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_ir_finder_can::Mrm_ir_finder_can(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
-	SensorBoard(esp32CANBusSingleton, 1, "IRFindCan", maxNumberOfBoards) {
-	serial = hardwareSerial;
+Mrm_ir_finder_can::Mrm_ir_finder_can(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "IRFindCan", maxNumberOfBoards) {
 	readings = new std::vector<uint16_t[MRM_IR_FINDER_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 }
 
@@ -59,7 +55,7 @@ void Mrm_ir_finder_can::add(char * deviceName)
 		canOut = CAN_ID_IR_FINDER_CAN7_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-ir-finder-can");
+		strcpy(robotContainer->errorMessage, "Too many mrm-ir-finder-can");
 		return;
 	}
 	SensorBoard::add(deviceName, canIn, canOut);
@@ -72,6 +68,7 @@ void Mrm_ir_finder_can::add(char * deviceName)
 bool Mrm_ir_finder_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
+			messageDecodeCommon(deviceNumber);
 			bool any = false;
 			uint8_t startIndex = 0;
 			switch (data[0]) {
@@ -128,7 +125,7 @@ bool Mrm_ir_finder_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 */
 uint16_t Mrm_ir_finder_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
 	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_IR_FINDER_CAN_SENSOR_COUNT) {
-		strcpy(errorMessage, "mrm-ir-finder-can doesn't exist");
+		strcpy(robotContainer->errorMessage, "mrm-ir-finder-can doesn't exist");
 		return 0;
 	}
 	return (*readings)[deviceNumber][receiverNumberInSensor];

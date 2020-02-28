@@ -1,6 +1,14 @@
 #include "mrm-ir-finder2.h"
 
-extern char errorMessage[];
+/**Constructor
+@param robot - robot containing this board
+*/
+Mrm_ir_finder2::Mrm_ir_finder2(Robot* robot) {
+	robotContainer = robot;
+	nextFree = 0;
+}
+
+Mrm_ir_finder2::~Mrm_ir_finder2() {}
 
 /**Add a sensor
 @param angle - Analog pin for angle. Robot front is 0 degrees and positive angles are to the right. Total range is -180º to 180º.
@@ -9,7 +17,7 @@ extern char errorMessage[];
 void Mrm_ir_finder2::add(uint8_t anglePin, uint8_t distancePin)
 {
 	if (nextFree >= MAX_IR_FINDER2s) {
-		strcpy(errorMessage, "Too many mrm-ir-finder2");
+		strcpy(robotContainer->errorMessage, "Too many mrm-ir-finder2");
 		return;
 	}
 	anglePins[nextFree] = anglePin;
@@ -42,22 +50,6 @@ IRSource Mrm_ir_finder2::irSource(uint8_t sensorNumber) {
 	return source;
 }
 
-/** Print to all serial ports
-@param message
-@param eol - end of line
-*/
-void Mrm_ir_finder2::print(String message, bool eol) {
-	if (eol) {
-		Serial.println(message);
-		if (serial != 0)
-			serial->println(message);
-	}
-	else {
-		Serial.print(message);
-		if (serial != 0)
-			serial->print(message);
-	}
-}
 
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
@@ -68,31 +60,21 @@ void Mrm_ir_finder2::test(BreakCondition breakWhen, bool updateByTimerInterrupts
 
 	if (millis() - lastMs > 300) {
 		if (nextFree == 0) {
-			print("No mrm-ir-finder2\n\r");
+			robotContainer->print("No mrm-ir-finder2\n\r");
 			lastMs = 0xFFFFFFFFFFFFFFFF;
 		}
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (pass++)
-				print(" ");
+				robotContainer->print(" ");
 			IRSource source = irSource(deviceNumber);
 			char buffer[] = "No source detected.                                                      ";
 			if (anyIRSource())
 				sprintf(buffer, "Angle: %4iº, distance: %4i (an: %i/%i).", source.angle, source.distance, analogRead(anglePins[deviceNumber]), analogRead(distancePins[deviceNumber]));
-			print(buffer);
+			robotContainer->print(buffer);
 		}
 		lastMs = millis();
 		if (pass)
-			print("\n\r");
+			robotContainer->print("\n\r");
 	}
 }
-
-/**Constructor
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
-*/
-Mrm_ir_finder2::Mrm_ir_finder2(HardwareSerial * hardwareSerial) {
-	serial = hardwareSerial;
-	nextFree = 0;
-}
-
-Mrm_ir_finder2::~Mrm_ir_finder2(){}

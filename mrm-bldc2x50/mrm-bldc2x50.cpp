@@ -1,16 +1,15 @@
 #include "mrm-bldc2x50.h"
 
 extern CAN_device_t CAN_cfg;  
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_bldc2x50::Mrm_bldc2x50(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
-	MotorBoard(esp32CANBusSingleton, 2, "Bldc2x50", maxNumberOfBoards) {
-	serial = hardwareSerial;
+Mrm_bldc2x50::Mrm_bldc2x50(Robot* robot, uint8_t maxNumberOfBoards) : 
+	MotorBoard(robot, 2, "Bldc2x50", maxNumberOfBoards) {
 }
 
 Mrm_bldc2x50::~Mrm_bldc2x50()
@@ -58,7 +57,7 @@ void Mrm_bldc2x50::add(bool isReversed, char * deviceName)
 		canOut = CAN_ID_BLDC2X5_3_MOTOR1_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-bldc2x50");
+		strcpy(robotContainer->errorMessage, "Too many mrm-bldc2x50");
 	}
 	MotorBoard::add(deviceName, canIn, canOut);
 

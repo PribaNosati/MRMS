@@ -33,10 +33,11 @@ class Mrm_mot2x50 : public MotorBoard
 public:
 	
 	/** Constructor
+	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_mot2x50(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial = 0, uint8_t maxDevices = 4);
+	Mrm_mot2x50(Robot* robot, uint8_t maxDevices = 4);
 
 	~Mrm_mot2x50();
 

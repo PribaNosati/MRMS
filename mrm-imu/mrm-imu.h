@@ -1,7 +1,7 @@
 #pragma once
 #include <Wire.h>
-#include <BluetoothSerial.h>
 #include "bno055.h"// bno055.h and bno055.cpp files must be in Arduino libraries.
+#include <mrm-board.h>
 
 /**
 Purpose: Reading of Bosch BNO055 IMU sensor.
@@ -19,26 +19,16 @@ class Mrm_imu
 	bool defaultI2CAddresses[MAX_MRM_IMU]; //If true, it will use default I2C address (0x29) otherwise 0x28.
 	struct bno055_t bno055; // Structure declaration.
 	int nextFree;
-	BluetoothSerial* serial; // Additional serial port
+	Robot* robotContainer;
 
 	void bno055Initialize(bool defaultI2CAddress = true); //IMU initialization of the sensor. It should be called once, after Wire.begin(). 
 	s32 bno055_data_readout_template(void); //A function You do not use.
-	
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
 
 public:
 	/**Constructor
-	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+	@param robot - robot containing this board
 	*/
-	Mrm_imu(BluetoothSerial* hardwareSerial = 0);
+	Mrm_imu(Robot* robot);
 
 	~Mrm_imu();
 

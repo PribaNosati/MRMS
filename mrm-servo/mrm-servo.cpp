@@ -1,12 +1,10 @@
 #include "mrm-servo.h"
 
-extern char errorMessage[];
-
 /** Constructor
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+@param robot - robot containing this board
 */
-Mrm_servo::Mrm_servo(BluetoothSerial* hardwareSerial) {
-	serial = hardwareSerial;
+Mrm_servo::Mrm_servo(Robot* robot) {
+	robotContainer = robot;
 	nextFree = 0;
 }
 
@@ -22,13 +20,13 @@ Mrm_servo::~Mrm_servo()
 void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
 {
 	if (nextFree >= MAX_SERVO_COUNT) {
-		strcpy(errorMessage, "Too many servo motors");
+		strcpy(robotContainer->errorMessage, "Too many servo motors");
 		return;
 	}
 
 	if (deviceName != 0) {
 		if (strlen(deviceName) > 9) {
-			strcpy(errorMessage, "Device name too long");
+			strcpy(robotContainer->errorMessage, "Device name too long");
 			return;
 		}
 		strcpy(nameThis[nextFree], deviceName);
@@ -44,16 +42,21 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
 	nextFree++;
 }
 
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Mrm_servo::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
+void Mrm_servo::sweep() {
+	// If variables are not needed in any other function, and  must be persistent, they should be declared static:
+	static uint8_t servoDegrees = 90;
+	static bool servoIncreasing = true;
+	static uint32_t servoLastChangeMs = 0;
+
+	if (millis() - servoLastChangeMs > 12) { //Servo cannot operate faster
+		servoDegrees += (servoIncreasing ? 5 : -5);
+		if (servoDegrees == 180 || servoDegrees == 0)
+			servoIncreasing = !servoIncreasing;
+		servoLastChangeMs = millis();
+		write(servoDegrees);
+	}
 }
+
 
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
@@ -64,40 +67,28 @@ void Mrm_servo::test(BreakCondition breakWhen)
 	while (breakWhen !=0 && !breakWhen()) {
 
 		for (int16_t i = 0; i <= 180; i += 5) {
-			servoWrite(i);
-			print("%i\n\r", i);
+			write(i);
+			robotContainer->print("%i\n\r", i);
 			delay(ms);
 		}
 
 		for (int16_t i = 180; i >= 0; i -= 5) {
-			servoWrite(i);
-			print("%i\n\r", i);
+			write(i);
+			robotContainer->print("%i\n\r", i);
 			delay(ms);
 		}
 	}
 
-	print("\n\rTest over.\n\r");
-}
-
-/** Print to all serial ports, pointer to list
-*/
-void Mrm_servo::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serial != 0)
-		serial->print(buffer);
+	robotContainer->print("\n\rTest over.\n\r");
 }
 
 /** Move servo
 @param degrees - Servo's target angle, 0 - 180
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 */
-void Mrm_servo::servoWrite( uint16_t degrees, uint8_t servoNumber) {
+void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
 	if (servoNumber >= nextFree) {
-		strcpy(errorMessage, "Servo doesn't exist");
+		strcpy(robotContainer->errorMessage, "Servo doesn't exist");
 		return;
 	}
 	degrees = constrain(degrees, 0, 180);

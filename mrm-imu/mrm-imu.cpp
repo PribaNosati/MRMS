@@ -1,13 +1,21 @@
 #include "mrm-imu.h"
 
-extern char errorMessage[];
+/**Constructor
+@param robot - robot containing this board
+*/
+Mrm_imu::Mrm_imu(Robot* robot) {
+	robotContainer = robot;
+	nextFree = 0;
+}
+
+Mrm_imu::~Mrm_imu() {}
 
 /**Add a BNO05
 @param defautI2CAddress - If true, 0x29. Otherwise 0x28.
 */
 void Mrm_imu::add(bool defaultI2CAddress) {
 	if (nextFree >= MAX_MRM_IMU) {
-		strcpy(errorMessage, "Too many Bosch IMUs.");//Todo - enabling more sensors by changing bno055Initialize() call.
+		strcpy(robotContainer->errorMessage, "Too many Bosch IMUs.");//Todo - enabling more sensors by changing bno055Initialize() call.
 		return;
 	}
 
@@ -52,7 +60,7 @@ uint8_t Mrm_imu::accelerationCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return acc;
 	else {
-		strcpy(errorMessage, "No accelerometer");
+		strcpy(robotContainer->errorMessage, "No accelerometer");
 		return 0;
 	}
 }
@@ -66,7 +74,7 @@ uint8_t Mrm_imu::gyroCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(errorMessage, "No gyroscope");
+		strcpy(robotContainer->errorMessage, "No gyroscope");
 		return 0;
 	}
 }
@@ -80,20 +88,9 @@ uint8_t Mrm_imu::magneticCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(errorMessage, "No magnetometer.");
+		strcpy(robotContainer->errorMessage, "No magnetometer.");
 		return 0;
 	}
-}
-
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Mrm_imu::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
 }
 
 /** System calibration
@@ -105,7 +102,7 @@ uint8_t Mrm_imu::systemCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(errorMessage, "mrm-imu calibration error");
+		strcpy(robotContainer->errorMessage, "mrm-imu calibration error");
 		return 0;
 	}
 }
@@ -116,8 +113,8 @@ uint8_t Mrm_imu::systemCalibration() {
 void Mrm_imu::test(BreakCondition breakWhen) {
 	while (breakWhen == 0 || !(*breakWhen)()) {
 		for (int i = 0; i < nextFree; i++) 
-			print("Y:%3i P:%3i R:%3i", (int)round(heading()), (int)round(pitch()), (int)round(roll()));
-		print("\n\r");
+			robotContainer->print("Y:%3i P:%3i R:%3i", (int)round(heading()), (int)round(pitch()), (int)round(roll()));
+		robotContainer->print("\n\r");
 		delay(200);
 	}
 }
@@ -648,7 +645,7 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	bno055.dev_addr = defaultI2CAddress ? BNO055_I2C_ADDR2 : BNO055_I2C_ADDR1;
 	comres = bno055_init(&bno055);
 	if (comres != BNO055_SUCCESS) {
-		strcpy(errorMessage, "mrm-imu not initialized");
+		strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
 		return;
 	}
 
@@ -657,28 +654,5 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	//	errorHandler();
 	bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
 	if (comres != BNO055_SUCCESS)
-		strcpy(errorMessage, "mrm-imu not initialized");
+		strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
 }
-
-/** Print to all serial ports, pointer to list
-*/
-void Mrm_imu::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serial != 0)
-		serial->print(buffer);
-}
-
-
-/**Constructor
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
-*/
-Mrm_imu::Mrm_imu(BluetoothSerial * hardwareSerial) {
-	serial = hardwareSerial;
-	nextFree = 0;
-}
-
-Mrm_imu::~Mrm_imu(){}

@@ -14,6 +14,10 @@
 #define COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION 0x14
 #define COMMAND_SENSORS_MEASURE_CONTINUOUS_AND_RETURN_CALCULATED_DATA 0x15
 #define COMMAND_SENSORS_MEASURE_CALCULATED_SENDING 0x16
+#define COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_2 0x17
+#define COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_3 0x18
+#define COMMAND_FIRMWARE_REQUEST 0x19
+#define COMMAND_FIRMWARE_SENDING 0x1A
 #define COMMAND_SPEED_SET 0x20
 #define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
 #define COMMAND_FPS_REQUEST 0x30
@@ -32,47 +36,60 @@
 #define toDeg(x) ((x) / PI * 180.0) // Radians to degrees
 #endif
 
+enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
+
 typedef bool(*BreakCondition)();
 typedef void (*Action)();
+
+class Robot;
 
 class Board{
 protected:
 	uint32_t aliveThis; // Responded to ping, maximum 32 devices of the same class
+	uint8_t aliveTimeout = 4;
+	char boardsName[12];
+	BoardType boardTypeThis;
 	uint8_t canData[8];
 	uint8_t commandLastReceivedByTarget = 0xFE;
 	uint8_t devicesOnABoard;
-	uint8_t maximumNumberOfBoards;
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
+	std::vector<uint16_t>* firmwareVersionLast;
 	uint16_t fpsLast = 0xFFFF;
 	std::vector<uint32_t>* idIn;  // Inbound message id
 	std::vector<uint32_t>* idOut; // Outbound message id
+	std::vector<uint32_t>* lastMessageReceivedMs;
+	uint8_t maximumNumberOfBoards;
+	uint8_t measuringMode = 0;
+	uint8_t measuringModeLimit = 0;
 	std::vector<char[10]>* nameThis;// Device's name
-	char boardsName[12];
 	int nextFree;
-	BluetoothSerial* serial; // Additional serial port
+	Robot* robotContainer;
 
-	///** Print to all serial ports
-	//@param fmt - C format string
-	//@param ... - variable arguments
-	//*/
-	//void print(const char* fmt, ...);
+	/** Common part of message decoding
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void messageDecodeCommon(uint8_t deviceNumber = 0);
 
-	///** Print to all serial ports, pointer to list
-	//*/
-	//void vprint(const char* fmt, va_list argp);
+	/** Print to all serial ports
+	@param fmt - C format string
+	@param ... - variable arguments
+	*/
+	void print(const char* fmt, ...);
+
+	/** Print to all serial ports, pointer to list
+	*/
+	void vprint(const char* fmt, va_list argp);
 
 public:
-
-	ESP32CANBus* esp32CANBus; // CANBus interface
 	
 	/**
-	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
+	@param robot - robot containing this board
 	@param maxNumberOfBoards - maximum number of boards
 	@param devicesOnABoard - number of devices on each board
 	@param boardName - board's name
 	*/
-	Board(ESP32CANBus* esp32CANBusSingleton, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName);
+	Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName, BoardType boardTypeThis);
 
 	/** Add a device
 	@param deviceName
@@ -99,8 +116,11 @@ public:
 
 	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param measuringModeNow - Measuring mode id.
 	*/
-	void continuousReadingStart(uint8_t deviceNumber = 0xFF);
+	void continuousReadingStart(uint8_t deviceNumber = 0xFF, uint8_t measuringModeNow = 0);
+
+	BoardType boardType(){ return boardTypeThis; }
 
 	/** Stops periodical CANBus messages that refresh values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -124,6 +144,7 @@ public:
 
 	/** Ping devices and refresh alive array
 	@param verbose - prints statuses
+	@param timeout - ms to wait for response
 	@return - alive count
 	*/
 	uint8_t devicesScan(bool verbose = true);
@@ -137,6 +158,21 @@ public:
 	@return - device number
 	*/
 	uint8_t errorWasInDeviceNumber() { return errorInDeviceNumber; }
+
+	/** Firmware version
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - version
+	*/
+	uint16_t firmware(uint8_t deviceNumber = 0) { return (*firmwareVersionLast)[deviceNumber]; }
+
+	/** Display firmware for all devices of a board
+	*/
+	void firmwareDisplay();
+
+	/** Request firmware version
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
+	*/
+	void firmwareRequest(uint8_t deviceNumber = 0xFF);
 
 	/** Frames Per Second
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -174,6 +210,12 @@ public:
 	*/
 	bool isForMe(uint32_t canIdOut, uint8_t deviceNumber);
 
+	/** Last message received
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - milliseconds
+	*/
+	uint32_t lastMessageMs(uint8_t deviceNumber = 0) { return (*lastMessageReceivedMs)[deviceNumber]; }
+
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
@@ -197,6 +239,10 @@ public:
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
+
+	/**Test
+	*/
+	virtual void test() {}
 };
 
 
@@ -208,12 +254,13 @@ protected:
 public:
 
 	/**
+	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param devicesOnABoard - number of devices on each board
 	@param boardName - board's name
 	@param maxNumberOfBoards - maximum number of boards
 	*/
-	MotorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char * boardName, uint8_t maxNumberOfBoards);
+	MotorBoard(Robot* robot, uint8_t devicesOnABoard, char * boardName, uint8_t maxNumberOfBoards);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -238,12 +285,11 @@ public:
 	*/
 	void speedSet(uint8_t motorNumber, int8_t speed);
 
+	void stop();
+
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
-	@param periodicFunction1 - A function that should be called while executing the test.
-	@param periodicFunction2 - Another function that should be called while executing the test.
 	*/
-	void test(BreakCondition breakWhen = 0, void (*periodicFunction1)() = 0, void (*periodicFunction2)() = 0);
+	void test();
 };
 
 
@@ -252,12 +298,13 @@ public:
 class SensorBoard : public Board {
 public:
 	/**
+	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param devicesOnABoard - number of devices on each board
 	@param boardName - board's name
 	@param maxNumberOfBoards - maximum number of boards
 	*/
-	SensorBoard(ESP32CANBus* esp32CANBusSingleton, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards);
+	SensorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards);
 
 	/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -287,6 +334,13 @@ public:
 };
 
 class MotorGroupDifferential : public MotorGroup {
+private:
+	/** Check if speed is inside bounds
+@param speed - speed to be checked
+@return - speed inside bounds
+*/
+	int16_t checkBounds(int16_t speed);
+
 public: 
 	MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
 		MotorBoard* motorBoardForLeft2 = NULL, uint8_t motorNumberForLeft2 = 0, MotorBoard* motorBoardForRight2 = NULL, uint8_t motorNumberForRight2 = 0);
@@ -295,7 +349,7 @@ public:
 	@param leftSpeed, in range -127 to 127
 	@param right Speed, in range -127 to 127
 	*/
-	void go(int8_t leftSpeed = 0, int8_t rightSpeed = 0, int8_t lateralSpeedToRight = 0);
+	void go(int16_t leftSpeed = 0, int16_t rightSpeed = 0, int16_t lateralSpeedToRight = 0);
 };
 
 class MotorGroupStar : public MotorGroup {
@@ -320,4 +374,95 @@ public:
 	@param verbose - print details
 	*/
 	void goToEliminateErrors(float errorX, float errorY, float headingToMaintain, Mrm_pid* pidXY, Mrm_pid* pidRotation, bool verbose = false);
+};
+
+#define COMMANDS_LIMIT 50 // Increase if more commands are needed
+#define MRM_BOARD_COUNT 14
+
+class Robot {
+
+protected:
+	uint8_t fpsNextIndex = 0; // To count frames per second
+	uint32_t fpsMs[3] = { 0, 0, 0 };
+	uint8_t nextFreeCommand = 0;
+	uint8_t nextFreeBoardSlot = 0;
+	BluetoothSerial* serial; // Additional serial port
+	bool verbose = false; // Verbose output
+
+	void fps();
+
+	/** Print to all serial ports, pointer to list
+	*/
+	void vprint(const char* fmt, va_list argp);
+
+public:
+	Board* board[MRM_BOARD_COUNT];
+	struct Command commandDoNothing;
+	struct Command* commands[COMMANDS_LIMIT];
+	struct Command* commandCurrent;
+	struct Command* commandPrevious;
+	ESP32CANBus* esp32CANBus; // CANBus interface
+	char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
+	uint8_t menuLevel = 1; // Submenus have bigger numbers
+
+	/**
+	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
+	*/
+	Robot(BluetoothSerial* hardwareSerial = 0);
+
+	void add(Board* aBoard);
+
+	void blink();
+
+	void broadcastingStart(uint8_t measuringMode = 0);
+
+	void broadcastingStop();
+
+	uint8_t boardCount(){ return nextFreeBoardSlot; }
+
+	void canBusSniff();
+
+	void canIdChange();
+
+	void commandProcess();
+
+	void commandSet(struct Command* newCommand);
+
+	void commandUpdate(bool displayAlive, Command* displayAction, Command* switchAction);
+
+	void devicesScan(bool verbose);
+
+	void errors();
+
+	void firmwarePrint();
+
+	void fpsPrint();
+
+	void menu();
+
+	void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel);
+
+	void messagesReceive();
+
+	void motorTest();
+
+	void noLoopWithoutThis();
+
+	/** Print to all serial ports
+	@param fmt - C format string
+	@param ... - variable arguments
+	*/
+	void print(const char* fmt, ...);
+
+	BluetoothSerial* serialBT() { return serial; }
+
+	void stopAll();
+
+	bool stressTest(bool firstPass);
+
+	bool userBreak();
+
+	void verbosePrint();
+
+	void verboseToggle();
 };

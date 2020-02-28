@@ -1,17 +1,15 @@
 #include "mrm-node.h"
-#include <ESP32CANBus.h>
 
 extern CAN_device_t CAN_cfg;
-extern char errorMessage[];
 
 /** Constructor
+@param robot - robot containing this board
 @param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_node::Mrm_node(ESP32CANBus *esp32CANBusSingleton, BluetoothSerial * hardwareSerial, uint8_t maxNumberOfBoards) : 
-	SensorBoard(esp32CANBusSingleton, 1, "Node", maxNumberOfBoards) {
-	serial = hardwareSerial;
+Mrm_node::Mrm_node(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "Node", maxNumberOfBoards) {
 	readings = new std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>(maxNumberOfBoards);
 	switches = new std::vector<bool[MRM_NODE_SWITCHES_COUNT]>(maxNumberOfBoards);
 	servoDegrees = new std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>(maxNumberOfBoards);
@@ -61,7 +59,7 @@ void Mrm_node::add(char * deviceName)
 		canOut = CAN_ID_NODE7_OUT;
 		break;
 	default:
-		strcpy(errorMessage, "Too many mrm-node");
+		strcpy(robotContainer->errorMessage, "Too many mrm-node");
 		return;
 	}
 
@@ -81,6 +79,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (isForMe(canId, deviceNumber)) {
+			messageDecodeCommon(deviceNumber);
 			bool any = false;
 			uint8_t startIndex = 0;
 			switch (data[0]) {
@@ -108,7 +107,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_NODE_SWITCH_ON: {
 				uint8_t switchNumber = data[1] >> 1;
 				if (switchNumber > 4) {
-					strcpy(errorMessage, "No mrm-switch");
+					strcpy(robotContainer->errorMessage, "No mrm-switch");
 					return false;
 				}
 				(*switches)[deviceNumber][switchNumber] = data[1] & 1;
@@ -140,7 +139,7 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 */
 uint16_t Mrm_node::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_NODE_ANALOG_COUNT) {
-		strcpy(errorMessage, "mrm-node doesn't exist");
+		strcpy(robotContainer->errorMessage, "mrm-node doesn't exist");
 		return 0;
 	}
 	return (*readings)[deviceNumber][receiverNumberInSensor];
@@ -184,7 +183,7 @@ void Mrm_node::servoTest(BreakCondition breakWhen) {
 */
 void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceNumber) {
 	if (servoNumber >= MRM_NODE_SERVO_COUNT) {
-		strcpy(errorMessage, "Servo not found");
+		strcpy(robotContainer->errorMessage, "Servo not found");
 		return;
 	}
 	if (degrees != (*servoDegrees)[deviceNumber][servoNumber]) {
@@ -194,7 +193,7 @@ void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceN
 		canData[3] = degrees & 0xFF;
 		(*servoDegrees)[deviceNumber][servoNumber] = degrees;
 
-		esp32CANBus->messageSend((*idIn)[deviceNumber], 4, canData);
+		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 4, canData);
 	}
 }
 
@@ -205,7 +204,7 @@ void Mrm_node::servoWrite(uint8_t servoNumber, uint16_t degrees, uint8_t deviceN
 */
 bool Mrm_node::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 	if (deviceNumber >= nextFree || switchNumber >= MRM_NODE_SWITCHES_COUNT) {
-		strcpy(errorMessage, "Switch doesn't exist");
+		strcpy(robotContainer->errorMessage, "Switch doesn't exist");
 		return false;
 	}
 	return (*switches)[deviceNumber][switchNumber];
