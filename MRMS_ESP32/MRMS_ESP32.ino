@@ -4,6 +4,7 @@
 #include <mrm-board.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
+#include <mrm-col-can.h>
 #include <mrm-common.h>
 #include <mrm-imu.h>
 #include <mrm-pid.h>
@@ -19,22 +20,22 @@
 #include <mrm-servo.h>
 #include <mrm-switch.h>
 #include <mrm-therm-b-can.h>
+#include <mrm-us.h>
 #include <Wire.h>
 
 
 // Defines
 
-#define COMMANDS_LIMIT 50 // Increase if more commands are needed
+//#define COMMANDS_LIMIT 50 // Increase if more commands are needed
 #define LED_ERROR 15 // Pin number, hardware defined
-#define LED_OK 2 // Pin number, hardware defined
-#define MOTOR_GROUP 3 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
-#define MRM_BOARD_COUNT 12
+#define MOTOR_GROUP 2 // 0 - Soccer BLDC, 1 - Soccer BDC 2 x mrm-mot2x50, 2 - differential mrm-mot4x3.6, 3 - Soccer BDC mrm-mot4x10, 4 - differential mrm-bldc4x2.5
+#define print robot.print
 
 
 // Commands
 
 struct Command commandCanSniff;
-struct Command commandDoNothing;
+struct Command commandFirmware;
 struct Command commandFPS;
 struct Command commandGoAhead;
 struct Command commandIdChange;
@@ -43,17 +44,16 @@ struct Command commandMenuMain;
 struct Command commandMenuPrint;
 struct Command commandReflectanceArrayCalibrate;
 struct Command commandReportCANBusDevices;
-struct Command commandReset;
 struct Command commandSoccerIdle;
 struct Command commandSoccerCatch;
 struct Command commandSoccerPlayStart;
-struct Command commandBroadcastingStart;
 struct Command commandLineFollow; // State machine example - following a line
 struct Command commandStop; // State machine example - stopped
 struct Command commandTest8x8;
 struct Command commandTestAll;
 struct Command commandTestAny;
 struct Command commandTestBluetooth;
+struct Command commandTestColor;
 struct Command commandTestI2C;
 struct Command commandTestIMU;
 struct Command commandTestIRFinder;
@@ -69,59 +69,39 @@ struct Command commandTestReflectanceArray;
 struct Command commandTestServo;
 struct Command commandTestThermo;
 
-struct Command* commands[COMMANDS_LIMIT];
-struct Command* commandCurrent = &commandMenuPrint;
-struct Command* commandPrevious = commandCurrent;
 
 // Variables
 
-char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
-
-uint8_t fpsNextIndex = 0; // To count frames per second
-uint32_t fpsMs[3] = { 0, 0, 0 };
-
 float headingToMaintain; // Soccer
-
-uint8_t menuLevel = 1; // Submenus have bigger numbers
-
-unsigned long previousMillis = 0;   // will store last time a CAN Message was send
-const int interval = 1000;          // interval at which send CAN Messages (milliseconds)
-
-static bool verbose = false; // Verbose output
 
 
 // Objects
 
 BluetoothSerial SerialBT;
-ESP32CANBus esp32CANBus;
 MotorGroupDifferential* motorGroupDifferential = NULL;
 MotorGroupStar *motorGroupStar = NULL;
-Mrm_8x8a mrm_8x8a(&esp32CANBus, &SerialBT);
-Mrm_bldc4x2_5 mrm_bldc4x2_5(&esp32CANBus, &SerialBT);
-Mrm_bldc2x50 mrm_bldc2x50(&esp32CANBus, &SerialBT);
-Mrm_imu mrm_imu;
-Mrm_ir_finder2 mrm_ir_finder2;
-Mrm_ir_finder_can mrm_ir_finder_can(&esp32CANBus, &SerialBT);
-Mrm_lid_can_b mrm_lid_can_b(&esp32CANBus, &SerialBT, 10);
-Mrm_lid_can_b2 mrm_lid_can_b2(&esp32CANBus, &SerialBT);
-Mrm_mot2x50 mrm_mot2x50(&esp32CANBus, &SerialBT);//
-Mrm_mot4x10 mrm_mot4x10(&esp32CANBus, &SerialBT);
-Mrm_mot4x3_6can mrm_mot4x3_6can(&esp32CANBus, &SerialBT);
-Mrm_node mrm_node(&esp32CANBus, &SerialBT);
-Mrm_ref_can mrm_ref_can(&esp32CANBus, &SerialBT);
-Mrm_servo mrm_servo(&SerialBT);
-Mrm_switch mrm_switch(&esp32CANBus, &SerialBT);
-Mrm_therm_b_can mrm_therm_b_can(&esp32CANBus, &SerialBT);
-Board* board[MRM_BOARD_COUNT] = { &mrm_8x8a, &mrm_bldc4x2_5, &mrm_bldc2x50, &mrm_ir_finder_can, &mrm_lid_can_b, &mrm_lid_can_b2, &mrm_mot2x50, &mrm_mot4x10, 
-&mrm_mot4x3_6can, &mrm_node, &mrm_ref_can, &mrm_therm_b_can};
-Mrm_pid pidXY(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the plane
+Robot robot(&SerialBT);
+
+Mrm_8x8a mrm_8x8a(&robot);
+Mrm_bldc4x2_5 mrm_bldc4x2_5(&robot);
+Mrm_bldc2x50 mrm_bldc2x50(&robot);
+Mrm_col_can mrm_col_can(&robot);
+Mrm_imu mrm_imu(&robot);
+Mrm_ir_finder2 mrm_ir_finder2(&robot);
+Mrm_ir_finder_can mrm_ir_finder_can(&robot);
+Mrm_lid_can_b mrm_lid_can_b(&robot, 10);
+Mrm_lid_can_b2 mrm_lid_can_b2(&robot);
+Mrm_mot2x50 mrm_mot2x50(&robot);//
+Mrm_mot4x10 mrm_mot4x10(&robot);
+Mrm_mot4x3_6can mrm_mot4x3_6can(&robot);
+Mrm_node mrm_node(&robot);
+Mrm_ref_can mrm_ref_can(&robot);
+Mrm_servo mrm_servo(&robot);
+Mrm_switch mrm_switch(&robot);
+Mrm_therm_b_can mrm_therm_b_can(&robot);
+Mrm_us mrm_us(&robot);
+Mrm_pid pidXY(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the x-y plane
 Mrm_pid pidRotation(0.5, 100, 0); // PID controller, regulates rotation around z axis
-
-
-// Function declarations
-
-void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel);
-void print(const char* fmt, ...);
 
 
 // Code
@@ -130,7 +110,7 @@ void print(const char* fmt, ...);
 */
 void setup() {
 	Serial.begin(115200);
-	SerialBT.begin("ESP32 A"); //Start Bluetooth. ESP32 - Bluetooth device name
+	SerialBT.begin("ESP32 A"); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
 	Wire.begin(); // Start I2C
 	delay(50);
 	print("ESP32-Arduino-CAN\r\n");
@@ -140,46 +120,13 @@ void setup() {
 /** Runs constantly
 */
 void loop() {
-	blink(); // Keep-alive LED. Solder jumper must be shorted in order to work in mrm-esp32.
-	commandUpdate(); // Check if a key pressed and update current command buffer.
-	if (commandCurrent == NULL) // If last command finished, display menu.
-		menu();
+	robot.commandUpdate(mrm_8x8a.alive(), mrm_8x8a.actionCheck(), mrm_switch.actionCheck()); // Check if a key pressed and update current command buffer.
+	if (robot.commandCurrent == NULL) // If last command finished, display menu.
+		robot.menu();
 	else
-		commandProcess(); // Process current command. The command will be executed while currentCommand is not NULL. Here state maching processing occurs, too.
-	fps(); // Measure FPS. Less than 30 - a bad thing.
-	messagesReceive(); // Receive all CAN Bus messages. This call should be included in any loop, like here.
-	verbosePrint(); // Print FPS and maybe some additional data
-	errors();
+		robot.commandProcess(); // Process current command. The command will be executed while currentCommand is not NULL. Here state maching processing occurs, too.
+	robot.noLoopWithoutThis(); // Receive all CAN Bus messages. This call should be included in any loop, like here.
 }
-
-void blink() {
-	const uint16_t onMs = 100; 
-	const uint16_t offMs = 1000;
-	uint8_t repeatOnTimes;
-	static uint32_t lastBlinkMs = 0;
-	static uint8_t isOn = 0;
-	static uint8_t pass = 0;
-
-	if (strcmp(errorMessage, "") == 0)
-		repeatOnTimes = 1;
-	else 
-		repeatOnTimes = 2;
-
-	if (pass < repeatOnTimes) {
-		if (millis() - lastBlinkMs > onMs) {
-			isOn = !isOn;
-			if (!isOn)
-				pass++;
-			digitalWrite(LED_OK, isOn);
-			lastBlinkMs = millis();
-		}
-	}
-	else if (millis() - lastBlinkMs > offMs) {
-		pass = 0;
-		lastBlinkMs = 0;
-	}
-}
-
 
 void bluetoothTest() {
 	uint32_t startMs = millis();
@@ -187,304 +134,84 @@ void bluetoothTest() {
 		print("Time: %i ms.\r\n", millis() - startMs);
 		delay(100);
 	}
-	commandCurrent = NULL;
-}
-
-void broadcastingStart() {
-	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		board[deviceNumber]->continuousReadingStart();
-}
-
-void broadcastingStop() {
-	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++) {
-		board[deviceNumber]->continuousReadingStop();
-		delay(1); // TODO
-	}
+	robot.commandCurrent = NULL;
 }
 
 void canBusSniff() {
-	while (!userBreak()) {
-		blink();
-		bool found = false;
-		if (mrm_ref_can.esp32CANBus->messageReceive()) {
-			for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-				if (board[deviceNumber]->framePrint(mrm_lid_can_b.esp32CANBus->rx_frame->MsgID, mrm_lid_can_b.esp32CANBus->rx_frame->FIR.B.DLC,
-					mrm_lid_can_b.esp32CANBus->rx_frame->data.u8)) {
-					found = true;
-					break;
-				}
-
-			if (!found) {
-				print("Not found Id: 0x%4X ", (String)mrm_ref_can.esp32CANBus->rx_frame->MsgID);
-				if (mrm_ref_can.esp32CANBus->rx_frame->FIR.B.DLC > 0)
-					print(", data: ");
-				for (uint8_t i = 0; i < mrm_ref_can.esp32CANBus->rx_frame->FIR.B.DLC; i++)
-					print("0x2X ", mrm_ref_can.esp32CANBus->rx_frame->data.u8[i]);
-				print("\n\r");
-			}
-		}
-	}
-
-	commandCurrent = NULL;
+	robot.canBusSniff();
+	robot.commandCurrent = NULL;
 }
 
 
 void canIdChange() {
-	// Print all devices alive
-	uint8_t last = 0;
-	for (uint8_t boardNumber = 0; boardNumber < MRM_BOARD_COUNT; boardNumber++) {
-		uint8_t currentCount = 0;
-		for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount(); deviceNumber++)
-			if (board[boardNumber]->alive(deviceNumber)) {
-				if (currentCount == 0)
-					print("%i.", ++last);
-				else
-					print(",");
-				print(" %s", board[boardNumber]->name(deviceNumber));
-				if (++currentCount == board[boardNumber]->devicesOnASingleBoard()) {
-					currentCount = 0;
-					print("\n\r");
-				}
-			}
-	}
-	if (last == 0)
-		print("No boards\n\r");
-	else{
+	robot.canIdChange();
+	robot.commandCurrent = NULL;
+}
 
-		// Choose device to be changed
-		print("Enter board [1 - %i]: ", last);
-		uint32_t lastMs = millis();
-		uint8_t selectedNumber = 0;
-		bool any = false;
-		while (millis() - lastMs < 30000 && !any || last > 9 && millis() - lastMs < 500 && any)
-			if (Serial.available()) {
-				selectedNumber = selectedNumber * 10 + (Serial.read() - 48);
-				any = true;
-				lastMs = millis();
-			}
-
-		if (selectedNumber > last) {
-			if (any)
-				print("invalid");
-			else
-				print("timeout\n\r");
-		}
-		else {
-
-			// Find selected board
-			last = 0;
-			Board* selectedBoard = NULL;
-			uint8_t selectedDeviceIndex = 0xFF;
-			uint8_t maxInput = 0;
-			for (uint8_t boardNumber = 0; boardNumber < MRM_BOARD_COUNT && selectedDeviceIndex == 0xFF; boardNumber++){
-				uint8_t currentCount = 0;
-				for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && selectedDeviceIndex == 0xFF; deviceNumber++)
-					if (board[boardNumber]->alive(deviceNumber)) {
-						if (currentCount == 0) {
-							if (++last == selectedNumber) {
-								selectedBoard = board[boardNumber];
-								selectedDeviceIndex = deviceNumber;
-								maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
-								break;
-							}
-						}
-
-						if (++currentCount == board[boardNumber]->devicesOnASingleBoard()) 
-							currentCount = 0;
-					}
-			}
-
-			// Enter new id
-			print("%i. %s\n\rEnter new board id [0..%i]: ", last, selectedBoard->name(), maxInput);
-			lastMs = millis();
-			uint8_t newDeviceNumber = 0;
-			bool any = false;
-			while ((millis() - lastMs < 30000 && !any || maxInput > 9 && millis() - lastMs < 500 && any) && newDeviceNumber < maxInput)
-				if (Serial.available()) {
-					newDeviceNumber = newDeviceNumber * 10 + (Serial.read() - 48);
-					any = true;
-					lastMs = millis();
-				}
-
-			if (newDeviceNumber > maxInput)
-				print("timeout\n\r");
-			else {
-
-				// Change
-				print("%i\n\rChange requested.\n\r", newDeviceNumber);
-				selectedBoard->idChange(newDeviceNumber, selectedDeviceIndex);
-				delay(500); // Delay for firmware handling of devices with the same ids.
-			}
-		}
-	}
-	commandCurrent = NULL;
+void colorTest() {
+	if (commandTestColor.firstProcess)
+		mrm_col_can.continuousReadingStart();
+	mrm_col_can.test();
 }
 
 void commandsAdd() {
-	for (uint8_t i = 0; i < COMMANDS_LIMIT; i++)
-		commands[i] = NULL;
-
 	//In all or no menus
-	menuAdd(&commandMenuMain, "x", "Escape", &menuMainAndIdle, 2 | 4 | 8 | 16);//2 | 4 | 8 | 16 -> in all menus
-	menuAdd(&commandMenuPrint, 0, "Menu print", &menu, 0);//0 -> in no menu
-	menuAdd(&commandDoNothing, 0, "Do nothing", &doNothing, 0);//UNKNOWN_ROBOT -> display for all robots
+	robot.menuAdd(&commandMenuMain, "x", "Escape", &menuMainAndIdle, 2 | 4 | 8 | 16);//2 | 4 | 8 | 16 -> in all menus
+	robot.menuAdd(&commandMenuPrint, 0, "Menu print", &menu, 0);//0 -> in no menu
 
 	//Main menu (1)
-	menuAdd(&commandTestMotors, "mot", "Test motors", &motorTest, 1);
-	menuAdd(&commandTestLidars2m, "li2", "Test lid. 2m", &lidar2mTest, 1);
-	menuAdd(&commandTestLidars4m, "li4", "Test lid. 4m", &lidar4mTest, 1);
-	menuAdd(&commandTest8x8, "led", "Test 8x8", &led8x8Test, 1);
-	menuAdd(&commandTestI2C, "i2c", "Test I2C", &i2cTest, 1);
-	menuAdd(&commandTestIMU, "imu", "Test IMU", &imuTest, 1);
-	menuAdd(&commandTestIRFinder, "irf", "Test ball analog", &irFinderTest, 1);
-	menuAdd(&commandTestIRFinderCan, "irs", "Test ball CAN single", &irFinderTestCan, 1);
-	menuAdd(&commandTestIRFinderCanCalculated, "irc", "Test ball CAN calcul", &irFinderTestCanCalculated, 1);
-	menuAdd(&commandTestBluetooth, "blt", "Test Bluetooth", &bluetoothTest, 1);
-	menuAdd(&commandTestReflectanceArray, "ref", "Test refl. arr.", &reflectanceArrayTest, 1);
-	menuAdd(&commandTestNode, "nod", "Test node", &nodeTest, 1);
-	menuAdd(&commandTestNodeServos, "nos", "Test node serv.", &nodeServosTest, 1);
-	menuAdd(&commandReportCANBusDevices, "can", "Report devices", &devicesScan, 1);
-	menuAdd(&commandCanSniff, "sni", "Sniff CAN Bus", &canBusSniff, 1);
-	menuAdd(&commandReset, "rst", "Reset", &reset, 1);
-	menuAdd(&commandLineFollow, "lin", "FollowLine", &lineFollow, 1);
-	menuAdd(&commandStop, "sto", "Stop", &commandStopAll, 1);
-	menuAdd(&commandGoAhead, "ahe", "Go ahead", &goAhead, 1);
-	menuAdd(&commandBroadcastingStart, "bro", "Start sensors", &broadcastingStart, 1);
-	menuAdd(&commandTestAny, "any", "Any test", &testAny, 1);
-	menuAdd(&commandTestAll, "all", "CAN Bus stress", &testAll, 1);
-	menuAdd(&commandTestOmniWheels, "omn", "Test omni wheels", &testOmniWheels, 1);
-	menuAdd(&commandReflectanceArrayCalibrate, "cal", "Calibrate refl.", &reflectanceArrayCalibrate, 1);
-	menuAdd(&commandTestThermo, "the", "Test thermo", &thermoTest, 1);
-	menuAdd(&commandTestServo, "ser", "Test servo", &servoTest, 1);
-	menuAdd(&commandLidarCalibrate, "lic", "Cal. lidar", &lidarCalibrate, 1);
-	menuAdd(&commandFPS, "fps", "FPS", &fpsPrint, 1);
-	menuAdd(&commandIdChange, "idc", "Device's id change", &canIdChange, 1);
-	menuAdd(&commandSoccerPlayStart, "soc", "Soccer play", &soccerPlayStart, 1);
-}
-
-void commandProcess() {
-	if (commandCurrent != NULL) {
-		(*(commandCurrent->pointer))();
-		if (commandCurrent != NULL)
-			commandCurrent->firstProcess = false;
-	}
-}
-
-void commandSet(struct Command *newCommand) {
-	commandPrevious = commandCurrent;
-	commandCurrent = newCommand;
-	commandCurrent->firstProcess = true;
+	robot.menuAdd(&commandTestMotors, "mot", "Test motors", &motorTest, 1);
+	robot.menuAdd(&commandTestLidars2m, "li2", "Test lid. 2m", &lidar2mTest, 1);
+	robot.menuAdd(&commandTestLidars4m, "li4", "Test lid. 4m", &lidar4mTest, 1);
+	robot.menuAdd(&commandTest8x8, "led", "Test 8x8", &led8x8Test, 1);
+	robot.menuAdd(&commandTestI2C, "i2c", "Test I2C", &i2cTest, 1);
+	robot.menuAdd(&commandTestIMU, "imu", "Test IMU", &imuTest, 1);
+	robot.menuAdd(&commandTestColor, "col", "Test color", &colorTest, 1);
+	robot.menuAdd(&commandTestIRFinder, "irf", "Test ball analog", &irFinderTest, 1);
+	robot.menuAdd(&commandTestIRFinderCan, "irs", "Test ball CAN single", &irFinderTestCan, 1);
+	robot.menuAdd(&commandTestIRFinderCanCalculated, "irc", "Test ball CAN calcul", &irFinderTestCanCalculated, 1);
+	robot.menuAdd(&commandTestBluetooth, "blt", "Test Bluetooth", &bluetoothTest, 1);
+	robot.menuAdd(&commandTestReflectanceArray, "ref", "Test refl. arr.", &reflectanceArrayTest, 1);
+	robot.menuAdd(&commandTestNode, "nod", "Test node", &nodeTest, 1);
+	robot.menuAdd(&commandTestNodeServos, "nos", "Test node serv.", &nodeServosTest, 1);
+	robot.menuAdd(&commandReportCANBusDevices, "can", "Report devices", &devicesScan, 1);
+	robot.menuAdd(&commandCanSniff, "sni", "Sniff CAN Bus", &canBusSniff, 1);
+	robot.menuAdd(&commandLineFollow, "lin", "FollowLine", &lineFollow, 1);
+	robot.menuAdd(&commandStop, "sto", "Stop", &commandStopAll, 1);
+	robot.menuAdd(&commandGoAhead, "ahe", "Go ahead", &goAhead, 1);
+	robot.menuAdd(&commandTestAny, "any", "Any test", &testAny, 1);
+	robot.menuAdd(&commandTestAll, "all", "CAN Bus stress", &testAll, 1);
+	robot.menuAdd(&commandTestOmniWheels, "omn", "Test omni wheels", &testOmniWheels, 1);
+	robot.menuAdd(&commandReflectanceArrayCalibrate, "cal", "Calibrate refl.", &reflectanceArrayCalibrate, 1);
+	robot.menuAdd(&commandTestThermo, "the", "Test thermo", &thermoTest, 1);
+	robot.menuAdd(&commandTestServo, "ser", "Test servo", &servoTest, 1);
+	robot.menuAdd(&commandLidarCalibrate, "lic", "Cal. lidar", &lidarCalibrate, 1);
+	robot.menuAdd(&commandFPS, "fps", "FPS", &fpsPrint, 1);
+	robot.menuAdd(&commandFirmware, "fir", "Firmware", &firmwarePrint, 1);
+	robot.menuAdd(&commandIdChange, "idc", "Device's id change", &canIdChange, 1);
+	robot.menuAdd(&commandSoccerPlayStart, "soc", "Soccer play", &soccerPlayStart, 1);
 }
 
 void commandStopAll() {
-	broadcastingStop();
-	if (motorGroupDifferential != NULL)
-		motorGroupDifferential->stop();
-	if (motorGroupStar != NULL)
-		motorGroupStar->stop();
-	commandCurrent = NULL;
-}
-
-void commandUpdate() {
-	static uint32_t lastUserActionMs = 0;
-	static uint8_t uartRxCommandIndex = 0;
-	static char uartRxCommandCumulative[10];
-	const uint16_t TIMEOUT_MS = 2000;
-
-	Command* action;
-	// If a button pressed, first execute its action
-	if (mrm_8x8a.alive() && (action = mrm_8x8a.actionCheck()) != NULL)
-		commandCurrent = action;
-	else if ((action = mrm_switch.actionCheck()) != NULL)
-		commandCurrent = action;
-	else { // Check keyboard
-		if (Serial.available() || SerialBT.available()) {
-			lastUserActionMs = millis();
-			uint8_t ch;
-			if (Serial.available())
-				ch = Serial.read();
-			else
-				ch = SerialBT.read();
-
-			if (ch != 13) //if received data different from ascii 13 (enter)
-				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
-
-			if (ch == 13 || uartRxCommandIndex >= 3 || ch == 'x') //if received data = 13
-			{
-				uartRxCommandCumulative[uartRxCommandIndex] = 0;
-				uartRxCommandIndex = 0;
-
-				print("Command: %s", uartRxCommandCumulative);
-
-				uint8_t found = 0;
-				for (uint8_t i = 0; i < COMMANDS_LIMIT; i++) {
-					if (strcmp(commands[i]->shortcut, uartRxCommandCumulative) == 0) {
-						print(" ok.\r\n");
-						commandSet(commands[i]);
-						//commandPrevious = commandCurrent;
-						//commandCurrent = commands[i];
-						//commandCurrent->firstProcess = true;
-						found = 1;
-						break;
-					}
-				}
-				if (!found) {
-					print(" not found.\r\n");
-					uartRxCommandIndex = 0;
-				}
-			}
-		}
-
-		if (uartRxCommandIndex != 0 && millis() - lastUserActionMs > TIMEOUT_MS) {
-			print(" Timeout.\r\n");
-			uartRxCommandIndex = 0;
-		}
-	}
-}
-
-void devicesScan(bool verbose) {
-	broadcastingStop();
-	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) 
-		board[i]->devicesScan(verbose);
-	commandCurrent = NULL;
+	robot.stopAll();
+	robot.commandCurrent = NULL;
 }
 
 void devicesScan() {
-	devicesScan(true);
+	robot.devicesScan(true);
 
 	print("End.\r\n");
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
-void doNothing() {
-}
-
-void errors() {
-	static uint32_t lastDisplayMs = 0;
-	if (strcmp(errorMessage, "") != 0) {
-		if (millis() - lastDisplayMs > 10000 || lastDisplayMs == 0) {
-			print("ERROR! %s\n\r", errorMessage);
-			lastDisplayMs = millis();
-			commandStopAll(); // Stop all motors
-		}
-	}
-}
-
-void fps() {
-	fpsMs[fpsNextIndex] = millis();
-	if (++fpsNextIndex >= 3)
-		fpsNextIndex = 0;
+void firmwarePrint() {
+	robot.firmwarePrint();
+	robot.commandCurrent = NULL;
 }
 
 void fpsPrint() {
-	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++){
-		board[i]->fpsRequest();
-		uint32_t startMs = millis();
-		while(millis() - startMs < 50)
-			messagesReceive();
-		board[i]->fpsDisplay();
-	}
-	commandCurrent = NULL;
+	robot.fpsPrint();
+	robot.commandCurrent = NULL;
 }
 
 void goAhead() {
@@ -493,31 +220,7 @@ void goAhead() {
 		motorGroupDifferential->go(30, 30);
 	if (motorGroupStar != NULL)
 		motorGroupStar->go(speed);
-	commandCurrent = NULL;
-}
-
-void i2cScan() {
-	print("Scanning.\r\n");
-
-	bool any = false;
-	for (byte address = 1; address < 127; address++)
-	{
-		Wire.beginTransmission(address); // Transmission tried
-		byte status = Wire.endTransmission(); // Was it successful?
-		if (status == 0)
-		{
-			print("Found at address 0x%02x\r\n", address);
-			any = true;
-		}
-		else if (status == 4)
-			print("Error at address 0x%02x\r\n", address);
-	}
-	if (!any) {
-		print("Nothing found.\r\n\r\n");
-	}
-
-	delay(4000);
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void i2cTest() {
@@ -539,12 +242,12 @@ void i2cTest() {
 	if (!any)
 		print("Nothing found.\n\n\r");
 
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void imuTest() {
 	mrm_imu.test(userBreak);
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void irFinderTest() {
@@ -567,6 +270,22 @@ void initialize() {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
+
+	// Robot
+	robot.add(&mrm_8x8a);
+	robot.add(&mrm_bldc4x2_5);
+	robot.add(&mrm_bldc2x50);
+	robot.add(&mrm_col_can);
+	robot.add(&mrm_ir_finder_can);
+	robot.add(&mrm_lid_can_b);
+	robot.add(&mrm_lid_can_b2);
+	robot.add(&mrm_mot2x50);
+	robot.add(&mrm_mot4x10);
+	robot.add(&mrm_mot4x3_6can);
+	robot.add(&mrm_node);
+	robot.add(&mrm_ref_can);
+	robot.add(&mrm_therm_b_can);
+	robot.add(&mrm_us);
 
 	// LEDs
 	pinMode(2, OUTPUT);
@@ -601,6 +320,10 @@ void initialize() {
 	mrm_bldc4x2_5.add(false, "BL4x2.5-1");
 	mrm_bldc4x2_5.add(false, "BL4x2.5-2");
 	mrm_bldc4x2_5.add(false, "BL4x2.5-3");
+
+	// Colors sensors mrm-col-can
+	mrm_col_can.add("Col-0");
+	mrm_col_can.add("Col-1");
 
 	// IMU
 	mrm_imu.add();
@@ -680,6 +403,12 @@ void initialize() {
 	mrm_therm_b_can.add("Thermo-2");
 	mrm_therm_b_can.add("Thermo-3");
 
+	// Ultrasonic
+	mrm_us.add("US-0");
+	mrm_us.add("US-1");
+	mrm_us.add("US-2");
+	mrm_us.add("US-3");
+
 	commandsAdd();
 }
 
@@ -749,114 +478,54 @@ void lidarCalibrate() {
 		}
 	}
 
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void lineFollow() {
-	const int FORWARD_SPEED = 70;
-	const int MAX_SPEED_DIFFERENCE = 150;
+	static float lastLineCenter = 0;
+	//static uint32_t ms = 0;
+	if (commandLineFollow.firstProcess) // Only in the first pass.
+		robot.broadcastingStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
 
-	if (commandLineFollow.firstProcess)
-		mrm_ref_can.continuousReadingStart();
-
-	uint16_t left = mrm_ref_can.reading(4);
-	uint16_t right = mrm_ref_can.reading(5);
-
-	if (left > 600 && right < 600)
-		motorGroupDifferential->go(20, 50);
-	else if (left < 600 && right > 600)
-		motorGroupDifferential->go(50, 20);
-	else if (left < 600 && right < 600)
-		motorGroupDifferential->go(0, 0);
-	else
-		motorGroupDifferential->go(40, 40);
-
+	float lineCenter = (mrm_ref_can.center() - 4500) / 70.0; // Result: -50 to 50.
+	//if (millis() - ms > 100) {
+	//	print("C:%i R:%i %i %i %i %i %i %i %i %i %ims\n\r", (int)lineCenter, (int)mrm_ref_can.center(), (int)mrm_ref_can.dark(7),
+	//		mrm_ref_can.dark(6), mrm_ref_can.dark(5), mrm_ref_can.dark(4), mrm_ref_can.dark(3), mrm_ref_can.dark(2), mrm_ref_can.dark(1),
+	//		mrm_ref_can.dark(0), millis() - mrm_ref_can.lastMessageMs());
+	//	ms = millis();
+	//}
+	if (lineCenter < -40 || lineCenter > 40) {// No line under inner sensors, including lost line.
+		//motorGroupDifferential->stop();
+		//delay(100);
+		// Choice depending on the line center the last time it was detected, stored in variable lastLineCenter.
+		if (lastLineCenter < -15) // Lost line right or line far right.
+			motorGroupDifferential->go(127, -127); // Rotate in place.
+		else if (lastLineCenter > 15) // Lost line left or line far left.
+			motorGroupDifferential->go(-127, 127); // Rotate in place.
+		else // Line was around the robot's center when lost. Therefore, it was interrupted
+			motorGroupDifferential->go(127, 127); // Go straight ahead.
+	}
+	else { // Follow line
+		// Maximum speed of the faster motor, decrease the other one.
+		motorGroupDifferential->go(lineCenter < 0 ? 127 : 127 - lineCenter * 3, lineCenter < 0 ? 127 + lineCenter * 3 : 127);
+		lastLineCenter = lineCenter; // Remember the line.
+	}
 }
 
 void menu() {
-	// Print menu
-	devicesScan(false);
-	print("\r\n");
-	bool any = false;
-	uint8_t column = 1;
-	uint8_t maxColumns = 2;
-	for (uint8_t i = 0; i < COMMANDS_LIMIT && commands[i] != NULL; i++) {
-		if ((commands[i]->menuLevel | menuLevel) == commands[i]->menuLevel) {
-			print("%-3s - %-22s%s", commands[i]->shortcut, commands[i]->text, column == maxColumns ? "\n\r" : "");
-			delay(2);
-			any = true;
-			if (column++ == maxColumns)
-				column = 1;
-		}
-	}
-	if (!any)
-		print("Menu level %i empty.\r\n", menuLevel);
-	else
-		if (column != 1)
-			print("\r\n");
-
-	// Display errors
-	for (uint8_t deviceNumber = 0; deviceNumber < MRM_BOARD_COUNT; deviceNumber++)
-		if (board[deviceNumber]->errorCodeLast() != 0)
-			print("Error %i in %s\n\r", board[deviceNumber]->errorCodeLast(), board[deviceNumber]->name(board[deviceNumber]->errorWasInDeviceNumber()));
-
-	commandCurrent = &commandDoNothing;
-}
-
-void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel) {
-	static uint8_t nextFree = 0;
-	if (nextFree >= COMMANDS_LIMIT) {
-		strcpy(errorMessage, "COMMANDS_LIMIT exceeded.");
-		return;
-	}
-	if (shortcut != 0)
-		strcpy(command->shortcut, shortcut);
-	if (text != 0)
-		strcpy(command->text, text);
-	command->pointer = pointer;
-	command->menuLevel = menuLevel;
-	commands[nextFree++] = command;
+	robot.menu();
 }
 
 void menuMainAndIdle() {
 	commandStopAll();
 
-	menuLevel = 1;
-	commandCurrent = NULL;
-}
-
-void messagesReceive() {
-	while (esp32CANBus.messageReceive()) {
-		uint32_t id = esp32CANBus.rx_frame->MsgID;
-		bool any = false;
-		for (uint8_t deviceGroupNumber = 0; deviceGroupNumber < MRM_BOARD_COUNT; deviceGroupNumber++) {
-			if (board[deviceGroupNumber]->messageDecode(id, esp32CANBus.rx_frame->data.u8)) {
-				any = true;
-				break;
-			}
-		}
-
-#define REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN false
-#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
-		if (!any)
-			print("Address device unknown: 0x%X\n\r", id);
-#endif
-	}
+	robot.menuLevel = 1;
+	robot.commandCurrent = NULL;
 }
 
 void motorTest() {
-	print("Test motors\n\r");
-	if (mrm_mot2x50.aliveCount() > 0)
-		mrm_mot2x50.test(userBreak, messagesReceive, blink);
-	else if (mrm_mot4x10.aliveCount() > 0)
-		mrm_mot4x10.test(userBreak, messagesReceive, blink);
-	else if (mrm_mot4x3_6can.aliveCount() > 0)
-		mrm_mot4x3_6can.test(userBreak, messagesReceive, blink);
-	else if (mrm_bldc2x50.aliveCount() > 0)
-		mrm_bldc2x50.test(userBreak, messagesReceive, blink);
-	else if (mrm_bldc4x2_5.aliveCount() > 0)
-		mrm_bldc4x2_5.test(userBreak, messagesReceive, blink);
-	commandCurrent = NULL;
+	robot.motorTest();
+	robot.commandCurrent = NULL;
 }
 
 void nodeServosTest() {
@@ -869,18 +538,9 @@ void nodeTest() {
 	mrm_node.test();
 }
 
-/** Print to all serial ports, variable arguments
-*/
-void print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
-}
-
 void reflectanceArrayCalibrate() {
 	mrm_ref_can.calibrate();
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void reflectanceArrayTest() {
@@ -889,35 +549,9 @@ void reflectanceArrayTest() {
 	mrm_ref_can.test();
 }
 
-void reset() {
-}
-
-///** A rotation needed to maintain the requested heading
-//@return - Rotation
-//*/
-//float rotationToMaintainHeading(float headingToMaintain) {
-//	float rotation = 0;// map(normalized(headingToMaintain - mrm_imu.heading()), -180, 180, -200, 200);
-//	return rotation;
-//}
-
-void servoSweep() {
-	// If variables are not needed in any other function, and  must be persistena, they should be declared static:
-	static uint8_t servoDegrees = 90;
-	static bool servoIncreasing = true;
-	static uint32_t servoLastChangeMs = 0;
-
-	if (millis() - servoLastChangeMs > 12) { //Servo cannot operate faster
-		servoDegrees += (servoIncreasing ? 5 : -5);
-		if (servoDegrees == 180 || servoDegrees == 0)
-			servoIncreasing = !servoIncreasing;
-		servoLastChangeMs = millis();
-		mrm_servo.servoWrite(servoDegrees);
-	}
-}
-
 void servoTest() {
 	mrm_servo.test(userBreak);
-	commandCurrent = NULL;
+	robot.commandCurrent = NULL;
 }
 
 void soccerCatch() {
@@ -925,7 +559,7 @@ void soccerCatch() {
 
 	}
 	else
-		commandSet(&commandSoccerIdle);
+		robot.commandSet(&commandSoccerIdle);
 }
 
 void soccerIdle() {
@@ -933,7 +567,7 @@ void soccerIdle() {
 	if (commandSoccerIdle.firstProcess)
 		headingToMaintain = mrm_imu.heading();
 	if (mrm_ir_finder2.anyIRSource() && false)
-		commandSet(&commandSoccerCatch);
+		robot.commandSet(&commandSoccerCatch);
 	else {
 		//print("\n\rError: %i = %i - 300\n\r", (int)(300 - mrm_lid_can_b2.reading(3)), mrm_lid_can_b2.reading(3));
 		float errorL = 900 - mrm_lid_can_b2.reading(3);
@@ -949,73 +583,17 @@ void soccerPlayStart() {
 		return;
 	}
 	headingToMaintain = mrm_imu.heading();
-	broadcastingStart();
-	commandSet(&commandSoccerIdle);
+	robot.broadcastingStart();
+	robot.commandSet(&commandSoccerIdle);
 }
 
 void testAll() {
-	const bool STOP_ON_ERROR = false;
-	const uint16_t LOOP_COUNT = 10000;
-
-	// Setup
-	static uint32_t pass;
-	static uint8_t lastPercent = 101;
-	static uint8_t count[MRM_BOARD_COUNT];
-	static uint32_t errors[MRM_BOARD_COUNT];
-	if (commandTestAll.firstProcess) {
-		print("Before test.\n\r");
-		pass = 0;
-		broadcastingStop();
-		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++)
-			errors[i] = 0;
-		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) {
-			delay(1);
-			count[i] = board[i]->devicesScan(true);
-		}
-		print("Start.\n\r");
-	}
-
-	// Stress test
-	uint8_t percent = 100 * pass / LOOP_COUNT;
-	if (percent != lastPercent) {
-		lastPercent = percent;
-		print("%i %%\n\r", percent);
-	}
-	for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++) {
-		if (count[i] > 0) {
-			delay(1);
-			uint8_t cnt = board[i]->devicesScan(false);
-			if (cnt != count[i]) {
-				errors[i]++;
-				print("***** %s: found %i, not %i.\n\r", board[i]->name(), cnt, count[i]);
-				if (STOP_ON_ERROR)
-					break;
-			}
-		}
-	}
-
-	// Results
-	if (++pass >= LOOP_COUNT) {
-		bool allOK = true;
-		for (uint8_t i = 0; i < MRM_BOARD_COUNT; i++)
-			if (count[i] > 0 && errors[i] > 0) {
-				print("%s: %i errors.\n\r", board[i]->name(), errors[i]);
-				allOK = false;
-			}
-		if (allOK)
-			print("No errors.");
-		print("\n\r");
-		commandCurrent = NULL;
-	}
+	if (robot.stressTest(commandTestAll.firstProcess))
+		robot.commandCurrent = NULL;
 }
 
 void testAny() {
-	print("Start\n\r");
-	mrm_ir_finder_can.devicesScan(true);
-	print("Alive: %i\n\r", mrm_ir_finder_can.alive(0));
-	delay(10000);
-	print("End\n\r");
-	commandCurrent = NULL;
+	
 }
 
 void testOmniWheels() {
@@ -1024,7 +602,7 @@ void testOmniWheels() {
 	if (commandTestOmniWheels.firstProcess) {
 		if (motorGroupDifferential == NULL) {
 			print("Differential motor group needed.");
-			commandCurrent = NULL;
+			robot.commandCurrent = NULL;
 			return;
 		}
 		nextMove = 0;
@@ -1070,43 +648,10 @@ void thermoTest() {
 	mrm_therm_b_can.test();
 }
 
-bool userBreak() {
+bool userBreak() { // todo - should be deleted and robot.userBreak() used instead.
 	if (/*switchOn() ||*/ Serial.available() || SerialBT.available()) {
 		return true;
 	}
 	else
 		return false;
-}
-
-void verbosePrint() {
-	if (verbose) {
-		static uint32_t lastMs = 0;
-		if (lastMs == 0 || millis() - lastMs > 5000) {
-			uint8_t lastFPS = (fpsNextIndex == 0 ? 2 : fpsNextIndex - 1);
-			uint8_t firstFPS = fpsNextIndex;
-			float fps;
-			if (fpsMs[lastFPS] == 0 || fpsMs[lastFPS] - fpsMs[firstFPS] == 0)
-				fps = 0;
-			else
-				fps = 2 * 1000 / (float)(fpsMs[lastFPS] - fpsMs[firstFPS]);
-			print("%i fps\r\n", (int)round(fps));
-			lastMs = millis();
-		}
-	}
-}
-
-void verboseToggle() {
-	verbose = !verbose;
-	commandCurrent = &commandDoNothing;
-}
-
-/** Print to all serial ports, pointer to list
-*/
-void vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	SerialBT.print(buffer);
 }
