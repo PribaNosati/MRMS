@@ -37,11 +37,11 @@ public:
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_mot2x50(Robot* robot, uint8_t maxDevices = 4);
+	Mrm_mot2x50(Robot* robot, uint8_t maxDevices = 6);
 
 	~Mrm_mot2x50();
 
-	/** Add a motor attached to a mrm-mot4x3.6can motor controller
+	/** Add a motor attached to a mrm-mot2x50 motor controller
 	@param isReversed - changes rotation direction.
 	@param isLeft - is on the left side
 	@param deviceName - device's name

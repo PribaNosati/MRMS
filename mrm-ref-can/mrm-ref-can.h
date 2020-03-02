@@ -35,15 +35,19 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_SENDING_SENSORS_4_TO_6 0x07
 #define COMMAND_REF_CAN_SENDING_SENSORS_7_TO_9 0x08
 #define COMMAND_REF_CAN_CALIBRATE 0x09
-#define COMMAND_REF_CAN_CALIBRATION_DATA_1_TO_3 0x0A
-#define COMMAND_REF_CAN_CALIBRATION_DATA_4_TO_6 0x0B
-#define COMMAND_REF_CAN_CALIBRATION_DATA_7_TO_9 0x0C
+#define COMMAND_REF_CAN_CALIBRATION_DATA_DARK_1_TO_3 0x0A
+#define COMMAND_REF_CAN_CALIBRATION_DATA_DARK_4_TO_6 0x0B
+#define COMMAND_REF_CAN_CALIBRATION_DATA_DARK_7_TO_9 0x0C
+#define COMMAND_REF_CAN_CALIBRATION_DATA_BRIGHT_1_TO_3 0x0F
+#define COMMAND_REF_CAN_CALIBRATION_DATA_BRIGHT_4_TO_6 0x50
+#define COMMAND_REF_CAN_CALIBRATION_DATA_BRIGHT_7_TO_9 0x51
 #define COMMAND_REF_CAN_CALIBRATION_DATA_REQUEST 0x0D
 #define COMMAND_REF_CAN_SENDING_SENSORS_CENTER 0x0E
 
 class Mrm_ref_can : public SensorBoard
 {
-	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationData; // 
+	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataDark; // 
+	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataBright;
 	std::vector<uint8_t>* dataFresh; // All the data refreshed, bitwise stored. 
 									// Most significant bit 0: readings 1 - 3, 
 									// bit 1: 4 - 6, 
@@ -103,10 +107,11 @@ public:
 
 	/** Get local calibration data
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	@param isDark - if true calibration for dark, otherwise for bright
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - analog value
 	*/
-	uint16_t calibrationDataGet(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
+	uint16_t calibrationDataGet(uint8_t receiverNumberInSensor, bool isDark, uint8_t deviceNumber = 0);
 
 	/** Print all calibration data in a line
 	*/

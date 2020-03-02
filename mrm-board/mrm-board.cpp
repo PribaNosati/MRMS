@@ -1,5 +1,6 @@
 #include "mrm-board.h"
 #include <mrm-pid.h>
+#include "mrm-robot.h"
 
 #define REPORT_STRAY 1
 #define REQUEST_NOTIFICATION 0
@@ -14,7 +15,7 @@
 @param devicesOn1Board - number of devices on each board
 @param boardName - board's name
 */
-Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[], BoardType boardTypeThis) {
+Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[], BoardType boardTypeNow) {
 	robotContainer = robot;
 	idIn = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	idOut = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
@@ -26,7 +27,7 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	strcpy(this->boardsName, boardName);
 	aliveThis = 0;
 	nextFree = 0;
-	boardTypeThis = boardTypeThis;
+	boardTypeThis = boardTypeNow;
 }
 
 /** Add a device
@@ -160,8 +161,12 @@ uint8_t Board::devicesScan(bool verbose) {
 					}
 #if REPORT_STRAY
 					else
-						if (verbose)
-							print("stray id: %0x02X\n\r", (String)robotContainer->esp32CANBus->rx_frame->MsgID);
+						if (verbose) {
+							print("Stray msg: ");
+							messagePrint(robotContainer->esp32CANBus->rx_frame);
+							print("\n\r");
+							//print("stray id from: 0x%02X\n\r", robotContainer->esp32CANBus->rx_frame->MsgID);
+						}
 #endif
 				}
 			}
@@ -242,27 +247,6 @@ void Board::fpsRequest(uint8_t deviceNumber) {
 	}
 }
 
-/** Prints a frame
-@param msgId - CAN Bus message id
-@param dlc - data load byte count
-@param data - data
-@return - if true, found and printed
-*/
-bool Board::framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
-		if (isForMe(msgId, deviceNumber)) {
-			print("%s Id: 0x%04X", (*nameThis)[deviceNumber], msgId);
-			if (dlc > 0) {
-				print(", data: ");
-				for (uint8_t i = 0; i < dlc; i++)
-					print("0x%02X ", data[i]);
-			}
-			print("\n\r");
-			return true;
-		}
-	return false;
-}
-
 /** Change CAN Bus id
 @param newId - CAN Bus id
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -291,6 +275,31 @@ bool Board::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 */
 void Board::messageDecodeCommon(uint8_t deviceNumber) {
 	(*lastMessageReceivedMs)[deviceNumber] = millis();
+}
+
+
+/** Prints a frame
+@param frame - CAN Bus frame
+@return - if true, found and printed
+*/
+bool Board::messagePrint(CAN_frame_t* frame) {
+	CAN_FIR_t fir = robotContainer->esp32CANBus->rx_frame->FIR;
+	bool found = false;
+	uint32_t msgId = robotContainer->esp32CANBus->rx_frame->MsgID;
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
+		if (isForMe(msgId, deviceNumber)) {
+			print("Id:%s (0x%02X)", (*nameThis)[deviceNumber], msgId);
+			found = true;
+		}
+	if (!found)
+		print("Id:0x%02X", msgId);
+	uint8_t dlc = fir.B.DLC;
+	for (uint8_t i = 0; i < dlc; i++) {
+		if (i == 0)
+			print(" data:");
+		print(" %02X", frame->data.u8[i]);
+	}
+	return found;
 }
 
 /** Returns device's name
@@ -741,491 +750,4 @@ void MotorGroupStar::goToEliminateErrors(float errorX, float errorY, float error
 	go(speed, heading, rotation, SPEED_LIMIT);
 	if (verbose)
 		Serial.println("Sp: " + (String)(int)speed + ", head: " + (String)(int)heading + ", rot: " + (int)rotation);
-}
-
-void doNothing(){}
-
-/**
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
-*/
-Robot::Robot(BluetoothSerial* hardwareSerial) {
-	esp32CANBus = new ESP32CANBus();
-	serial = hardwareSerial;
-	commandCurrent = NULL;
-	//commandCurrent = &commandMenuPrint; //todo
-	commandPrevious = commandCurrent;
-	for (uint8_t i = 0; i < COMMANDS_LIMIT; i++)
-		commands[i] = NULL;
-	menuAdd(&commandDoNothing, 0, "Do nothing", &doNothing, 0);//UNKNOWN_ROBOT -> display for all robots
-}
-
-void Robot::add(Board* aBoard) {
-	if (nextFreeBoardSlot > MRM_BOARD_COUNT - 1) {
-		strcpy(errorMessage, "Too many boards");
-		return;
-	}
-	board[nextFreeBoardSlot++] = aBoard;
-}
-
-#define LED_OK 2 // Pin number, hardware defined
-void Robot::blink() {
-	const uint16_t onMs = 100;
-	const uint16_t offMs = 1000;
-	uint8_t repeatOnTimes;
-	static uint32_t lastBlinkMs = 0;
-	static uint8_t isOn = 0;
-	static uint8_t pass = 0;
-
-	if (strcmp(errorMessage, "") == 0)
-		repeatOnTimes = 1;
-	else
-		repeatOnTimes = 2;
-
-	if (pass < repeatOnTimes) {
-		if (millis() - lastBlinkMs > onMs) {
-			isOn = !isOn;
-			if (!isOn)
-				pass++;
-			digitalWrite(LED_OK, isOn);
-			lastBlinkMs = millis();
-		}
-	}
-	else if (millis() - lastBlinkMs > offMs) {
-		pass = 0;
-		lastBlinkMs = 0;
-	}
-}
-
-void Robot::broadcastingStart(uint8_t measuringMode) {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++)
-		board[deviceNumber]->continuousReadingStart(0xFF, measuringMode);
-}
-
-void Robot::broadcastingStop() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++) {
-		board[deviceNumber]->continuousReadingStop();
-		delay(1); // TODO
-	}
-}
-
-void Robot::canBusSniff() {
-	while (!userBreak()) {
-		blink();
-		bool found = false;
-		if (esp32CANBus->messageReceive()) {
-			for (uint8_t deviceNumber = 0; deviceNumber < boardCount(); deviceNumber++)
-				if (board[deviceNumber]->framePrint(esp32CANBus->rx_frame->MsgID, esp32CANBus->rx_frame->FIR.B.DLC,
-					esp32CANBus->rx_frame->data.u8)) {
-					found = true;
-					break;
-				}
-
-			if (!found) {
-				print("Not found Id: 0x%4X ", (String)esp32CANBus->rx_frame->MsgID);
-				if (esp32CANBus->rx_frame->FIR.B.DLC > 0)
-					print(", data: ");
-				for (uint8_t i = 0; i < esp32CANBus->rx_frame->FIR.B.DLC; i++)
-					print("0x2X ", esp32CANBus->rx_frame->data.u8[i]);
-				print("\n\r");
-			}
-		}
-	}
-}
-
-void Robot::canIdChange() {
-	// Print all devices alive
-	uint8_t last = 0;
-	for (uint8_t boardNumber = 0; boardNumber < boardCount(); boardNumber++) {
-		uint8_t currentCount = 0;
-		for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount(); deviceNumber++)
-			if (board[boardNumber]->alive(deviceNumber)) {
-				if (currentCount == 0)
-					print("%i.", ++last);
-				else
-					print(",");
-				print(" %s", board[boardNumber]->name(deviceNumber));
-				if (++currentCount == board[boardNumber]->devicesOnASingleBoard()) {
-					currentCount = 0;
-					print("\n\r");
-				}
-			}
-	}
-	if (last == 0)
-		print("No boards\n\r");
-	else {
-
-		// Choose device to be changed
-		print("Enter board [1 - %i]: ", last);
-		uint32_t lastMs = millis();
-		uint8_t selectedNumber = 0;
-		bool any = false;
-		while (millis() - lastMs < 30000 && !any || last > 9 && millis() - lastMs < 500 && any)
-			if (Serial.available()) {
-				selectedNumber = selectedNumber * 10 + (Serial.read() - 48);
-				any = true;
-				lastMs = millis();
-			}
-
-		if (selectedNumber > last) {
-			if (any)
-				print("invalid");
-			else
-				print("timeout\n\r");
-		}
-		else {
-
-			// Find selected board
-			last = 0;
-			Board* selectedBoard = NULL;
-			uint8_t selectedDeviceIndex = 0xFF;
-			uint8_t maxInput = 0;
-			for (uint8_t boardNumber = 0; boardNumber < boardCount() && selectedDeviceIndex == 0xFF; boardNumber++) {
-				uint8_t currentCount = 0;
-				for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && selectedDeviceIndex == 0xFF; deviceNumber++)
-					if (board[boardNumber]->alive(deviceNumber)) {
-						if (currentCount == 0) {
-							if (++last == selectedNumber) {
-								selectedBoard = board[boardNumber];
-								selectedDeviceIndex = deviceNumber;
-								maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
-								break;
-							}
-						}
-
-						if (++currentCount == board[boardNumber]->devicesOnASingleBoard())
-							currentCount = 0;
-					}
-			}
-
-			// Enter new id
-			print("%i. %s\n\rEnter new board id [0..%i]: ", last, selectedBoard->name(), maxInput);
-			lastMs = millis();
-			uint8_t newDeviceNumber = 0;
-			bool any = false;
-			while ((millis() - lastMs < 30000 && !any || maxInput > 9 && millis() - lastMs < 500 && any) && newDeviceNumber < maxInput)
-				if (Serial.available()) {
-					newDeviceNumber = newDeviceNumber * 10 + (Serial.read() - 48);
-					any = true;
-					lastMs = millis();
-				}
-
-			if (newDeviceNumber > maxInput)
-				print("timeout\n\r");
-			else {
-
-				// Change
-				print("%i\n\rChange requested.\n\r", newDeviceNumber);
-				selectedBoard->idChange(newDeviceNumber, selectedDeviceIndex);
-				delay(500); // Delay for firmware handling of devices with the same ids.
-			}
-		}
-	}
-}
-
-void Robot::commandProcess() {
-	if (commandCurrent != NULL) {
-		(*(commandCurrent->pointer))();
-		if (commandCurrent != NULL)
-			commandCurrent->firstProcess = false;
-	}
-}
-
-void Robot::commandSet(struct Command* newCommand) {
-	commandPrevious = commandCurrent;
-	commandCurrent = newCommand;
-	commandCurrent->firstProcess = true;
-}
-
-void Robot::commandUpdate(bool displayAlive, Command* displayAction, Command* switchAction) {
-	static uint32_t lastUserActionMs = 0;
-	static uint8_t uartRxCommandIndex = 0;
-	static char uartRxCommandCumulative[10];
-	const uint16_t TIMEOUT_MS = 2000;
-
-	// If a button pressed, first execute its action
-	if (displayAlive && displayAction != NULL)
-		commandCurrent = displayAction;
-	else if (switchAction != NULL)
-		commandCurrent = switchAction;
-	else { // Check keyboard
-		if (Serial.available() || serial->available()) {
-			lastUserActionMs = millis();
-			uint8_t ch;
-			if (Serial.available())
-				ch = Serial.read();
-			else
-				ch = serial->read();
-
-			if (ch != 13) //if received data different from ascii 13 (enter)
-				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
-
-			if (ch == 13 || uartRxCommandIndex >= 3 || ch == 'x') //if received data = 13
-			{
-				uartRxCommandCumulative[uartRxCommandIndex] = 0;
-				uartRxCommandIndex = 0;
-
-				print("Command: %s", uartRxCommandCumulative);
-
-				uint8_t found = 0;
-				for (uint8_t i = 0; i < COMMANDS_LIMIT; i++) {
-					if (strcmp(commands[i]->shortcut, uartRxCommandCumulative) == 0) {
-						print(" ok.\r\n");
-						commandSet(commands[i]);
-						//commandPrevious = commandCurrent;
-						//commandCurrent = commands[i];
-						//commandCurrent->firstProcess = true;
-						found = 1;
-						break;
-					}
-				}
-				if (!found) {
-					print(" not found.\r\n");
-					uartRxCommandIndex = 0;
-				}
-			}
-		}
-
-		if (uartRxCommandIndex != 0 && millis() - lastUserActionMs > TIMEOUT_MS) {
-			print(" Timeout.\r\n");
-			uartRxCommandIndex = 0;
-		}
-	}
-}
-
-void Robot::devicesScan(bool verbose) {
-	broadcastingStop();
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
-		board[i]->devicesScan(verbose);
-}
-
-void Robot::errors() {
-	static uint32_t lastDisplayMs = 0;
-	if (strcmp(errorMessage, "") != 0) {
-		if (millis() - lastDisplayMs > 10000 || lastDisplayMs == 0) {
-			print("ERROR! %s\n\r", errorMessage);
-			lastDisplayMs = millis();
-			stopAll(); // Stop all motors
-		}
-	}
-}
-
-void Robot::firmwarePrint() {
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
-		board[i]->firmwareRequest();
-		uint32_t startMs = millis();
-		while (millis() - startMs < 10)
-			noLoopWithoutThis();
-		board[i]->firmwareDisplay();
-	}
-}
-
-void Robot::fps() {
-	fpsMs[fpsNextIndex] = millis();
-	if (++fpsNextIndex >= 3)
-		fpsNextIndex = 0;
-}
-
-void Robot::fpsPrint() {
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
-		board[i]->fpsRequest();
-		uint32_t startMs = millis();
-		while (millis() - startMs < 50)
-			noLoopWithoutThis();
-		board[i]->fpsDisplay();
-	}
-}
-
-void Robot::menu() {
-	// Print menu
-	devicesScan(false);
-	print("\r\n");
-	bool any = false;
-	uint8_t column = 1;
-	uint8_t maxColumns = 2;
-	for (uint8_t i = 0; i < COMMANDS_LIMIT && commands[i] != NULL; i++) {
-		if ((commands[i]->menuLevel | menuLevel) == commands[i]->menuLevel) {
-			print("%-3s - %-22s%s", commands[i]->shortcut, commands[i]->text, column == maxColumns ? "\n\r" : "");
-			delay(2);
-			any = true;
-			if (column++ == maxColumns)
-				column = 1;
-		}
-	}
-	if (!any)
-		print("Menu level %i empty.\r\n", menuLevel);
-	else
-		if (column != 1)
-			print("\r\n");
-
-	// Display errors
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++)
-		if (board[deviceNumber]->errorCodeLast() != 0)
-			print("Error %i in %s\n\r", board[deviceNumber]->errorCodeLast(), board[deviceNumber]->name(board[deviceNumber]->errorWasInDeviceNumber()));
-
-	commandCurrent = &commandDoNothing;
-}
-
-void Robot::menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel) {
-	if (nextFreeCommand >= COMMANDS_LIMIT) {
-		strcpy(errorMessage, "COMMANDS_LIMIT exceeded.");
-		return;
-	}
-	if (shortcut != 0)
-		strcpy(command->shortcut, shortcut);
-	if (text != 0)
-		strcpy(command->text, text);
-	command->pointer = pointer;
-	command->menuLevel = menuLevel;
-	commands[nextFreeCommand++] = command;
-}
-
-void Robot::messagesReceive() {
-	while (esp32CANBus->messageReceive()) {
-		uint32_t id = esp32CANBus->rx_frame->MsgID;
-		bool any = false;
-		for (uint8_t deviceGroupNumber = 0; deviceGroupNumber < nextFreeBoardSlot; deviceGroupNumber++) {
-			if (board[deviceGroupNumber]->messageDecode(id, esp32CANBus->rx_frame->data.u8)) {
-				any = true;
-				break;
-			}
-		}
-
-#define REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN false
-#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
-		if (!any)
-			print("Address device unknown: 0x%X\n\r", id);
-#endif
-	}
-}
-
-void Robot::motorTest() {
-	print("Test motors\n\r");
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) 
-		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0) 
-			board[i]->test();
-}
-
-void Robot::noLoopWithoutThis() {
-	blink(); // Keep-alive LED. Solder jumper must be shorted in order to work in mrm-esp32.
-	messagesReceive();
-	fps(); // Measure FPS. Less than 30 - a bad thing.
-	verbosePrint(); // Print FPS and maybe some additional data
-	errors();
-}
-
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Robot::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
-}
-
-void Robot::stopAll() {
-	broadcastingStop();
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
-		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0)
-			((MotorBoard*)board[i])->stop();
-}
-
-bool Robot::stressTest(bool firstPass) {
-	const bool STOP_ON_ERROR = false;
-	const uint16_t LOOP_COUNT = 10000;
-
-	// Setup
-	static uint32_t pass;
-	static uint8_t lastPercent = 101;
-	static uint8_t count[MRM_BOARD_COUNT];
-	static uint32_t errors[MRM_BOARD_COUNT];
-	if (firstPass) {
-		print("Before test.\n\r");
-		pass = 0;
-		broadcastingStop();
-		for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
-			errors[i] = 0;
-		for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
-			delay(1);
-			count[i] = board[i]->devicesScan(true);
-		}
-		print("Start.\n\r");
-	}
-
-	// Stress test
-	uint8_t percent = 100 * pass / LOOP_COUNT;
-	if (percent != lastPercent) {
-		lastPercent = percent;
-		print("%i %%\n\r", percent);
-	}
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
-		if (count[i] > 0) {
-			delay(1);
-			uint8_t cnt = board[i]->devicesScan(false);
-			if (cnt != count[i]) {
-				errors[i]++;
-				print("***** %s: found %i, not %i.\n\r", board[i]->name(), cnt, count[i]);
-				if (STOP_ON_ERROR)
-					break;
-			}
-		}
-	}
-
-	// Results
-	if (++pass >= LOOP_COUNT) {
-		bool allOK = true;
-		for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
-			if (count[i] > 0 && errors[i] > 0) {
-				print("%s: %i errors.\n\r", board[i]->name(), errors[i]);
-				allOK = false;
-			}
-		if (allOK)
-			print("No errors.");
-		print("\n\r");
-		return true;
-	}
-	else
-		return false;
-}
-
-bool Robot::userBreak() {
-	if (/*switchOn() ||*/ Serial.available() || serial->available()) {
-		return true;
-	}
-	else
-		return false;
-}
-
-void Robot::verbosePrint() {
-	if (verbose) {
-		static uint32_t lastMs = 0;
-		if (lastMs == 0 || millis() - lastMs > 5000) {
-			uint8_t lastFPS = (fpsNextIndex == 0 ? 2 : fpsNextIndex - 1);
-			uint8_t firstFPS = fpsNextIndex;
-			float fps;
-			if (fpsMs[lastFPS] == 0 || fpsMs[lastFPS] - fpsMs[firstFPS] == 0)
-				fps = 0;
-			else
-				fps = 2 * 1000 / (float)(fpsMs[lastFPS] - fpsMs[firstFPS]);
-			print("%i fps\r\n", (int)round(fps));
-			lastMs = millis();
-		}
-	}
-}
-
-void Robot::verboseToggle() {
-	verbose = !verbose;
-};
-
-/** Print to all serial ports, pointer to list
-*/
-void Robot::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serialBT() != 0)
-		serialBT()->print(buffer);
 }

@@ -1,4 +1,5 @@
 #include "mrm-servo.h"
+#include <mrm-robot.h>
 
 /** Constructor
 @param robot - robot containing this board
@@ -59,12 +60,11 @@ void Mrm_servo::sweep() {
 
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_servo::test(BreakCondition breakWhen)
+void Mrm_servo::test()
 {
 	const uint8_t ms = 12;
-	while (breakWhen !=0 && !breakWhen()) {
+	while (!robotContainer->userBreak()) {
 
 		for (int16_t i = 0; i <= 180; i += 5) {
 			write(i);
@@ -80,6 +80,7 @@ void Mrm_servo::test(BreakCondition breakWhen)
 	}
 
 	robotContainer->print("\n\rTest over.\n\r");
+	robotContainer->_actionCurrent = NULL;
 }
 
 /** Move servo

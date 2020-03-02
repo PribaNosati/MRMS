@@ -1,4 +1,5 @@
 #include "mrm-switch.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 
@@ -10,7 +11,7 @@ extern CAN_device_t CAN_cfg;
 Mrm_switch::Mrm_switch(Robot* robot, uint8_t maxDevices) : 
 	SensorBoard(robot, 1, "LED8x8", maxDevices) {
 	lastOn = new std::vector<bool[MRM_SWITCHES_COUNT]>(maxDevices);
-	offOnAction = new std::vector<Command* [MRM_SWITCHES_COUNT]>(maxDevices);
+	offOnAction = new std::vector<ActionBase* [MRM_SWITCHES_COUNT]>(maxDevices);
 	pin = new std::vector<uint8_t[MRM_SWITCHES_COUNT]>(maxDevices);
 	nextFree = 0;
 }
@@ -20,7 +21,7 @@ Mrm_switch::~Mrm_switch()
 }
 
 
-Command* Mrm_switch::actionCheck() {
+ActionBase* Mrm_switch::actionCheck() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t switchNumber = 0; switchNumber < MRM_SWITCHES_COUNT; switchNumber++)
 			if ((*lastOn)[deviceNumber][switchNumber] == false && read(switchNumber, deviceNumber) && (*offOnAction)[deviceNumber][switchNumber] != NULL) {
@@ -32,7 +33,7 @@ Command* Mrm_switch::actionCheck() {
 	return NULL;
 }
 
-void Mrm_switch::actionSet(Command* action, uint8_t switchNumber, uint8_t deviceNumber) {
+void Mrm_switch::actionSet(ActionBase* action, uint8_t switchNumber, uint8_t deviceNumber) {
 	(*offOnAction)[deviceNumber][switchNumber] = action;
 }
 

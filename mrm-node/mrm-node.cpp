@@ -1,4 +1,5 @@
 #include "mrm-node.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 
@@ -156,9 +157,8 @@ void Mrm_node::readingsPrint() {
 }
 
 /** Test servos
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_node::servoTest(BreakCondition breakWhen) {
+void Mrm_node::servoTest() {
 	static uint32_t lastMs = 0;
 
 	if (millis() - lastMs > 100) {
@@ -214,7 +214,7 @@ bool Mrm_node::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_node::test(BreakCondition breakWhen)
+void Mrm_node::test()
 {
 	static uint32_t lastMs = 0;
 

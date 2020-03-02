@@ -1,4 +1,5 @@
 #include "mrm-lid-can-b2.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 

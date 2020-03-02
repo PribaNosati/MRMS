@@ -73,9 +73,8 @@ public:
 	uint8_t systemCalibration();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 };
 
 //Declaration of error function. Definition is in Your code.

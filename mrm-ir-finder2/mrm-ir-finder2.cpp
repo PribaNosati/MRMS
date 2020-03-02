@@ -1,4 +1,5 @@
 #include "mrm-ir-finder2.h"
+#include <mrm-robot.h>
 
 /**Constructor
 @param robot - robot containing this board

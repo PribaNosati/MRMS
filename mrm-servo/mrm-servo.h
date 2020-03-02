@@ -40,9 +40,8 @@ public:
 	void sweep();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 	/** Move servo
 	@param degrees - Servo's target angle, 0 - 180

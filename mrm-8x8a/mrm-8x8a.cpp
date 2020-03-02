@@ -1,4 +1,5 @@
 #include "mrm-8x8a.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 
@@ -12,7 +13,7 @@ Mrm_8x8a::Mrm_8x8a(Robot* robot, uint8_t maxNumberOfBoards) :
 	SensorBoard(robot, 1, "LED8x8", maxNumberOfBoards) {
 	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
-	offOnAction = new std::vector<Command* [MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
+	offOnAction = new std::vector<ActionBase* [MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	//esp32CANBus = esp32CANBusSingleton;
 	nextFree = 0;
 }
@@ -22,7 +23,7 @@ Mrm_8x8a::~Mrm_8x8a()
 }
 
 
-Command* Mrm_8x8a::actionCheck() {
+ActionBase* Mrm_8x8a::actionCheck() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t switchNumber = 0; switchNumber < MRM_8x8A_SWITCHES_COUNT; switchNumber++)
 			if ((*lastOn)[deviceNumber][switchNumber] == false && (*on)[deviceNumber][switchNumber] == true && (*offOnAction)[deviceNumber][switchNumber] != NULL) {
@@ -34,7 +35,7 @@ Command* Mrm_8x8a::actionCheck() {
 	return NULL;
 }
 
-void Mrm_8x8a::actionSet(Command* action, uint8_t switchNumber, uint8_t deviceNumber) {
+void Mrm_8x8a::actionSet(ActionBase* action, uint8_t switchNumber, uint8_t deviceNumber) {
 	(*offOnAction)[deviceNumber][switchNumber] = action;
 }
 
@@ -189,9 +190,8 @@ bool Mrm_8x8a::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_8x8a::test(BreakCondition breakWhen)
+void Mrm_8x8a::test()
 {
 #define MRM_8x8A_START_BITMAP_1 0x01
 #define MRM_8x8A_END_BITMAP_1 0x04

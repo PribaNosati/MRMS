@@ -1,4 +1,5 @@
 #include "mrm-bldc4x2.5.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 extern char* errorMessage;

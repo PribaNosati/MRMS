@@ -82,7 +82,7 @@ public:
 	/** Test servos
 	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void servoTest(BreakCondition breakWhen = 0);
+	void servoTest();
 
 	/** Move servo
 	@deviceNumber - mrm-node id
@@ -99,9 +99,8 @@ public:
 	bool switchRead (uint8_t switchNumber, uint8_t deviceNumber = 0);
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 };
 

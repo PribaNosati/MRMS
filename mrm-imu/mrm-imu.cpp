@@ -1,4 +1,5 @@
 #include "mrm-imu.h"
+#include <mrm-robot.h>
 
 /**Constructor
 @param robot - robot containing this board
@@ -108,14 +109,14 @@ uint8_t Mrm_imu::systemCalibration() {
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_imu::test(BreakCondition breakWhen) {
-	while (breakWhen == 0 || !(*breakWhen)()) {
+void Mrm_imu::test() {
+	static uint32_t ms = 0;
+	if (millis() - ms > 200){
 		for (int i = 0; i < nextFree; i++) 
 			robotContainer->print("Y:%3i P:%3i R:%3i", (int)round(heading()), (int)round(pitch()), (int)round(roll()));
 		robotContainer->print("\n\r");
-		delay(200);
+		ms = millis();
 	}
 }
 

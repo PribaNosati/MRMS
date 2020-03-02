@@ -1,4 +1,5 @@
 #include "mrm-mot4x3.6can.h"
+#include <mrm-robot.h>
 
 extern CAN_device_t CAN_cfg;
 

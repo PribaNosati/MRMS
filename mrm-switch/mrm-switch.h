@@ -1,5 +1,6 @@
 #pragma once
 #include "Arduino.h"
+#include <mrm-action.h>
 #include <mrm-board.h>
 
 /**
@@ -14,7 +15,7 @@ Licence: You can use this code any way you like.
 class Mrm_switch : public SensorBoard
 {
 	std::vector<bool[MRM_SWITCHES_COUNT]>* lastOn;
-	std::vector<Command* [MRM_SWITCHES_COUNT]>* offOnAction;
+	std::vector<ActionBase * [MRM_SWITCHES_COUNT]>* offOnAction;
 	std::vector<uint8_t[MRM_SWITCHES_COUNT]>* pin;
 	
 public:
@@ -28,9 +29,9 @@ public:
 
 	~Mrm_switch();
 
-	Command* actionCheck();
+	ActionBase* actionCheck();
 
-	void actionSet(Command* action, uint8_t switchNumber, uint8_t deviceNumber = 0);
+	void actionSet(ActionBase* action, uint8_t switchNumber, uint8_t deviceNumber = 0);
 
 	/** Add a mrm-switch board
 	@param pin1 - ESP32 pin the first switch is connected to. Enter 0xFF if not in use.

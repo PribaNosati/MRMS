@@ -89,7 +89,7 @@ public:
 	@param devicesOnABoard - number of devices on each board
 	@param boardName - board's name
 	*/
-	Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName, BoardType boardTypeThis);
+	Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName, BoardType boardTypeNow);
 
 	/** Add a device
 	@param deviceName
@@ -189,14 +189,6 @@ public:
 	*/
 	void fpsRequest(uint8_t deviceNumber = 0xFF);
 
-	/** Prints a frame
-	@param msgId - CAN Bus message id
-	@param dlc - data load byte count
-	@param data - data
-	@return - if true, found and printed
-	*/
-	bool framePrint(uint32_t msgId, uint8_t dlc, uint8_t data[8]);
-
 	/** Change CAN Bus id
 	@param newDeviceNumber - new number
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -222,6 +214,12 @@ public:
 	@return - true if canId for this class
 	*/
 	virtual bool messageDecode(uint32_t canId, uint8_t data[8]) = 0;
+
+	/** Prints a frame
+	@param frame - CAN Bus frame
+	@return - if true, found and printed
+	*/
+	bool messagePrint(CAN_frame_t* frame);
 
 	/** Returns device's name
 	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -374,95 +372,4 @@ public:
 	@param verbose - print details
 	*/
 	void goToEliminateErrors(float errorX, float errorY, float headingToMaintain, Mrm_pid* pidXY, Mrm_pid* pidRotation, bool verbose = false);
-};
-
-#define COMMANDS_LIMIT 50 // Increase if more commands are needed
-#define MRM_BOARD_COUNT 14
-
-class Robot {
-
-protected:
-	uint8_t fpsNextIndex = 0; // To count frames per second
-	uint32_t fpsMs[3] = { 0, 0, 0 };
-	uint8_t nextFreeCommand = 0;
-	uint8_t nextFreeBoardSlot = 0;
-	BluetoothSerial* serial; // Additional serial port
-	bool verbose = false; // Verbose output
-
-	void fps();
-
-	/** Print to all serial ports, pointer to list
-	*/
-	void vprint(const char* fmt, va_list argp);
-
-public:
-	Board* board[MRM_BOARD_COUNT];
-	struct Command commandDoNothing;
-	struct Command* commands[COMMANDS_LIMIT];
-	struct Command* commandCurrent;
-	struct Command* commandPrevious;
-	ESP32CANBus* esp32CANBus; // CANBus interface
-	char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
-	uint8_t menuLevel = 1; // Submenus have bigger numbers
-
-	/**
-	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
-	*/
-	Robot(BluetoothSerial* hardwareSerial = 0);
-
-	void add(Board* aBoard);
-
-	void blink();
-
-	void broadcastingStart(uint8_t measuringMode = 0);
-
-	void broadcastingStop();
-
-	uint8_t boardCount(){ return nextFreeBoardSlot; }
-
-	void canBusSniff();
-
-	void canIdChange();
-
-	void commandProcess();
-
-	void commandSet(struct Command* newCommand);
-
-	void commandUpdate(bool displayAlive, Command* displayAction, Command* switchAction);
-
-	void devicesScan(bool verbose);
-
-	void errors();
-
-	void firmwarePrint();
-
-	void fpsPrint();
-
-	void menu();
-
-	void menuAdd(struct Command* command, char* shortcut, char* text, void (*pointer)(), uint8_t menuLevel);
-
-	void messagesReceive();
-
-	void motorTest();
-
-	void noLoopWithoutThis();
-
-	/** Print to all serial ports
-	@param fmt - C format string
-	@param ... - variable arguments
-	*/
-	void print(const char* fmt, ...);
-
-	BluetoothSerial* serialBT() { return serial; }
-
-	void stopAll();
-
-	bool stressTest(bool firstPass);
-
-	bool userBreak();
-
-	void verbosePrint();
-
-	void verboseToggle();
 };
