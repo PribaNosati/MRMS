@@ -75,47 +75,34 @@ void Mrm_col_can::add(char * deviceName)
 bool Mrm_col_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (isForMe(canId, deviceNumber)) {
-			messageDecodeCommon(deviceNumber);
-			bool any = false;
-			uint8_t startIndex = 0;
-			switch (data[0]) {
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_SENSORS_MEASURE_SENDING:
-				startIndex = 0;
-				any = true;
-				break;
-			case COMMAND_SENDING_COLORS_1_TO_3:
-				(*readings)[deviceNumber][0] = (data[1] << 8) | data[2]; // blue
-				(*readings)[deviceNumber][1] = (data[3] << 8) | data[4]; // green
-				(*readings)[deviceNumber][2] = (data[5] << 8) | data[6]; // orange
-				any = true;
-				break;
-			case COMMAND_SENDING_COLORS_4_TO_6:
-				(*readings)[deviceNumber][3] = (data[1] << 8) | data[2]; // red
-				(*readings)[deviceNumber][4] = (data[3] << 8) | data[4]; // violet
-				(*readings)[deviceNumber][5] = (data[5] << 8) | data[6]; // yellow
-				any = true;
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 204;
-				errorInDeviceNumber = deviceNumber;
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				bool any = false;
+				uint8_t startIndex = 0;
+				switch (data[0]) {
+				case COMMAND_SENSORS_MEASURE_SENDING:
+					startIndex = 0;
+					any = true;
+					break;
+				case COMMAND_SENDING_COLORS_1_TO_3:
+					(*readings)[deviceNumber][0] = (data[1] << 8) | data[2]; // blue
+					(*readings)[deviceNumber][1] = (data[3] << 8) | data[4]; // green
+					(*readings)[deviceNumber][2] = (data[5] << 8) | data[6]; // orange
+					any = true;
+					break;
+				case COMMAND_SENDING_COLORS_4_TO_6:
+					(*readings)[deviceNumber][3] = (data[1] << 8) | data[2]; // red
+					(*readings)[deviceNumber][4] = (data[3] << 8) | data[4]; // violet
+					(*readings)[deviceNumber][5] = (data[5] << 8) | data[6]; // yellow
+					any = true;
+					break;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 204;
+					errorInDeviceNumber = deviceNumber;
+				}
 			}
-
 			return true;
 		}
 	return false;

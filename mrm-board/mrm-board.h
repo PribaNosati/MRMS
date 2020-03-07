@@ -19,6 +19,10 @@
 #define COMMAND_FIRMWARE_REQUEST 0x19
 #define COMMAND_FIRMWARE_SENDING 0x1A
 #define COMMAND_RESET 0x1B
+#define COMMAND_MESSAGE_SENDING_1 0x1C
+#define COMMAND_MESSAGE_SENDING_2 0x1D
+#define COMMAND_MESSAGE_SENDING_3 0x1E
+#define COMMAND_MESSAGE_SENDING_4 0x1F
 #define COMMAND_SPEED_SET 0x20
 #define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
 #define COMMAND_FPS_REQUEST 0x30
@@ -61,14 +65,18 @@ protected:
 	uint8_t maximumNumberOfBoards;
 	uint8_t measuringMode = 0;
 	uint8_t measuringModeLimit = 0;
+	char _message[29]; // Message a device sent.
 	std::vector<char[10]>* nameThis;// Device's name
 	int nextFree;
 	Robot* robotContainer;
 
 	/** Common part of message decoding
+	@param canId - CAN Bus id
+	@param data - 8 bytes from CAN Bus message.
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - command found
 	*/
-	void messageDecodeCommon(uint8_t deviceNumber = 0);
+	bool messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceNumber = 0);
 
 	/** Print to all serial ports
 	@param fmt - C format string

@@ -10,7 +10,7 @@ RobotLine::RobotLine() : Robot() {
 	
 	actionLineFollow = new ActionLineFollow(this);
 	actionObstacleAvoid = new ActionObstacleAvoid(this);
-	actonWallFollow = new ActionWallFollow(this);
+	actionWallFollow = new ActionWallFollow(this);
 
 	actionAdd(actionLineFollow);
 	actionAdd(actionObstacleAvoid);
@@ -194,7 +194,7 @@ void RobotLine::lineFollow() {
 	}
 
 	// Sharp curve left and right?
-	bool any = false;
+	bool any = false; // Any transistor senses dark (line)
 	for (int8_t i = 0; i < 8; i++)
 		if (mrm_ref_can->dark(i)) {
 			if (i == 0 || i == 1)

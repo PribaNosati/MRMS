@@ -85,31 +85,20 @@ void Mrm_lid_can_b2::calibration(uint8_t deviceNumber){
 bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)){
-			messageDecodeCommon(deviceNumber);
-			switch (data[0]) {
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			case COMMAND_SENSORS_MEASURE_SENDING: {
-				uint16_t mm = (data[2] << 8) | data[1];
-				(*readings)[deviceNumber] = mm;
-			}
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 202;
-				errorInDeviceNumber = deviceNumber;
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				switch (data[0]) {
+				case COMMAND_SENSORS_MEASURE_SENDING: {
+					uint16_t mm = (data[2] << 8) | data[1];
+					(*readings)[deviceNumber] = mm;
+				}
+													break;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 202;
+					errorInDeviceNumber = deviceNumber;
+				}
 			}
 			return true;
 		}

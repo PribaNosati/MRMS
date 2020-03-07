@@ -172,45 +172,33 @@ void Mrm_8x8a::bitmapCustomStoredDisplay(uint8_t address, uint8_t deviceNumber) 
 bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
-			messageDecodeCommon(deviceNumber);
-			switch (data[0]) {
-			case COMMAND_8X8_SWITCH_ON: 
-			case COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION:{
-				uint8_t switchNumber = data[1] >> 1;
-				if (switchNumber > 4) {
-					strcpy(robotContainer->errorMessage, "No 8x8a switch");
-					return false;
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				switch (data[0]) {
+				case COMMAND_8X8_SWITCH_ON:
+				case COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION: {
+					uint8_t switchNumber = data[1] >> 1;
+						if (switchNumber > 4) {
+							strcpy(robotContainer->errorMessage, "No 8x8a switch");
+								return false;
+						}
+					(*on)[deviceNumber][switchNumber] = data[1] & 1;
+						if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
+							canData[0] = COMMAND_NOTIFICATION;
+							canData[1] = switchNumber; //todo - deviceNumber not taken into account
+							robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+						}
 				}
-				(*on)[deviceNumber][switchNumber] = data[1] & 1;
-				if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
-					canData[0] = COMMAND_NOTIFICATION;
-					canData[1] = switchNumber; //todo - deviceNumber not taken into account
-					robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+					break;
+				case COMMAND_8x8_TEST_CAN_BUS:
+					print("Test: %i\n\r", data[1]);
+					break;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 203;
+					errorInDeviceNumber = deviceNumber;
 				}
-			}
-			break;
-			case COMMAND_8x8_TEST_CAN_BUS:
-				print("Test: %i\n\r", data[1]);
-				break;
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 203;
-				errorInDeviceNumber = deviceNumber;
 			}
 			return true;
 		}

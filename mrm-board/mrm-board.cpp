@@ -28,6 +28,7 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	_alive = 0;
 	nextFree = 0;
 	boardTypeThis = boardTypeNow;
+	_message[28] = '\0';
 }
 
 /** Add a device
@@ -247,10 +248,55 @@ bool Board::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 }
 
 /** Common part of message decoding
+@param canId - CAN Bus id
+@param data - 8 bytes from CAN Bus message.
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - command found
 */
-void Board::messageDecodeCommon(uint8_t deviceNumber) {
+bool Board::messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceNumber) {
 	(*lastMessageReceivedMs)[deviceNumber] = millis();
+	bool found = true;
+	uint8_t command = data[0];
+	switch (command) {
+	case COMMAND_ERROR:
+		errorCode = data[1];
+		errorInDeviceNumber = deviceNumber;
+		print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
+		break;
+	case COMMAND_FIRMWARE_SENDING:
+		(*firmwareVersionLast)[deviceNumber] = (data[2] << 8) | data[1];
+		break;
+	case COMMAND_FPS_SENDING:
+		fpsLast = (data[2] << 8) | data[1];
+		break;
+	case COMMAND_MESSAGE_SENDING_1:
+		print("From %s \n\r", (*nameThis)[deviceNumber]);
+		for (uint8_t i = 0; i < 7; i++) {
+			print("%i ", data[i + i]);
+			_message[i] = data[i + i];
+		}
+		break;
+	case COMMAND_MESSAGE_SENDING_2:
+		for (uint8_t i = 0; i < 7; i++)
+			_message[7 + i] = data[i + i];
+		break;
+	case COMMAND_MESSAGE_SENDING_3:
+		for (uint8_t i = 0; i < 7; i++)
+			_message[14 + i] = data[i + i];
+		break;
+	case COMMAND_MESSAGE_SENDING_4:
+		for (uint8_t i = 0; i < 7; i++)
+			_message[21 + i] = data[i + i];
+		print("Message from %s: %s\n\r", (*nameThis)[deviceNumber], _message);
+		break;
+	case COMMAND_NOTIFICATION:
+		break;
+	case COMMAND_REPORT_ALIVE:
+		break;
+	default:
+		found = false;
+	}
+	return found;
 }
 
 
@@ -414,31 +460,20 @@ MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, u
 bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
-			messageDecodeCommon(deviceNumber);
-			switch (data[0]) {
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_SENSORS_MEASURE_SENDING: {
-				uint32_t enc = (data[4] << 24) | (data[3] << 16) | (data[2] << 8) | data[1];
-				(*encoderCount)[deviceNumber] = enc;
-				break;
-			}
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 200;
-				errorInDeviceNumber = deviceNumber;
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				switch (data[0]) {
+				case COMMAND_SENSORS_MEASURE_SENDING: {
+					uint32_t enc = (data[4] << 24) | (data[3] << 16) | (data[2] << 8) | data[1];
+					(*encoderCount)[deviceNumber] = enc;
+					break;
+				}
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 200;
+					errorInDeviceNumber = deviceNumber;
+				}
 			}
 			return true;
 		}

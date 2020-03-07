@@ -72,31 +72,20 @@ void Mrm_therm_b_can::add(char * deviceName)
 bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)){
-			messageDecodeCommon(deviceNumber);
-			switch (data[0]) {
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				switch (data[0]) {
+				case COMMAND_SENSORS_MEASURE_SENDING: {
+					int16_t temp = (data[2] << 8) | data[1];
+					(*readings)[deviceNumber] = temp;
+				}
 				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_SENSORS_MEASURE_SENDING: {
-				int16_t temp = (data[2] << 8) | data[1];
-				(*readings)[deviceNumber] = temp;
-			}
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 205;
-				errorInDeviceNumber = deviceNumber;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 205;
+					errorInDeviceNumber = deviceNumber;
+				}
 			}
 			return true;
 		}

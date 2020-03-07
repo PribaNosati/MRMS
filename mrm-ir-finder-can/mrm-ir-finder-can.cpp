@@ -69,53 +69,42 @@ void Mrm_ir_finder_can::add(char * deviceName)
 bool Mrm_ir_finder_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
-			messageDecodeCommon(deviceNumber);
-			bool any = false;
-			uint8_t startIndex = 0;
-			switch (data[0]) {
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_1_TO_3:
-				startIndex = 0;
-				any = true;
-				break;
-			case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_4_TO_6:
-				startIndex = 3;
-				any = true;
-				break;
-			case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_7_TO_9:
-				startIndex = 6;
-				any = true;
-				break;
-			case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_10_TO_12:
-				startIndex = 9;
-				any = true;
-				break;
-			case COMMAND_SENSORS_MEASURE_CALCULATED_SENDING:
-				angle = (data[1] << 8 | data[2]) - 180;
-				distance = data[3] << 8 | data[4];
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 201;
-				errorInDeviceNumber = deviceNumber;
-			}
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				bool any = false;
+				uint8_t startIndex = 0;
+				switch (data[0]) {
+				case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_1_TO_3:
+					startIndex = 0;
+					any = true;
+					break;
+				case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_4_TO_6:
+					startIndex = 3;
+					any = true;
+					break;
+				case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_7_TO_9:
+					startIndex = 6;
+					any = true;
+					break;
+				case COMMAND_IR_FINDER_CAN_SENDING_SENSORS_10_TO_12:
+					startIndex = 9;
+					any = true;
+					break;
+				case COMMAND_SENSORS_MEASURE_CALCULATED_SENDING:
+					angle = (data[1] << 8 | data[2]) - 180;
+					distance = data[3] << 8 | data[4];
+					break;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 201;
+					errorInDeviceNumber = deviceNumber;
+				}
 
-			if (any)
-				for (uint8_t i = 0; i <= 2; i++)
-					(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+				if (any)
+					for (uint8_t i = 0; i <= 2; i++)
+						(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+			}
 			return true;
 		}
 	return false;

@@ -80,56 +80,43 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (isForMe(canId, deviceNumber)) {
-			messageDecodeCommon(deviceNumber);
-			bool any = false;
-			uint8_t startIndex = 0;
-			switch (data[0]) {
-			case COMMAND_ERROR:
-				errorCode = data[1];
-				errorInDeviceNumber = deviceNumber;
-				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
-				break;
-				break;
-			case COMMAND_FPS_SENDING:
-				fpsLast = (data[1] << 8) | data[2];
-				break;
-			case COMMAND_NODE_SENDING_SENSORS_1_TO_3:
-				startIndex = 0;
-				any = true;
-				break;
-			case COMMAND_NODE_SENDING_SENSORS_4_TO_6:
-				startIndex = 3;
-				any = true;
-				break;
-			case COMMAND_NODE_SENDING_SENSORS_7_TO_9:
-				startIndex = 6;
-				any = true;
-				break;
-			case COMMAND_NODE_SWITCH_ON: {
-				uint8_t switchNumber = data[1] >> 1;
-				if (switchNumber > 4) {
-					strcpy(robotContainer->errorMessage, "No mrm-switch");
-					return false;
+			if (!messageDecodeCommon(canId, data, deviceNumber)) {
+				bool any = false;
+				uint8_t startIndex = 0;
+				switch (data[0]) {
+				case COMMAND_NODE_SENDING_SENSORS_1_TO_3:
+					startIndex = 0;
+					any = true;
+					break;
+				case COMMAND_NODE_SENDING_SENSORS_4_TO_6:
+					startIndex = 3;
+					any = true;
+					break;
+				case COMMAND_NODE_SENDING_SENSORS_7_TO_9:
+					startIndex = 6;
+					any = true;
+					break;
+				case COMMAND_NODE_SWITCH_ON: {
+					uint8_t switchNumber = data[1] >> 1;
+					if (switchNumber > 4) {
+						strcpy(robotContainer->errorMessage, "No mrm-switch");
+						return false;
+					}
+					(*switches)[deviceNumber][switchNumber] = data[1] & 1;
 				}
-				(*switches)[deviceNumber][switchNumber] = data[1] & 1;
-			}
-				break;
-			case COMMAND_NOTIFICATION:
-				break;
-			case COMMAND_REPORT_ALIVE:
-				break;
-			default:
-				print("Unknown command. ");
-				messagePrint(canId, 8, data);
-				print("\n\r");
-				errorCode = 204;
-				errorInDeviceNumber = deviceNumber;
-			}
+										   break;
+				default:
+					print("Unknown command. ");
+					messagePrint(canId, 8, data);
+					print("\n\r");
+					errorCode = 204;
+					errorInDeviceNumber = deviceNumber;
+				}
 
-			if (any)
-				for (uint8_t i = 0; i <= 2; i++)
-					(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
-
+				if (any)
+					for (uint8_t i = 0; i <= 2; i++)
+						(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+			}
 			return true;
 		}
 	return false;
