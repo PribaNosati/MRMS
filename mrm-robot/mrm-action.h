@@ -7,14 +7,19 @@
 class Robot;
 class ActionBase {
 protected:
-	Robot* _robot;
-public:
 	bool _firstProcess = true;
+	Robot* _robot;
+
+public:
 	char _shortcut[4];
 	char _text[20];
 	uint8_t _menuLevel;
 
 	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1);
+
+	bool initializationGet() { return _firstProcess; }
+
+	bool initializationSet(bool newValue) { _firstProcess = newValue; }
 
 	virtual void perform() = 0;
 };
@@ -218,10 +223,18 @@ public:
 	}
 };
 
-class ActionReflectanceArrayTest : public ActionBase {
+class ActionReflectanceArrayAnalogTest : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayTest(Robot* robot) : ActionBase(robot, "ref", "Test refl. array", 1) {
+	ActionReflectanceArrayAnalogTest(Robot* robot) : ActionBase(robot, "ref", "Test refl. anal.", 1) {
+		_robot = robot;
+	}
+};
+
+class ActionReflectanceArrayDigitalTest : public ActionBase {
+	void perform();
+public:
+	ActionReflectanceArrayDigitalTest(Robot* robot) : ActionBase(robot, "red", "Test refl. digi.", 1) {
 		_robot = robot;
 	}
 };

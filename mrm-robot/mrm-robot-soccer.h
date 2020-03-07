@@ -13,10 +13,16 @@ class RobotSoccer : public Robot {
 public:
 	RobotSoccer();
 
+	/** Store bitmaps in mrm-led8x8a.
+	*/
+	void bitmapsSet();
+
 	void catchBall();
 	void goAhead();
 	void idle();
 	void play();
+
+	void anyTest();
 };
 
 class ActionSoccerCatch : public ActionBase {

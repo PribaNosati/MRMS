@@ -6,6 +6,8 @@
 #define LED_OK 2 // Pin number, hardware defined
 #define MRM_BOARD_COUNT 14
 
+// Forward declarations
+
 class Mrm_8x8a;
 class Mrm_bldc2x50;
 class Mrm_bldc4x2_5;
@@ -28,33 +30,64 @@ class Mrm_us;
 class Robot {
 
 protected:
+
+	ActionBase* _action[COMMANDS_LIMIT];
+	ActionBase* _actionAny;
+	ActionBase* _actionCurrent;
+	ActionBase* _actionDoNothing;
+	ActionBase* _actionStop;
+	ActionBase* _actionPrevious;
+
+	Board* board[MRM_BOARD_COUNT];
+
+	uint32_t fpsMs[2] = { 0, 0 };
 	uint8_t fpsNextIndex = 0; // To count frames per second
-	uint32_t fpsMs[3] = { 0, 0, 0 };
+	uint32_t fpsTopGap = 0;
+
+	uint8_t menuLevel = 1; // Submenus have bigger numbers
 	uint8_t nextFreeAction = 0;
 	uint8_t nextFreeCommand = 0;
 	uint8_t nextFreeBoardSlot = 0;
 	BluetoothSerial* serial; // Additional serial port
 	bool verbose = false; // Verbose output
 
-	void fps();
+	/** Actually perform the action
+	*/
+	void actionProcess();
+
+	/** User sets a new action, using keyboard or Bluetooth
+	*/
+	void actionSet();
+
+	/** New action is set in the program
+	@param newAction - the new action.
+	*/
+	void actionSet(ActionBase* newAction);
+
+	/** Avoids FPS measuring in the next 2 cycles.
+	*/
+	void fpsPause();
+
+	/** Updates data for FPS calculation
+	*/
+	void fpsUpdate();
+
+	/** Resets FPS data
+	*/
+	void fpsReset();
+
+	/** Prints additional data in every loop pass
+	*/
+	void verbosePrint();
 
 	/** Print to all serial ports, pointer to list
 	*/
 	void vprint(const char* fmt, va_list argp);
 
 public:
-	ActionBase* _actionAny;
-	ActionBase* _actionDoNothing;
-	ActionBase* _actionStop;
 
-	ActionBase* _action[COMMANDS_LIMIT];
-	ActionBase* _actionCurrent;
-	ActionBase* _actionPrevious;
-
-	Board* board[MRM_BOARD_COUNT];
-	ESP32CANBus* esp32CANBus; // CANBus interface
 	char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
-	uint8_t menuLevel = 1; // Submenus have bigger numbers
+	ESP32CANBus* esp32CANBus; // CANBus interface
 
 	Mrm_8x8a* mrm_8x8a;
 	Mrm_bldc2x50* mrm_bldc2x50;
@@ -80,66 +113,148 @@ public:
 	*/
 	Robot(BluetoothSerial* hardwareSerial = 0);
 
+	/** Add a new action to the collection of robot's possible actions.
+	@param action - the new action.
+	*/
 	void actionAdd(ActionBase* action);
 
-	void actionProcess();
+	/** End current action
+	*/
+	void actionEnd() { _actionCurrent = NULL; }
 
-	void actionSet(ActionBase* newAction);
+	/** Is this current action's initialization
+	@param andFinish - finish initialization
+	@return - it is.
+	*/
+	bool actionInitialization(bool andFinish) { 
+		bool itIs = _actionCurrent->initializationGet(); 
+		if (andFinish)
+			_actionCurrent->initializationSet(false);
+		return itIs; 
+	}
 
-	void actionUpdate();
+	/** Finish action's intialization phase
+	*/
+	void actionInitializationFinish() { _actionCurrent->initializationSet(false); }
 
+	/** Add a new board to the collection of possible boards for the robot
+	@param aBoard - the board.
+	*/
 	void add(Board* aBoard);
 
-	void anyTest();
+	/** User test, defined in derived classes.
+	*/
+	virtual void anyTest() = 0;
 
+	/** Store bitmaps in mrm-led8x8a.
+	*/
+	virtual void bitmapsSet() = 0;
+
+	/** Blink LED
+	*/
 	void blink();
 
+	/** Test Bluetooth
+	*/
 	void bluetoothTest();
 
-	void broadcastingStart(uint8_t measuringMode = 0);
-
-	void broadcastingStop();
-
-	uint8_t boardCount() { return nextFreeBoardSlot; }
-
+	/** Display all the incomming and outcomming CAN Bus messages
+	*/
 	void canBusSniff();
 
+	/** Change device's id
+	*/
 	void canIdChange();
 
+	/** mrm-color-can test
+	*/
 	void colorTest();
 
+	/** The right way to use Arduino function delay
+	@param pauseMs - pause in ms.
+	*/
+	void delayMs(uint16_t pauseMs);
+
+	/** Contacts all the CAN Bus devices and checks which one is alive.
+	@verbose - if true, print.
+	*/
 	void devicesScan(bool verbose);
 
+	/** Starts devices' CAN Bus messages broadcasting.
+	*/
+	void devicesStart(uint8_t measuringMode = 0);
+
+	/** Stops broadcasting of CAN Bus messages
+	*/
+	void devicesStop();
+
+	/** Displays errors and stops motors, if any.
+	*/
 	void errors();
 
+	/** Displays each CAN Bus device's firmware
+	*/
 	void firmwarePrint();
 
+	/** Returns FPS (frames per second).
+	@return - FPS
+	*/
+	float fpsGet();
+
+	/** Prints FPS all CAN Bus devices and mrm-eps32 boards. Also prints CAN Bus frequency.
+	*/
 	void fpsPrint();
 
+	/** Orders the robot to go ahead
+	*/
 	virtual void goAhead() = 0;
 
+	/** Lists I2C devices
+	*/
 	void i2cTest();
 
+	/** Tests mrm-ir-finder-can, raw data.
+	*/
 	void irFinderCanTest();
 
+	/** Tests mrm-ir-finder-can, calculated data.
+	*/
 	void irFinderCanTestCalculated();
 
+	/** Tests mrm-lid-can-b
+	*/
 	void lidar2mTest();
 
+	/** Tests mrm-lid-can-b2
+	*/
 	void lidar4mTest();
 
+	/** Calibrates lidars
+	*/
 	void lidarCalibrate();
 
+	/** Displays menu
+	*/
 	void menu();
 
+	/** Displays menu and stops motors
+	*/
 	void menuMainAndIdle();
 
+	/** Receives CAN Bus messages.
+	*/
 	void messagesReceive();
 
+	/** Tests motors
+	*/
 	void motorTest();
 
+	/** Tests mrm-node
+	*/
 	void nodeTest();
 
+	/** Any for or while loop must include call to this function.
+*/
 	void noLoopWithoutThis();
 
 	/** Print to all serial ports
@@ -148,23 +263,42 @@ public:
 	*/
 	void print(const char* fmt, ...);
 
+	/** Prints mrm-ref-can* calibration data
+	*/
 	void reflectanceArrayCalibrationPrint();
 
-	void reflectanceArrayTest();
+	/** Tests mrm-ref-can*
+	@digital - digital data. Otherwise analog.
+	*/
+	void reflectanceArrayTest(bool digital = true);
 
+	/** Starts robot's program
+	*/
 	void run();
 
+	/** Bluetooth
+	@return - Bluetooth object
+	*/
 	BluetoothSerial* serialBT() { return serial; }
 
+	/** Stops all motors
+	*/
 	void stopAll();
 
+	/** CAN Bus stress test
+	*/
 	bool stressTest();
 
+	/** Tests mrm-therm-b-can
+	*/
 	void thermoTest();
 
+	/** Checks if user tries to break the program
+	@return - true if break requested.
+	*/
 	bool userBreak();
 
-	void verbosePrint();
-
+	/** Verbose output toggle
+	*/
 	void verboseToggle();
 };

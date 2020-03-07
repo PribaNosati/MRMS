@@ -106,7 +106,9 @@ bool Mrm_ir_finder_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 				distance = data[3] << 8 | data[4];
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 201;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -144,9 +146,8 @@ void Mrm_ir_finder_can::readingsPrint() {
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_ir_finder_can::test(BreakCondition breakWhen)
+void Mrm_ir_finder_can::test()
 {
 	static uint32_t lastMs = 0;
 
@@ -167,9 +168,8 @@ void Mrm_ir_finder_can::test(BreakCondition breakWhen)
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_ir_finder_can::testCalculated(BreakCondition breakWhen)
+void Mrm_ir_finder_can::testCalculated()
 {
 	static uint32_t lastMs = 0;
 	if (millis() - lastMs > 300) {

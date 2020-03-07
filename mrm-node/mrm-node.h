@@ -37,7 +37,6 @@ Licence: You can use this code any way you like.
 #define COMMAND_NODE_SWITCH_ON 0x07
 #define COMMAND_NODE_SERVO_SET 0x08
 
-typedef bool(*BreakCondition)();
 
 class Mrm_node : public SensorBoard
 {
@@ -80,7 +79,6 @@ public:
 	void readingsPrint();
 
 	/** Test servos
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
 	void servoTest();
 

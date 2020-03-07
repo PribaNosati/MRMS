@@ -32,8 +32,6 @@ Licence: You can use this code any way you like.
 #define COMMAND_SENDING_COLORS_1_TO_3 0x06
 #define COMMAND_SENDING_COLORS_4_TO_6 0x07
 
-typedef bool(*BreakCondition)();
-
 class Mrm_col_can : public SensorBoard
 {
 	std::vector<uint16_t[MRM_COL_CAN_COLORS]>* readings; // Analog readings of all sensors
@@ -109,9 +107,8 @@ public:
 	void readingsPrint();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 };
 

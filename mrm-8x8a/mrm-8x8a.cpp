@@ -96,6 +96,7 @@ void Mrm_8x8a::add(char * deviceName)
 @param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
 void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
+	alive(deviceNumber, true);
 	canData[0] = COMMAND_8X8_DISPLAY;
 	canData[1] = bitmapId;
 	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
@@ -106,22 +107,61 @@ void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
 @param green - 8-byte array for green
 @param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
-void Mrm_8x8a::bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t deviceNumber) {
-	canData[0] = COMMAND_8X8_BITMAP_PART1;
-	for (uint8_t i = 0; i < 7; i++)
-		canData[i + 1] = red[i];
-	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
-
-	canData[0] = COMMAND_8X8_BITMAP_PART2;
-	canData[1] = red[7];
-	for (uint8_t i = 0; i < 6; i++)
+void Mrm_8x8a::bitmapCustomDisplay(uint8_t red[], uint8_t green[], uint8_t deviceNumber) {
+	alive(deviceNumber, true);
+	canData[0] = COMMAND_8X8_BITMAP_DISPLAY_PART1;
+	for (uint8_t i = 0; i < 7; i++) 
 		canData[i + 1] = green[i];
 	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
 
-	canData[0] = COMMAND_8X8_BITMAP_PART3;
-	for (uint8_t i = 0; i < 5; i++)
-		canData[i + 1] = green[i + 2];
-	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 6, canData);
+	canData[0] = COMMAND_8X8_BITMAP_DISPLAY_PART2;
+	canData[1] = green[7];
+	for (uint8_t i = 0; i < 6; i++) 
+		canData[i + 2] = red[i];
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+
+	canData[0] = COMMAND_8X8_BITMAP_DISPLAY_PART3;
+	for (uint8_t i = 0; i < 2; i++) 
+		canData[i + 1] = red[i + 6];
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 3, canData);
+}
+
+/** Store custom bitmap
+@param red - 8-byte array for red
+@param green - 8-byte array for green
+@param addres - address in display's RAM. 0 - 99.
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_8x8a::bitmapCustomStore(uint8_t red[], uint8_t green[], uint8_t address, uint8_t deviceNumber) {
+	alive(deviceNumber, true);
+
+	canData[0] = COMMAND_8X8_BITMAP_STORE_PART1;
+	for (uint8_t i = 0; i < 7; i++)
+		canData[i + 1] = green[i];
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+
+	canData[0] = COMMAND_8X8_BITMAP_STORE_PART2;
+	canData[1] = green[7];
+	for (uint8_t i = 0; i < 6; i++)
+		canData[i + 2] = red[i];
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 8, canData);
+
+	canData[0] = COMMAND_8X8_BITMAP_STORE_PART3;
+	for (uint8_t i = 0; i < 2; i++)
+		canData[i + 1] = red[i + 6];
+	canData[3] = address;
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 4, canData);
+}
+
+/** Store custom bitmap
+@param addres - address in display's RAM. 0 - 99.
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_8x8a::bitmapCustomStoredDisplay(uint8_t address, uint8_t deviceNumber) {
+	alive(deviceNumber, true);
+	canData[0] = COMMAND_8X8_BITMAP_STORED_DISPLAY;
+	canData[1] = address;
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
 /** Read CAN Bus message into local variables
@@ -166,7 +206,9 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 203;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -181,6 +223,7 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 @return - true if pressed, false otherwise
 */
 bool Mrm_8x8a::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
+	alive(deviceNumber, true);
 	if (deviceNumber >= nextFree || switchNumber >= MRM_8x8A_SWITCHES_COUNT) {
 		strcpy(robotContainer->errorMessage, "Switch doesn't exist");
 		return false;
@@ -200,8 +243,17 @@ void Mrm_8x8a::test()
 	static uint32_t lastMs = 0;
 	static uint8_t bitmapId = MRM_8x8A_START_BITMAP_1;
 
+	if (robotContainer->actionInitialization(true)) {
+		print("STORE\n\r");
+		uint8_t red[8] = { 0b00000000, 0b01100110, 0b11111111, 0b11111111, 0b11111111, 0b01111110, 0b00111100, 0b00011000 };
+		uint8_t green[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000 };
+		bitmapCustomStore(red, green, 7);
+	}
+
 	if (millis() - lastMs > 300) {
 		uint8_t pass = 0;
+
+		// Built-in bitmap
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) {
 				bitmapDisplay(bitmapId, deviceNumber);
@@ -212,12 +264,23 @@ void Mrm_8x8a::test()
 					print("%i ", (*on)[deviceNumber][i]);
 			}
 		}
-		lastMs = millis();
 		bitmapId++;
 		if (bitmapId > MRM_8x8A_END_BITMAP_1 && bitmapId < MRM_8x8A_START_BITMAP_2)
 			bitmapId = MRM_8x8A_START_BITMAP_2;
-		else if (bitmapId > MRM_8x8A_END_BITMAP_2)
+		else if (bitmapId > MRM_8x8A_END_BITMAP_2) {
 			bitmapId = MRM_8x8A_START_BITMAP_1;
+
+			// Custom bitmap.
+			robotContainer->delayMs(300);
+			uint8_t red[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000100, 0b00111000, 0b00000000, 0b00111100 };
+			uint8_t green[8] = { 0b00111100, 0b01000010, 0b10101001, 0b10101001, 0b10000001, 0b10000001, 0b01000010, 0b00111100 };
+			bitmapCustomDisplay(red, green);
+
+			// Custom stored bitmap
+			robotContainer->delayMs(300);
+			bitmapCustomStoredDisplay(7);
+		}
+		lastMs = millis();
 		if (pass)
 			print("\n\r");
 	}

@@ -18,6 +18,7 @@
 #define COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_3 0x18
 #define COMMAND_FIRMWARE_REQUEST 0x19
 #define COMMAND_FIRMWARE_SENDING 0x1A
+#define COMMAND_RESET 0x1B
 #define COMMAND_SPEED_SET 0x20
 #define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
 #define COMMAND_FPS_REQUEST 0x30
@@ -38,20 +39,18 @@
 
 enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
 
-typedef bool(*BreakCondition)();
-typedef void (*Action)();
-
 class Robot;
 
 class Board{
 protected:
-	uint32_t aliveThis; // Responded to ping, maximum 32 devices of the same class
-	uint8_t aliveTimeout = 4;
+	uint32_t _alive; // Responded to ping, maximum 32 devices of the same class, stored bitwise.
+	uint8_t aliveTimeout = 4;//4
 	char boardsName[12];
 	BoardType boardTypeThis;
 	uint8_t canData[8];
 	uint8_t commandLastReceivedByTarget = 0xFE;
 	uint8_t devicesOnABoard;
+	//std::vector<bool>(maxNumberOfBoards * devicesOn1Board) deviceStarted; //todo - not to allow reading if the device not started.
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
 	std::vector<uint16_t>* firmwareVersionLast;
@@ -98,10 +97,13 @@ public:
 	*/
 	void add(char* deviceName, uint16_t canIn, uint16_t canOut);
 
-	/** Did it respond to last ping?
+	/** Did it respond to last ping? If not, try another ping and see if it responds.
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param checkAgainIfDead - try another ping
+	@param errorIfNotAfterCheckingAgain - the robot will stop. Otherwise only warning displayed.
+	@return - alive or not
 	*/
-	bool alive(uint8_t deviceNumber = 0);
+	bool alive(uint8_t deviceNumber = 0, bool checkAgainIfDead = false, bool errorIfNotAfterCheckingAgain = false);
 
 	/** Did any device respond to last ping?
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -114,18 +116,7 @@ public:
 	*/
 	void aliveSet(bool yesOrNo, uint8_t deviceNumber = 0);
 
-	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@param measuringModeNow - Measuring mode id.
-	*/
-	void continuousReadingStart(uint8_t deviceNumber = 0xFF, uint8_t measuringModeNow = 0);
-
 	BoardType boardType(){ return boardTypeThis; }
-
-	/** Stops periodical CANBus messages that refresh values that can be read by reading()
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void continuousReadingStop(uint8_t deviceNumber = 0xFF);
 
 	/** Count all the devices, alive or not
 	@return - count
@@ -221,6 +212,14 @@ public:
 	*/
 	bool messagePrint(CAN_frame_t* frame);
 
+	/** Prints a frame
+	@param msgId - messageId
+	@param dlc - data length
+	@param data - payload
+	@return - if true, found and printed
+	*/
+	bool messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data);
+
 	/** Returns device's name
 	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - name
@@ -237,6 +236,18 @@ public:
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
+
+	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
+	@param measuringModeNow - Measuring mode id. Default 0.
+	@param refreshMs - gap between 2 CAN Bus messages to refresh local Arduino copy of device's data. 0 - device's default.
+	*/
+	void start(uint8_t deviceNumber = 0xFF, uint8_t measuringModeNow = 0, uint16_t refreshMs = 0);
+
+	/** Stops periodical CANBus messages that refresh values that can be read by reading()
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void stop(uint8_t deviceNumber = 0xFF);
 
 	/**Test
 	*/

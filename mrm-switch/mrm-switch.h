@@ -48,9 +48,8 @@ public:
 	bool read(uint8_t switchNumber, uint8_t deviceNumber = 0);
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 };
 

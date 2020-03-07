@@ -15,7 +15,6 @@
 #include <mrm-node.h>
 #include <mrm-ref-can.h>
 #include <mrm-robot.h>
-#include <mrm-robot.h>
 #include <mrm-servo.h>
 #include <mrm-switch.h>
 #include <mrm-therm-b-can.h>
@@ -66,7 +65,8 @@ Robot::Robot(BluetoothSerial* hardwareSerial) {
 	actionAdd(new ActionNodeServoTest(this));
 	actionAdd(new ActionReflectanceArrayCalibrate(this));
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
-	actionAdd(new ActionReflectanceArrayTest(this));
+	actionAdd(new ActionReflectanceArrayAnalogTest(this));
+	actionAdd(new ActionReflectanceArrayDigitalTest(this));
 	actionAdd(new ActionServoTest(this));
 	actionAdd(new ActionStop(this));
 	actionAdd(new ActionThermoTest(this));
@@ -209,6 +209,7 @@ Robot::Robot(BluetoothSerial* hardwareSerial) {
 
 	// Add boards
 	add(mrm_8x8a);
+	add(mrm_bldc2x50);
 	add(mrm_bldc4x2_5);
 	add(mrm_col_can);
 	add(mrm_ir_finder_can);
@@ -223,6 +224,9 @@ Robot::Robot(BluetoothSerial* hardwareSerial) {
 	add(mrm_us);
 }
 
+/** Add a new action to the collection of robot's possible actions.
+@param action - the new action.
+*/
 void Robot::actionAdd(ActionBase* action) {
 	if (nextFreeAction >= COMMANDS_LIMIT) {
 		strcpy(errorMessage, "COMMANDS_LIMIT exceeded.");
@@ -231,21 +235,19 @@ void Robot::actionAdd(ActionBase* action) {
 	_action[nextFreeAction++] = action;
 }
 
+/** Actually perform the action
+*/
 void Robot::actionProcess() {
 	if (_actionCurrent != NULL) {
 		_actionCurrent->perform();
-		if (_actionCurrent != NULL)
-			_actionCurrent->_firstProcess = false;
+		//if (_actionCurrent != NULL)
+		//	_actionCurrent->_firstProcess = false;
 	}
 }
 
-void Robot::actionSet(ActionBase* newAction) {
-	_actionPrevious = _actionCurrent;
-	_actionCurrent = newAction;
-	_actionCurrent->_firstProcess = true;
-}
-
-void Robot::actionUpdate() {
+/** User sets a new action, using keyboard or Bluetooth
+*/
+void Robot::actionSet() {
 	static uint32_t lastUserActionMs = 0;
 	static uint8_t uartRxCommandIndex = 0;
 	static char uartRxCommandCumulative[10];
@@ -301,6 +303,18 @@ void Robot::actionUpdate() {
 	}
 }
 
+/** New action is set in the program
+@param newAction - the new action.
+*/
+void Robot::actionSet(ActionBase* newAction) {
+	_actionPrevious = _actionCurrent;
+	_actionCurrent = newAction;
+	_actionCurrent->initializationSet(true);
+}
+
+/** Add a new board to the collection of possible boards for the robot
+@param aBoard - the board.
+*/
 void Robot::add(Board* aBoard) {
 	if (nextFreeBoardSlot > MRM_BOARD_COUNT - 1) {
 		strcpy(errorMessage, "Too many boards");
@@ -309,10 +323,8 @@ void Robot::add(Board* aBoard) {
 	board[nextFreeBoardSlot++] = aBoard;
 }
 
-void Robot::anyTest() {
-
-}
-
+/** Blink LED
+*/
 void Robot::blink() {
 	const uint16_t onMs = 100;
 	const uint16_t offMs = 1000;
@@ -341,6 +353,8 @@ void Robot::blink() {
 	}
 }
 
+/** Test Bluetooth
+*/
 void Robot::bluetoothTest() {
 	static uint32_t startMs = millis();
 	if (millis() - startMs > 100) {
@@ -349,18 +363,8 @@ void Robot::bluetoothTest() {
 	}
 }
 
-void Robot::broadcastingStart(uint8_t measuringMode) {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++)
-		board[deviceNumber]->continuousReadingStart(0xFF, measuringMode);
-}
-
-void Robot::broadcastingStop() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++) {
-		board[deviceNumber]->continuousReadingStop();
-		delay(1); // TODO
-	}
-}
-
+/** Display all the incomming and outcomming CAN Bus messages
+*/
 void Robot::canBusSniff() {
 	if (esp32CANBus->messageReceive()) {
 		bool found = mrm_8x8a->messagePrint(esp32CANBus->rx_frame);
@@ -368,10 +372,12 @@ void Robot::canBusSniff() {
 	}
 }
 
+/** Change device's id
+*/
 void Robot::canIdChange() {
 	// Print all devices alive
 	uint8_t last = 0;
-	for (uint8_t boardNumber = 0; boardNumber < boardCount(); boardNumber++) {
+	for (uint8_t boardNumber = 0; boardNumber < nextFreeBoardSlot; boardNumber++) {
 		uint8_t currentCount = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount(); deviceNumber++)
 			if (board[boardNumber]->alive(deviceNumber)) {
@@ -415,7 +421,7 @@ void Robot::canIdChange() {
 			Board* selectedBoard = NULL;
 			uint8_t selectedDeviceIndex = 0xFF;
 			uint8_t maxInput = 0;
-			for (uint8_t boardNumber = 0; boardNumber < boardCount() && selectedDeviceIndex == 0xFF; boardNumber++) {
+			for (uint8_t boardNumber = 0; boardNumber < nextFreeBoardSlot && selectedDeviceIndex == 0xFF; boardNumber++) {
 				uint8_t currentCount = 0;
 				for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && selectedDeviceIndex == 0xFF; deviceNumber++)
 					if (board[boardNumber]->alive(deviceNumber)) {
@@ -456,33 +462,66 @@ void Robot::canIdChange() {
 			}
 		}
 	}
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
+/** mrm-color-can test
+*/
 void Robot::colorTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_col_can->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_col_can->start();
 	mrm_col_can->test();
 }
 
-void Robot::devicesScan(bool verbose) {
-	broadcastingStop();
-	for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
-		board[i]->devicesScan(verbose);
-	_actionCurrent = NULL;
+/** The right way to use Arduino function delay
+@param pauseMs - pause in ms.
+*/
+void Robot::delayMs(uint16_t pauseMs) {
+	uint32_t startMs = millis();
+	while (millis() - startMs < pauseMs)
+		noLoopWithoutThis();
 }
 
-void Robot::errors() {
-	static uint32_t lastDisplayMs = 0;
-	if (strcmp(errorMessage, "") != 0) {
-		if (millis() - lastDisplayMs > 10000 || lastDisplayMs == 0) {
-			print("ERROR! %s\n\r", errorMessage);
-			lastDisplayMs = millis();
-			stopAll(); // Stop all motors
-		}
+/** Contacts all the CAN Bus devices and checks which one is alive.
+@verbose - if true, print. 
+*/
+void Robot::devicesScan(bool verbose) {
+	devicesStop();
+	delayMs(100); // Read all the messages sent after stop.
+	for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
+		board[i]->devicesScan(verbose);
+	actionEnd();
+}
+
+/** Starts devices' CAN Bus messages broadcasting.
+*/
+void Robot::devicesStart(uint8_t measuringMode) {
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++)
+		board[deviceNumber]->start(0xFF, measuringMode);
+}
+
+/** Stops broadcasting of CAN Bus messages
+*/
+void Robot::devicesStop() {
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFreeBoardSlot; deviceNumber++) {
+		board[deviceNumber]->stop();
+		delayMs(1); // TODO
 	}
 }
 
+/** Displays errors and stops motors, if any.
+*/
+void Robot::errors() {
+	if (strcmp(errorMessage, "") != 0) {
+		print("ERROR! %s\n\r", errorMessage);
+		stopAll(); // Stop all motors
+		actionEnd();
+		strcpy(errorMessage, "");
+	}
+}
+
+/** Displays each CAN Bus device's firmware
+*/
 void Robot::firmwarePrint() {
 	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
 		board[i]->firmwareRequest();
@@ -491,26 +530,69 @@ void Robot::firmwarePrint() {
 			noLoopWithoutThis();
 		board[i]->firmwareDisplay();
 	}
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
-void Robot::fps() {
-	fpsMs[fpsNextIndex] = millis();
-	if (++fpsNextIndex >= 3)
-		fpsNextIndex = 0;
+/** Returns FPS (frames per second).
+@return - FPS
+*/
+float Robot::fpsGet() {
+	float fpsNow;
+	//print("Next: %i %i %i\n\r", fpsNextIndex, fpsMs[0], fpsMs[1]);
+	if (fpsMs[1] == 0 || fpsMs[0] == 0)
+		fpsNow = 0;
+	else if (fpsMs[0] == fpsMs[1])
+		fpsNow = 1000;
+	else
+		fpsNow = 1000.0 / (float)(fpsMs[1] > fpsMs[0] ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
+	return fpsNow;
 }
 
+/** Avoids FPS measuring in the next 2 cycles.
+*/
+void Robot::fpsPause() {
+	fpsMs[0] = 0;
+	fpsMs[1] = 0;
+}
+
+/** Prints FPS all CAN Bus devices and mrm-eps32 boards. Also prints CAN Bus frequency.
+*/
 void Robot::fpsPrint() {
+	print("CAN peaks: %i received/s, %i sent/s\n\r", esp32CANBus->messagesPeakReceived(), esp32CANBus->messagesPeakSent());
+	print("Arduino: %i FPS, low peak: %i FPS\n\r", (int)fpsGet(), fpsTopGap == 1000 ? 0 : (int)(1000 / (float)fpsTopGap));
 	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
 		board[i]->fpsRequest();
 		uint32_t startMs = millis();
-		while (millis() - startMs < 50)
+		while (millis() - startMs < 30)
 			noLoopWithoutThis();
 		board[i]->fpsDisplay();
 	}
-	_actionCurrent = NULL;
+	fpsReset();
+	actionEnd();
 }
 
+/** Resets FPS data
+*/
+void Robot::fpsReset() {
+	fpsTopGap = 0;
+	fpsMs[0] = 0;
+	fpsMs[1] = 0;
+}
+
+/** Updates data for FPS calculation
+*/
+void Robot::fpsUpdate() {
+	fpsMs[fpsNextIndex] = millis();
+	fpsNextIndex = (fpsNextIndex == 0 ? 1 : 0);
+	if (fpsMs[0] != 0 && fpsMs[1] != 0) {
+		uint32_t gap = (fpsNextIndex == 0 ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
+		if (gap > fpsTopGap)
+			fpsTopGap = gap;
+	}
+}
+
+/** Lists I2C devices
+*/
 void Robot::i2cTest() {
 	print("Scanning.\n\r");
 
@@ -530,33 +612,43 @@ void Robot::i2cTest() {
 	if (!any)
 		print("Nothing found.\n\n\r");
 
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
+/** Tests mrm-ir-finder-can, raw data.
+*/
 void Robot::irFinderCanTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_ir_finder_can->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_ir_finder_can->start();
 	mrm_ir_finder_can->test();
 }
 
+/** Tests mrm-ir-finder-can, calculated data.
+*/
 void Robot::irFinderCanTestCalculated() {
-	if (_actionCurrent->_firstProcess)
+	if (actionInitialization(true))
 		mrm_ir_finder_can->continuousReadingCalculatedDataStart();
 	mrm_ir_finder_can->testCalculated();
 }
 
+/** Tests mrm-lid-can-b
+*/
 void Robot::lidar2mTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_lid_can_b->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_lid_can_b->start();
 	mrm_lid_can_b->test();
 }
 
+/** Tests mrm-lid-can-b2
+*/
 void Robot::lidar4mTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_lid_can_b2->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_lid_can_b2->start();
 	mrm_lid_can_b2->test();
 }
 
+/** Calibrates lidars
+*/
 void Robot::lidarCalibrate() {
 	print("Lidar calibration\n\r");
 
@@ -607,10 +699,11 @@ void Robot::lidarCalibrate() {
 		}
 	}
 
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
-
+/** Displays menu
+*/
 void Robot::menu() {
 	// Print menu
 	devicesScan(false);
@@ -640,14 +733,20 @@ void Robot::menu() {
 		if (board[deviceNumber]->errorCodeLast() != 0)
 			print("Error %i in %s\n\r", board[deviceNumber]->errorCodeLast(), board[deviceNumber]->name(board[deviceNumber]->errorWasInDeviceNumber()));
 
+	fpsPause(); // this function took too much time
+
 	_actionCurrent = _actionDoNothing;
 }
 
+/** Displays menu and stops motors
+*/
 void Robot::menuMainAndIdle() {
 	stopAll();
 	menuLevel = 1;
 }
 
+/** Receives CAN Bus messages. 
+*/
 void Robot::messagesReceive() {
 	while (esp32CANBus->messageReceive()) {
 		uint32_t id = esp32CANBus->rx_frame->MsgID;
@@ -667,24 +766,30 @@ void Robot::messagesReceive() {
 	}
 }
 
+/** Tests motors
+*/
 void Robot::motorTest() {
 	print("Test motors\n\r");
 	for (uint8_t i = 0; i < nextFreeBoardSlot; i++) 
 		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0)
 			board[i]->test();
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
+/** Tests mrm-node
+*/
 void Robot::nodeTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_node->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_node->start();
 	mrm_node->test();
 }
 
+/** Any for or while loop must include call to this function.
+*/
 void Robot::noLoopWithoutThis() {
 	blink(); // Keep-alive LED. Solder jumper must be shorted in order to work in mrm-esp32.
 	messagesReceive();
-	fps(); // Measure FPS. Less than 30 - a bad thing.
+	fpsUpdate(); // Measure FPS. Less than 30 - a bad thing.
 	verbosePrint(); // Print FPS and maybe some additional data
 	errors();
 }
@@ -700,19 +805,29 @@ void Robot::print(const char* fmt, ...) {
 	va_end(argp);
 }
 
+/** Prints mrm-ref-can* calibration data
+*/
 void Robot::reflectanceArrayCalibrationPrint() {
-	_actionCurrent = NULL;
+	mrm_ref_can->calibrationDataRequest(0xFF, true);
+	mrm_ref_can->calibrationPrint();
+	actionEnd();
 }
 
-void Robot::reflectanceArrayTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_ref_can->continuousReadingStart();
+/** Tests mrm-ref-can*
+@digital - digital data. Otherwise analog.
+*/
+void Robot::reflectanceArrayTest(bool digital) {
+	if (actionInitialization(true))
+		mrm_ref_can->start(0xFF, digital ? 1 : 0);
 	mrm_ref_can->test();
+	fpsPause();
 }
 
+/** Starts robot's program
+*/
 void Robot::run() {
 	while (true) {
-		actionUpdate(); // Check if a key pressed and update current command buffer.
+		actionSet(); // Check if a key pressed and update current command buffer.
 		if (_actionCurrent == NULL) // If last command finished, display menu.
 			menu();
 		else
@@ -721,14 +836,18 @@ void Robot::run() {
 	}
 }
 
+/** Stops all motors
+*/
 void Robot::stopAll() {
-	broadcastingStop();
+	devicesStop();
 	for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
 		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0)
 			((MotorBoard*)board[i])->stop();
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
+/** CAN Bus stress test
+*/
 bool Robot::stressTest() {
 	const bool STOP_ON_ERROR = false;
 	const uint16_t LOOP_COUNT = 10000;
@@ -738,10 +857,10 @@ bool Robot::stressTest() {
 	static uint8_t lastPercent = 101;
 	static uint8_t count[MRM_BOARD_COUNT];
 	static uint32_t errors[MRM_BOARD_COUNT];
-	if (_actionCurrent->_firstProcess) {
+	if (actionInitialization(true)) {
 		print("Before test.\n\r");
 		pass = 0;
-		broadcastingStop();
+		devicesStop();
 		for (uint8_t i = 0; i < nextFreeBoardSlot; i++)
 			errors[i] = 0;
 		for (uint8_t i = 0; i < nextFreeBoardSlot; i++) {
@@ -781,19 +900,24 @@ bool Robot::stressTest() {
 		if (allOK)
 			print("No errors.");
 		print("\n\r");
-		_actionCurrent = NULL;
+		actionEnd();
 		return true;
 	}
 	else
 		return false;
 }
 
+/** Tests mrm-therm-b-can
+*/
 void Robot::thermoTest() {
-	if (_actionCurrent->_firstProcess)
-		mrm_therm_b_can->continuousReadingStart();
+	if (actionInitialization(true))
+		mrm_therm_b_can->start();
 	mrm_therm_b_can->test();
 }
 
+/** Checks if user tries to break the program
+@return - true if break requested.
+*/
 bool Robot::userBreak() {
 	if (/*switchOn() ||*/ Serial.available() || serial->available()) {
 		return true;
@@ -802,23 +926,20 @@ bool Robot::userBreak() {
 		return false;
 }
 
+/** Prints additional data in every loop pass
+*/
 void Robot::verbosePrint() {
 	if (verbose) {
 		static uint32_t lastMs = 0;
 		if (lastMs == 0 || millis() - lastMs > 5000) {
-			uint8_t lastFPS = (fpsNextIndex == 0 ? 2 : fpsNextIndex - 1);
-			uint8_t firstFPS = fpsNextIndex;
-			float fps;
-			if (fpsMs[lastFPS] == 0 || fpsMs[lastFPS] - fpsMs[firstFPS] == 0)
-				fps = 0;
-			else
-				fps = 2 * 1000 / (float)(fpsMs[lastFPS] - fpsMs[firstFPS]);
-			print("%i fps\r\n", (int)round(fps));
+			print("%i fps\r\n", (uint16_t)fpsGet());
 			lastMs = millis();
 		}
 	}
 }
 
+/** Verbose output toggle
+*/
 void Robot::verboseToggle() {
 	verbose = !verbose;
 };
@@ -826,8 +947,9 @@ void Robot::verboseToggle() {
 /** Print to all serial ports, pointer to list
 */
 void Robot::vprint(const char* fmt, va_list argp) {
-
-	static char buffer[100]; // Caution !!! No checking if longer than 100!
+	if (strlen(fmt) >= 100)
+		return;
+	static char buffer[100];
 	vsprintf(buffer, fmt, argp);
 
 	Serial.print(buffer);

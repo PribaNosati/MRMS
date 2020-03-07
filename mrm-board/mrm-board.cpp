@@ -25,7 +25,7 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	this->devicesOnABoard = devicesOn1Board;
 	this->maximumNumberOfBoards = maxNumberOfBoards;
 	strcpy(this->boardsName, boardName);
-	aliveThis = 0;
+	_alive = 0;
 	nextFree = 0;
 	boardTypeThis = boardTypeNow;
 }
@@ -54,15 +54,34 @@ void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
 	nextFree++;
 }
 
-/** Did it respond to last ping?
+/** Did it respond to last ping? If not, try another ping and see if it responds.
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param checkAgainIfDead - try another ping
+@param errorIfNotAfterCheckingAgain - the robot will stop. Otherwise only warning displayed.
+@return - alive or not
 */
-bool Board::alive(uint8_t deviceNumber) {
+bool Board::alive(uint8_t deviceNumber, bool checkAgainIfDead, bool errorIfNotAfterCheckingAgain) {
 	if (deviceNumber > 31) {
 		strcpy(robotContainer->errorMessage, "Device number too big.");
-		return 0;
+		return false;
 	}
-	return (aliveThis >> deviceNumber) & 1;
+
+	if ((_alive >> deviceNumber) & 1)
+		return true;
+	else if (checkAgainIfDead) {
+		devicesScan(false);
+		if ((_alive >> deviceNumber) & 1)
+			return true;
+		else {
+			if (errorIfNotAfterCheckingAgain)
+				sprintf(robotContainer->errorMessage, "%s no. %i dead", name(), deviceNumber);
+			else
+				print("%s %i dead\n\r", name(), deviceNumber);
+			return false;
+		}
+	}
+	else
+		return false;
 }
 
 /** Did any device respond to last ping?
@@ -85,49 +104,7 @@ void Board::aliveSet(bool yesOrNo, uint8_t deviceNumber) {
 		strcpy(robotContainer->errorMessage, "Device number too big.");
 		return;
 	}
-	aliveThis = (aliveThis & ~(1 << deviceNumber)) | (yesOrNo << deviceNumber);
-}
-
-/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@param measuringModeNow - Measuring mode id.
-*/
-void Board::continuousReadingStart(uint8_t deviceNumber, uint8_t measuringModeNow) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStart(i, measuringModeNow);
-	else {
-		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", boardsName);
-#if REQUEST_NOTIFICATION
-			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
-#else
-			if (measuringModeNow == 0 || measuringModeLimit == 0)
-				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-			else if (measuringModeNow == 1 || measuringModeLimit >= 1)
-				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_2;
-			else 
-				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_3;
-			measuringMode = measuringModeNow;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-#endif
-		}
-	}
-}
-
-/** Stops periodical CANBus messages that refresh values that can be read by reading()
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-*/
-void Board::continuousReadingStop(uint8_t deviceNumber) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			continuousReadingStop(i);
-	else {
-		if (alive(deviceNumber)) {
-			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-		}
-	}
+	_alive = (_alive & ~(1 << deviceNumber)) | (yesOrNo << deviceNumber);
 }
 
 /** Count all the devices, alive or not
@@ -181,7 +158,6 @@ uint8_t Board::devicesScan(bool verbose) {
 	//print("%s OVER\n\r", nameGroup);
 	return count;
 }
-
 
 /** Display firmware for all devices of a board
 */
@@ -284,8 +260,19 @@ void Board::messageDecodeCommon(uint8_t deviceNumber) {
 */
 bool Board::messagePrint(CAN_frame_t* frame) {
 	CAN_FIR_t fir = robotContainer->esp32CANBus->rx_frame->FIR;
-	bool found = false;
 	uint32_t msgId = robotContainer->esp32CANBus->rx_frame->MsgID;
+	uint8_t dlc = fir.B.DLC;
+	return messagePrint(msgId, dlc, frame->data.u8);
+}
+
+/** Prints a frame
+@param msgId - messageId
+@param dlc - data length
+@param data - payload
+@return - if true, found and printed
+*/
+bool Board::messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data) {
+	bool found = false;
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(msgId, deviceNumber)) {
 			print("Id:%s (0x%02X)", (*nameThis)[deviceNumber], msgId);
@@ -293,11 +280,10 @@ bool Board::messagePrint(CAN_frame_t* frame) {
 		}
 	if (!found)
 		print("Id:0x%02X", msgId);
-	uint8_t dlc = fir.B.DLC;
 	for (uint8_t i = 0; i < dlc; i++) {
 		if (i == 0)
 			print(" data:");
-		print(" %02X", frame->data.u8[i]);
+		print(" %02X", data[i]);
 	}
 	return found;
 }
@@ -343,6 +329,55 @@ void Board::print(const char* fmt, ...) {
 	va_start(argp, fmt);
 	vprint(fmt, argp);
 	va_end(argp);
+}
+
+
+/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
+@param measuringModeNow - Measuring mode id. Default 0.
+@param refreshMs - gap between 2 CAN Bus messages to refresh local Arduino copy of device's data. 0 - device's default.
+*/
+void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refreshMs) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			start(i, measuringModeNow, refreshMs);
+	else {
+		if (alive(deviceNumber)) {
+			print("Alive, start reading: %s\n\r", boardsName);
+#if REQUEST_NOTIFICATION
+			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
+#else
+			if (measuringModeNow == 0 || measuringModeLimit == 0)
+				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
+			else if (measuringModeNow == 1 || measuringModeLimit >= 1)
+				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_2;
+			else
+				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_VERSION_3;
+			measuringMode = measuringModeNow;
+			if (refreshMs != 0) {
+				canData[1] = refreshMs & 0xFF;
+				canData[2] = (refreshMs >> 8) & 0xFF;
+			}
+			//messagePrint((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
+			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
+#endif
+		}
+	}
+}
+
+/** Stops periodical CANBus messages that refresh values that can be read by reading()
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Board::stop(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			stop(i);
+	else {
+		if (alive(deviceNumber)) {
+			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
+			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+		}
+	}
 }
 
 /** Print to all serial ports, pointer to list
@@ -399,7 +434,9 @@ bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 200;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -523,7 +560,7 @@ void MotorBoard::test()
 				speedSet(motorNumber, selectedSpeed);
 				if (robotContainer->userBreak())
 					goOn = false;
-				delay(PAUSE_MS);
+				robotContainer->delayMs(PAUSE_MS);
 				continue;
 			}
 
@@ -541,11 +578,7 @@ void MotorBoard::test()
 					print("Mot. %i:%3i, en: %i\n\r", motorNumber, speed, (*encoderCount)[motorNumber]);
 					lastMs = millis();
 				}
-				uint32_t startMs = millis();
-				while (millis() - startMs < PAUSE_MS) {
-					robotContainer->blink();
-					robotContainer->messagesReceive();
-				}
+				robotContainer->delayMs(PAUSE_MS);
 			}
 
 			speedSet(motorNumber, 0);

@@ -119,7 +119,9 @@ bool Mrm_node::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 204;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -212,7 +214,6 @@ bool Mrm_node::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
 void Mrm_node::test()
 {

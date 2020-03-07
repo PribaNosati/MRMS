@@ -53,10 +53,9 @@ IRSource Mrm_ir_finder2::irSource(uint8_t sensorNumber) {
 
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 @param updateByTimerInterrupts - If so, no update() will be called in the function.
 */
-void Mrm_ir_finder2::test(BreakCondition breakWhen, bool updateByTimerInterrupts) {
+void Mrm_ir_finder2::test(bool updateByTimerInterrupts) {
 	static uint32_t lastMs = 0;
 
 	if (millis() - lastMs > 300) {

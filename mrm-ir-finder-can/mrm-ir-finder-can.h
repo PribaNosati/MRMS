@@ -76,14 +76,12 @@ public:
 	void readingsPrint();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void testCalculated(BreakCondition breakWhen = 0);
+	void testCalculated();
 };
 
 

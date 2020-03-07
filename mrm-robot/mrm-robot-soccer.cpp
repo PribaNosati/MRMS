@@ -1,3 +1,5 @@
+#include <mrm-8x8a.h>
+#include <mrm-bldc2x50.h>
 #include <mrm-imu.h>
 #include <mrm-lid-can-b2.h>
 #include <mrm-ir-finder2.h>
@@ -14,6 +16,14 @@ RobotSoccer::RobotSoccer() : Robot() {
 	actionIdle = new ActionSoccerIdle(this);
 }
 
+/** Store bitmaps in mrm-led8x8a.
+*/
+void RobotSoccer::bitmapsSet() {
+	uint8_t red[8] = { 0b00000000, 0b01100110, 0b11111111, 0b11111111, 0b11111111, 0b01111110, 0b00111100, 0b00011000 };
+	uint8_t green[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000 };
+	mrm_8x8a->bitmapCustomStore(red, green, 7);
+}
+
 void RobotSoccer::catchBall() {
 	if (mrm_ir_finder2->anyIRSource()) {
 
@@ -25,11 +35,11 @@ void RobotSoccer::catchBall() {
 void RobotSoccer::goAhead() {
 	const uint8_t speed = 40;
 	motorGroup->go(speed);
-	_actionCurrent = NULL;
+	actionEnd();
 }
 
 void RobotSoccer::idle() {
-	if (_actionCurrent->_firstProcess)
+	if (actionInitialization(true))
 		headingToMaintain = mrm_imu->heading();
 	if (mrm_ir_finder2->anyIRSource() && false)
 		actionSet(actionCatch);
@@ -48,6 +58,14 @@ void RobotSoccer::play() {
 		return;
 	}
 	headingToMaintain = mrm_imu->heading();
-	broadcastingStart();
+	devicesStart();
 	actionSet(actionIdle);
+}
+
+void RobotSoccer::anyTest() {
+	if (actionInitialization(true)) {
+		mrm_ref_can->start(0xFF, 1, 15);
+		mrm_bldc2x50->start(0xFF, 0, 15);
+		fpsPause();
+	}
 }

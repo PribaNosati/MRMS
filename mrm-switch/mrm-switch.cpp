@@ -75,9 +75,8 @@ bool Mrm_switch::read(uint8_t switchNumber, uint8_t deviceNumber) {
 
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_switch::test(BreakCondition breakWhen)
+void Mrm_switch::test()
 {
 	static uint32_t lastMs = 0;
 

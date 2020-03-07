@@ -32,9 +32,13 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_SWITCH_ON 0x01
 #define COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION 0x02
 #define COMMAND_8x8_TEST_CAN_BUS 0x03
-#define COMMAND_8X8_BITMAP_PART1 0x04
-#define COMMAND_8X8_BITMAP_PART2 0x05
-#define COMMAND_8X8_BITMAP_PART3 0x06
+#define COMMAND_8X8_BITMAP_DISPLAY_PART1 0x05
+#define COMMAND_8X8_BITMAP_DISPLAY_PART2 0x06
+#define COMMAND_8X8_BITMAP_DISPLAY_PART3 0x07
+#define COMMAND_8X8_BITMAP_STORE_PART1 0x08
+#define COMMAND_8X8_BITMAP_STORE_PART2 0x09
+#define COMMAND_8X8_BITMAP_STORE_PART3 0x0A
+#define COMMAND_8X8_BITMAP_STORED_DISPLAY 0x0B
 
 #define MRM_8x8A_SWITCHES_COUNT 4
 
@@ -75,7 +79,21 @@ public:
 	@param green - 8-byte array for green
 	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
-	void bitmapDisplayCustom(uint8_t red[], uint8_t green[], uint8_t deviceNumber = 0);
+	void bitmapCustomDisplay(uint8_t red[], uint8_t green[], uint8_t deviceNumber = 0);
+
+	/** Store custom bitmap
+	@param red - 8-byte array for red
+	@param green - 8-byte array for green
+	@param addres - address in display's RAM. 0 - 99.
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void bitmapCustomStore(uint8_t red[], uint8_t green[], uint8_t address, uint8_t deviceNumber = 0);
+
+	/** Store custom bitmap
+	@param addres - address in display's RAM. 0 - 99.
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void bitmapCustomStoredDisplay(uint8_t address, uint8_t deviceNumber = 0);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

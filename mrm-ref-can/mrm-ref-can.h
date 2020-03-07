@@ -43,27 +43,28 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_CALIBRATION_DATA_BRIGHT_7_TO_9 0x51
 #define COMMAND_REF_CAN_CALIBRATION_DATA_REQUEST 0x0D
 #define COMMAND_REF_CAN_SENDING_SENSORS_CENTER 0x0E
+#define COMMAND_REPORT_ALIVE_QUEUELESS 0x0F // todo
 
 class Mrm_ref_can : public SensorBoard
 {
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataDark; // 
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataBright;
 	std::vector<uint8_t>* dataFresh; // All the data refreshed, bitwise stored. 
-									// Most significant bit 0: readings 1 - 3, 
+									// Most significant bit 0: readings for transistors 1 - 3, 
 									// bit 1: 4 - 6, 
 									// bit 2: 7 - 9, 
-									// bit 3: calibration data 1 - 3, 
+									// bit 3: calibration data for transistors 1 - 3, 
 									// bit 4: 4 - 6, 
 									// bit 5: 7 - 9
-	bool readingOnlyCenter = true; // Reading only center and transistors as bits. Otherwise reading all transistors as analog values.
-	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* readings; // Analog readings of all sensors
+	bool readingDigitalAndCenter = true; // Reading only center and transistors as bits. Otherwise reading all transistors as analog values.
+	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* _reading; // Analog or digital readings of all sensors, depending on measuring mode.
 	std::vector<uint16_t>* centerOfMeasurements; // Center of the dark sensors.
 
 	/** Calibration data fresh?
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - yes or no
 	*/
-	bool dataCalibrationFreshAsk(uint8_t deviceNumber) { return (*dataFresh)[deviceNumber] & 0x11100000 == 0x11100000; }
+	bool dataCalibrationFreshAsk(uint8_t deviceNumber) { return ((*dataFresh)[deviceNumber] & 0b00011100) == 0b00011100; }
 
 	/** All data fresh?
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -72,16 +73,16 @@ class Mrm_ref_can : public SensorBoard
 	bool dataFreshAsk(uint8_t deviceNumber) { return (*dataFresh)[deviceNumber] == 0xFF; }
 
 	/** Set calibration data freshness
-	@param areFresh - set value
+	@param setToFresh - set value to be fresh. Otherwise set to not to be.
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
 	*/
-	void dataFreshCalibrationSet(bool areFresh, uint8_t deviceNumber = 0);
+	void dataFreshCalibrationSet(bool setToFresh, uint8_t deviceNumber = 0);
 
 	/** Set readings data freshness
-	@param areFresh - set value
+	@param setToFresh - set value
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
 	*/
-	void dataFreshReadingsSet(bool areFresh, uint8_t deviceNumber = 0);
+	void dataFreshReadingsSet(bool setToFresh, uint8_t deviceNumber = 0);
 	
 public:
 
@@ -99,6 +100,12 @@ public:
 	@param deviceName - device's name
 	*/
 	void add(char * deviceName = "");
+
+	/** Any dark or bright
+	@param dark - any dark? Otherwise, any bright?
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	bool any(bool dark = true, uint8_t deviceNumber = 0);
 
 	/** Calibrate the array
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
@@ -150,14 +157,18 @@ public:
 	*/
 	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
+	/** Reset
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
+	*/
+	void reset(uint8_t deviceNumber = 0xFF);
+
 	/** Print all readings in a line
 	*/
 	void readingsPrint();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 };
 

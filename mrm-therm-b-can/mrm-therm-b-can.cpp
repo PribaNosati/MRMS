@@ -92,7 +92,9 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 205;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -125,9 +127,8 @@ void Mrm_therm_b_can::readingsPrint() {
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_therm_b_can::test(BreakCondition breakWhen)
+void Mrm_therm_b_can::test()
 {
 	static uint32_t lastMs = 0;
 
@@ -145,6 +146,6 @@ void Mrm_therm_b_can::test(BreakCondition breakWhen)
 			print("\n\r");
 	}
 
-	//continuousReadingStop();
+	//stop();
 }
 

@@ -11,7 +11,7 @@ extern CAN_device_t CAN_cfg;
 */
 Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : 
 	SensorBoard(robot, 1, "ReflArray", maxNumberOfBoards) {
-	readings = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
+	_reading = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	calibrationDataBright = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	calibrationDataDark = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	dataFresh = new std::vector<uint8_t>(maxNumberOfBoards);
@@ -70,6 +70,17 @@ void Mrm_ref_can::add(char * deviceName)
 	SensorBoard::add(deviceName, canIn, canOut);
 }
 
+/** Any dark or bright
+@param dark - any dark? Otherwise, any bright?
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber) {
+	if (readingDigitalAndCenter)
+		for (uint8_t i = 0; i < 8; i++)
+			if ((*_reading)[deviceNumber][i] == 1)
+				return true;
+}
+
 /** Calibrate the array
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 */
@@ -77,11 +88,11 @@ void Mrm_ref_can::calibrate(uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			calibrate(i);
-	else {
+	else if (alive(deviceNumber)){
 		canData[0] = COMMAND_REF_CAN_CALIBRATE;
 		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
-	robotContainer->_actionCurrent = NULL;
+	robotContainer->actionEnd();
 }
 
 /** Get local calibration data
@@ -95,6 +106,7 @@ uint16_t Mrm_ref_can::calibrationDataGet(uint8_t receiverNumberInSensor, bool is
 		strcpy(robotContainer->errorMessage, "mrm-ref-can doesn't exist");
 		return 0;
 	}
+	alive(deviceNumber);
 	return (isDark ? (*calibrationDataDark) : (*calibrationDataBright))[deviceNumber][receiverNumberInSensor];
 }
 
@@ -105,15 +117,22 @@ uint16_t Mrm_ref_can::calibrationDataGet(uint8_t receiverNumberInSensor, bool is
 void Mrm_ref_can::calibrationDataRequest(uint8_t deviceNumber, bool waitForResult) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
-			calibrate(i);
-	else {
+			calibrationDataRequest(i, waitForResult);
+	else if (alive(deviceNumber)){
 		if (waitForResult)
-			dataFreshCalibrationSet(deviceNumber, false);
+			dataFreshCalibrationSet(false, deviceNumber);
 		canData[0] = COMMAND_REF_CAN_CALIBRATION_DATA_REQUEST;
 		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-		if (waitForResult)
-			while (!dataCalibrationFreshAsk(deviceNumber))
-				robotContainer->messagesReceive();
+		if (waitForResult) {
+			uint32_t ms = millis();
+			while (!dataCalibrationFreshAsk(deviceNumber)) {
+				robotContainer->noLoopWithoutThis();
+				if (millis() - ms > 1000) {
+					strcpy(robotContainer->errorMessage, "Cal. data timeout.");
+					break;
+				}
+			}
+		}
 	}
 }
 
@@ -123,13 +142,13 @@ void Mrm_ref_can::calibrationPrint() {
 	print("Calibration.\n\r");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (alive(deviceNumber)) {
-			print("Dark  : ");
+			print("Dark: ");
 			for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 				print(" %3i", calibrationDataGet(irNo, true, deviceNumber));
-			print("/n/rBright: ");
+			print("\n\rBright: ");
 			for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 				print(" %3i", calibrationDataGet(irNo, false, deviceNumber));
-			print("/n/r");
+			print("\n\r");
 		}
 }
 
@@ -138,36 +157,43 @@ void Mrm_ref_can::calibrationPrint() {
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 @return - yes or no.
 */
-bool Mrm_ref_can::dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber) { 
+bool Mrm_ref_can::dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
+	alive(deviceNumber, true);
 	if (measuringMode == 0) // Analog readings
-		return (*readings)[deviceNumber][receiverNumberInSensor] < ((*calibrationDataDark)[deviceNumber][receiverNumberInSensor] + (*calibrationDataBright)[deviceNumber][receiverNumberInSensor]) / 2;
+		return (*_reading)[deviceNumber][receiverNumberInSensor] < ((*calibrationDataDark)[deviceNumber][receiverNumberInSensor] + (*calibrationDataBright)[deviceNumber][receiverNumberInSensor]) / 2;
 	else // Digital readings
-		return (*readings)[deviceNumber][receiverNumberInSensor];
+		return (*_reading)[deviceNumber][receiverNumberInSensor];
 }
 
 
 /** Set calibration data freshness
-@param areFresh - set value
+@param setToFresh - set value to be fresh. Otherwise set to not to be.
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
 */
-void Mrm_ref_can::dataFreshCalibrationSet(bool areFresh, uint8_t deviceNumber) {
+void Mrm_ref_can::dataFreshCalibrationSet(bool setToFresh, uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
-			dataFreshCalibrationSet(i);
+			dataFreshCalibrationSet(setToFresh, i);
 	else
-		(*dataFresh)[deviceNumber] &= areFresh ? 0b11111111 : 0b11100011;
+		if (setToFresh)
+			(*dataFresh)[deviceNumber] |= 0b00011100;
+		else
+			(*dataFresh)[deviceNumber] &= 0b11100011;
 }
 
 /** Set readings data freshness
-@param areFresh - set value
+@param setToFresh - set value
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 */
-void Mrm_ref_can::dataFreshReadingsSet(bool areFresh, uint8_t deviceNumber) {
+void Mrm_ref_can::dataFreshReadingsSet(bool setToFresh, uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
-			dataFreshReadingsSet(i);
+			dataFreshReadingsSet(setToFresh, i);
 	else
-		(*dataFresh)[deviceNumber] &= areFresh ? 0b11111111 : 0b00011111;
+		if (setToFresh)
+			(*dataFresh)[deviceNumber] |= 0b11100000;
+		else
+			(*dataFresh)[deviceNumber] &= 0b00011111;
 }
 
 /** Read CAN Bus message into local variables
@@ -244,27 +270,29 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_REF_CAN_SENDING_SENSORS_CENTER:
 				(*centerOfMeasurements)[deviceNumber] = (uint16_t)((data[2] << 8) | data[1]);
 
-				(*readings)[deviceNumber][0] = (data[3] & 0b10000000) >> 7;
-				(*readings)[deviceNumber][1] = (data[3] & 0b01000000) >> 6;
-				(*readings)[deviceNumber][2] = (data[3] & 0b00100000) >> 5;
-				(*readings)[deviceNumber][3] = (data[3] & 0b00010000) >> 4;
-				(*readings)[deviceNumber][4] = (data[3] & 0b00001000) >> 3;
-				(*readings)[deviceNumber][5] = (data[3] & 0b00000100) >> 2;
-				(*readings)[deviceNumber][6] = (data[3] & 0b00000010) >> 1;
-				(*readings)[deviceNumber][7] = data[3] & 0b00000001;
-				(*readings)[deviceNumber][8] = data[4];
+				(*_reading)[deviceNumber][0] = (data[3] & 0b10000000) >> 7;
+				(*_reading)[deviceNumber][1] = (data[3] & 0b01000000) >> 6;
+				(*_reading)[deviceNumber][2] = (data[3] & 0b00100000) >> 5;
+				(*_reading)[deviceNumber][3] = (data[3] & 0b00010000) >> 4;
+				(*_reading)[deviceNumber][4] = (data[3] & 0b00001000) >> 3;
+				(*_reading)[deviceNumber][5] = (data[3] & 0b00000100) >> 2;
+				(*_reading)[deviceNumber][6] = (data[3] & 0b00000010) >> 1;
+				(*_reading)[deviceNumber][7] = data[3] & 0b00000001;
+				(*_reading)[deviceNumber][8] = data[4];
 
 				(*dataFresh)[deviceNumber] |= 0b11100000;
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 201;
 				errorInDeviceNumber = deviceNumber;
 			}
 
 			if (anyReading)
 				for (uint8_t i = 0; i <= 2; i++)
-					(*readings)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
+					(*_reading)[deviceNumber][startIndex + i] = (data[2 * i + 1] << 8) | data[2 * i + 2];
 
 			if (anyCalibrationDataBright)
 				for (uint8_t i = 0; i <= 2; i++)
@@ -289,7 +317,8 @@ uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumb
 		strcpy(robotContainer->errorMessage, "mrm-ref-can doesn't exist");
 		return 0;
 	}
-	return (*readings)[deviceNumber][receiverNumberInSensor];
+	alive(deviceNumber, true);
+	return (*_reading)[deviceNumber][receiverNumberInSensor];
 }
 
 /** Print all readings in a line
@@ -299,14 +328,27 @@ void Mrm_ref_can::readingsPrint() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 			if (alive(deviceNumber))
-				print(" %3i", (*readings)[deviceNumber][irNo]);
+				print(" %3i", (*_reading)[deviceNumber][irNo]);
 	}
 }
 
-/**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
+/** Reset
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
 */
-void Mrm_ref_can::test(BreakCondition breakWhen)
+void Mrm_ref_can::reset(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			reset(i);
+	else {
+		canData[0] = COMMAND_RESET;
+		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+	}
+	robotContainer->actionEnd();
+}
+
+/**Test
+*/
+void Mrm_ref_can::test()
 {
 	static uint32_t lastMs = 0;
 
@@ -317,14 +359,12 @@ void Mrm_ref_can::test(BreakCondition breakWhen)
 				if (pass++)
 					print("| ");
 				for (uint8_t i = 0; i < MRM_REF_CAN_SENSOR_COUNT; i++)
-					print("%i ", (*readings)[deviceNumber][i]);
+					print("%i ", (*_reading)[deviceNumber][i]);
 			}
 		}
 		lastMs = millis();
 		if (pass)
 			print("\n\r");
 	}
-
-	//continuousReadingStop();
 }
 

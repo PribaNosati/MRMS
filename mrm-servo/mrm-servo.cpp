@@ -80,7 +80,7 @@ void Mrm_servo::test()
 	}
 
 	robotContainer->print("\n\rTest over.\n\r");
-	robotContainer->_actionCurrent = NULL;
+	robotContainer->actionEnd();
 }
 
 /** Move servo

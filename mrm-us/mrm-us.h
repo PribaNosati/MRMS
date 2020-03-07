@@ -28,10 +28,7 @@ Licence: You can use this code any way you like.
 
 #define MRM_US_ECHOES_COUNT 9
 
-//CANBus commands
 
-
-typedef bool(*BreakCondition)();
 
 class Mrm_us : public SensorBoard
 {
@@ -72,9 +69,8 @@ public:
 	void readingsPrint();
 
 	/**Test
-	@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 	*/
-	void test(BreakCondition breakWhen = 0);
+	void test();
 
 };
 

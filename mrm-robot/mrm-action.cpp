@@ -40,7 +40,8 @@ void ActionMenuMain::perform() { _robot->menuMainAndIdle(); }
 void ActionMotorTest::perform() { _robot->motorTest(); }
 void ActionNodeTest::perform() { _robot->nodeTest(); }
 void ActionNodeServoTest::perform() { _robot->mrm_node->servoTest();}
-void ActionReflectanceArrayTest::perform() { _robot->reflectanceArrayTest(); }
+void ActionReflectanceArrayAnalogTest::perform() { _robot->reflectanceArrayTest(false); }
+void ActionReflectanceArrayDigitalTest::perform() { _robot->reflectanceArrayTest(true); }
 void ActionReflectanceArrayCalibrate::perform() { _robot->mrm_ref_can->calibrate(); }
 void ActionReflectanceArrayCalibrationPrint::perform() { _robot->reflectanceArrayCalibrationPrint(); }
 void ActionServoTest::perform() { _robot->mrm_servo->test(); }

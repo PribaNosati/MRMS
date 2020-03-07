@@ -105,7 +105,9 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 			}
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 202;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -136,10 +138,8 @@ void Mrm_lid_can_b2::readingsPrint() {
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
-@param newLine - Line break after
 */
-void Mrm_lid_can_b2::test(BreakCondition breakWhen)
+void Mrm_lid_can_b2::test()
 {
 	static uint32_t lastMs = 0;
 

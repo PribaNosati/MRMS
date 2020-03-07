@@ -109,7 +109,9 @@ bool Mrm_col_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 			case COMMAND_REPORT_ALIVE:
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 204;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -146,7 +148,7 @@ void Mrm_col_can::readingsPrint() {
 /**Test
 @param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_col_can::test(BreakCondition breakWhen)
+void Mrm_col_can::test()
 {
 	static uint32_t lastMs = 0;
 

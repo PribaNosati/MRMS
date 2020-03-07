@@ -103,7 +103,7 @@ void Mrm_lid_can_b::calibration(uint8_t deviceNumber){
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			calibration(i);
-	else{
+	else if (alive(deviceNumber)){
 		canData[0] = COMMAND_LID_CAN_B_CALIBRATE;
 		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}
@@ -137,7 +137,9 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 				print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
 				break;
 			default:
-				print("Unknown command 0x%x\n\r", data[0]);
+				print("Unknown command. ");
+				messagePrint(canId, 8, data);
+				print("\n\r");
 				errorCode = 206;
 				errorInDeviceNumber = deviceNumber;
 			}
@@ -156,6 +158,7 @@ uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
 		strcpy(robotContainer->errorMessage, "mrm-lid-can-b doesn't exist");
 		return 0;
 	}
+	alive(deviceNumber, true);
 	return (*readings)[deviceNumber];
 }
 
@@ -169,9 +172,8 @@ void Mrm_lid_can_b::readingsPrint() {
 }
 
 /**Test
-@param breakWhen - A function returning bool, without arguments. If it returns true, the test() will be interrupted.
 */
-void Mrm_lid_can_b::test(BreakCondition breakWhen)
+void Mrm_lid_can_b::test()
 {
 	static uint32_t lastMs = 0;
 
@@ -188,7 +190,4 @@ void Mrm_lid_can_b::test(BreakCondition breakWhen)
 		if (pass)
 			print("\n\r");
 	}
-
-	//devicesScan(false);
-	//print("%i devices alive.", aliveCount());
 }

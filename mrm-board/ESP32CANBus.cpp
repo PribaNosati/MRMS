@@ -48,6 +48,25 @@ bool ESP32CANBus::messageReceive() {
 			printf("\n\r");
 		}
 #endif
+		uint16_t bracketNow = millis() % 1000;
+		if (bracketNow >= 500) {
+			if (lastBracketReceive == 0) {
+				lastBracketReceive = 1;
+				if (bracketReceive[0] > _peakReceive)
+					_peakReceive = bracketReceive[0];
+				bracketReceive[1] = 0;
+			}
+		}
+		else {
+			if (lastBracketReceive == 1) {
+				lastBracketReceive = 0;
+				if (bracketReceive[1] > _peakReceive)
+					_peakReceive = bracketReceive[1];
+				bracketReceive[0] = 0;
+			}
+		}
+		bracketReceive[lastBracketReceive]++;
+
 		return true;
 	}
 	else 
@@ -79,4 +98,23 @@ void ESP32CANBus::messageSend(uint32_t stdId, uint8_t dlc, uint8_t data[8]) {
 	}
 	printf("\n\r");
 #endif
+
+	uint16_t bracketNow = millis() % 1000;
+	if (bracketNow >= 500) {
+		if (lastBracketSend == 0) {
+			lastBracketSend = 1;
+			if (bracketSend[0] > _peakSend)
+				_peakSend = bracketSend[0];
+			bracketSend[1] = 0;
+		}
+	}
+	else {
+		if (lastBracketSend == 1) {
+			lastBracketSend = 0;
+			if (bracketSend[1] > _peakSend)
+				_peakSend = bracketSend[1];
+			bracketSend[0] = 0;
+		}
+	}
+	bracketSend[lastBracketReceive]++;
 }
