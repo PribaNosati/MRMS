@@ -16,24 +16,24 @@ RobotLine::RobotLine() : Robot() {
 	actionAdd(actionObstacleAvoid);
 	actionAdd(actionWallFollow);
 	actionAdd(new ActionOmniWheelsTest(this));
-	bitmapsSet();
+	actionAdd(new ActionRCJLine(this));
+	
+	mrm_8x8a->rotationSet(LED_8X8_BY_270_DEGREES);
 }
 
+/** Custom test
+*/
 void RobotLine::anyTest() {
+		//mrm_lid_can_b->aliveSet(false, 0);
+		//canData[0] = COMMAND_REPORT_ALIVE;
+		//messageSend(canData, 3, deviceNumber);
+		//delayMs(1); // Exchange CAN Bus messages and receive possible answer, that sets _alive.
+	// aliveCount();
 }
 
 /** Store bitmaps in mrm-led8x8a.
 */
 void RobotLine::bitmapsSet() {
-#define LED_CROSSING_LEFT_RIGHT 0
-#define LED_LINE_FULL 1
-#define LED_LINE_INTERRUPTED 2
-#define LED_CURVE_LEFT 3
-#define LED_CURVE_RIGHT 4
-#define LED_OBSTACLE 5
-#define LED_OBSTACLE_AROUND 6
-#define LED_PAUSE 7
-#define LED_PLAY 8
 
 	mrm_8x8a->alive(0, true);
 	uint8_t red[8];
@@ -145,6 +145,9 @@ void RobotLine::bitmapsSet() {
 
 }
 
+/** Displays a bitmap using mrm-8x8.
+@param bitmap - user bitmap's id
+*/
 void RobotLine::display(uint8_t bitmap) {
 	uint8_t lastBitmap = 0xFF;
 	uint32_t lastMs = 0;
@@ -155,12 +158,16 @@ void RobotLine::display(uint8_t bitmap) {
 	}
 }
 
+/** Test - go straight ahead using a defined speed.
+*/
 void RobotLine::goAhead() {
 	const uint8_t speed = 40;
 	motorGroup->go(speed, speed);
 	actionEnd();
 }
 
+/** Follow a RCJ line.
+*/
 void RobotLine::lineFollow() {
 	delayMs(2); // Reduce number od CAN Bus messages sent.
 	
@@ -173,11 +180,6 @@ void RobotLine::lineFollow() {
 	static uint32_t lastCurveLMs = 0;
 	static uint32_t lastCurveRMs = 0;
 	static uint32_t ms = 0;
-	if (actionInitialization(true)) { // Only in the first pass.
-		display(LED_PLAY);
-		devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
-		delayMs(200);
-	}
 
 	//if (millis() - ms > 100) {
 	//	print("C:%i %i %i %i %i %i %i %i %i M%i L%i R%ims\n\r", (int)(mrm_ref_can->center() - 4500), mrm_ref_can->dark(7),
@@ -254,10 +256,12 @@ void RobotLine::lineFollow() {
 	}
 }
 
+/** Avoid an obstacle on line
+*/
 void RobotLine::obstacleAvoid() {
 	static uint8_t part = 0;
 	static uint32_t startMs = 0;
-	if (actionInitialization(true))
+	if (actionPreprocessing(true))
 		display(LED_OBSTACLE);
 
 	switch (part) {
@@ -285,15 +289,17 @@ void RobotLine::obstacleAvoid() {
 	default:
 		part = 0;
 		actionSet(actionLineFollow);
-		actionInitializationFinish();
+		actionPreprocessingEnd();
 		break;
 	}
 }
 
+/** Test for Mecanum wheels.
+*/
 void RobotLine::omniWheelsTest() {
 	static uint8_t nextMove;
 	static uint32_t lastMs;
-	if (actionInitialization(true)) {
+	if (actionPreprocessing(true)) {
 		if (motorGroup == NULL) {
 			print("Differential motor group needed.");
 			actionEnd();
@@ -336,9 +342,19 @@ void RobotLine::omniWheelsTest() {
 	}
 }
 
+/** Starts the robot after this action selected.
+*/
+void RobotLine::rcjLine() {
+	bitmapsSet(); // todo
+	display(LED_PLAY);
+	devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
+	delayMs(200);
+	actionSet(actionLineFollow);
+}
+
 void RobotLine::wallFollow() {
 	static uint32_t ms = 0;
-	if (actionInitialization(true)) { // Only in the first pass.
+	if (actionPreprocessing(true)) { // Only in the first pass.
 		display(LED_PLAY);
 		devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
 	}

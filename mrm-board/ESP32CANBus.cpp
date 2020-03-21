@@ -81,8 +81,11 @@ bool ESP32CANBus::messageReceive() {
 */
 void ESP32CANBus::messageSend(uint32_t stdId, uint8_t dlc, uint8_t data[8]) {
 	static uint32_t lastSentMs = 0;
+#define DELAY_MESSAGES 0
+#if DELAY_MESSAGES
 	if (millis() == lastSentMs)
 		delay(1);
+#endif
 	static CAN_frame_t tx_frame;
 	tx_frame.FIR.B.FF = CAN_frame_std;
 	tx_frame.MsgID = stdId;

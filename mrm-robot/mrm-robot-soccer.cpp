@@ -16,6 +16,16 @@ RobotSoccer::RobotSoccer() : Robot() {
 	actionIdle = new ActionSoccerIdle(this);
 }
 
+/** Custom test
+*/
+void RobotSoccer::anyTest() {
+	if (actionPreprocessing(true)) {
+		mrm_ref_can->start(0xFF, 1, 15);
+		mrm_bldc2x50->start(0xFF, 0, 15);
+		fpsPause();
+	}
+}
+
 /** Store bitmaps in mrm-led8x8a.
 */
 void RobotSoccer::bitmapsSet() {
@@ -24,6 +34,8 @@ void RobotSoccer::bitmapsSet() {
 	mrm_8x8a->bitmapCustomStore(red, green, 7);
 }
 
+/** Go around the ball and approach it.
+*/
 void RobotSoccer::catchBall() {
 	if (mrm_ir_finder2->anyIRSource()) {
 
@@ -32,14 +44,18 @@ void RobotSoccer::catchBall() {
 		actionSet(actionIdle);
 }
 
+/** Test - go straight ahead.
+*/
 void RobotSoccer::goAhead() {
 	const uint8_t speed = 40;
 	motorGroup->go(speed);
 	actionEnd();
 }
 
+/** No ball detected - return to Your goal.
+*/
 void RobotSoccer::idle() {
-	if (actionInitialization(true))
+	if (actionPreprocessing(true))
 		headingToMaintain = mrm_imu->heading();
 	if (mrm_ir_finder2->anyIRSource() && false)
 		actionSet(actionCatch);
@@ -52,6 +68,8 @@ void RobotSoccer::idle() {
 	}
 }
 
+/** Starts robot
+*/
 void RobotSoccer::play() {
 	if (motorGroup == NULL) {
 		print("Define robot->motorGroupStar first.\n\r");
@@ -60,12 +78,4 @@ void RobotSoccer::play() {
 	headingToMaintain = mrm_imu->heading();
 	devicesStart();
 	actionSet(actionIdle);
-}
-
-void RobotSoccer::anyTest() {
-	if (actionInitialization(true)) {
-		mrm_ref_can->start(0xFF, 1, 15);
-		mrm_bldc2x50->start(0xFF, 0, 15);
-		fpsPause();
-	}
 }

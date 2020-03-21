@@ -139,9 +139,9 @@ void Mrm_ref_can::calibrationDataRequest(uint8_t deviceNumber, bool waitForResul
 /** Print all calibration in a line
 */
 void Mrm_ref_can::calibrationPrint() {
-	print("Calibration.\n\r");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (alive(deviceNumber)) {
+			print("Calibration for %s.\n\r", name());
 			print("Dark: ");
 			for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 				print(" %3i", calibrationDataGet(irNo, true, deviceNumber));
@@ -317,20 +317,6 @@ void Mrm_ref_can::readingsPrint() {
 			if (alive(deviceNumber))
 				print(" %3i", (*_reading)[deviceNumber][irNo]);
 	}
-}
-
-/** Reset
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
-*/
-void Mrm_ref_can::reset(uint8_t deviceNumber) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			reset(i);
-	else {
-		canData[0] = COMMAND_RESET;
-		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-	}
-	robotContainer->actionEnd();
 }
 
 /**Test

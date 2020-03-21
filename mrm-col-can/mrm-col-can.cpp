@@ -12,7 +12,6 @@ extern CAN_device_t CAN_cfg;
 Mrm_col_can::Mrm_col_can(Robot* robot, uint8_t maxNumberOfBoards) : 
 	SensorBoard(robot, 1, "Color", maxNumberOfBoards) {
 	readings = new std::vector<uint16_t[MRM_COL_CAN_COLORS]>(maxNumberOfBoards);
-	aliveTimeout = 100;
 }
 
 Mrm_col_can::~Mrm_col_can()

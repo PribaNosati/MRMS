@@ -10,7 +10,7 @@ extern CAN_device_t CAN_cfg;
 @param maxNumberOfBoards - maximum number of boards
 */
 Mrm_mot2x50::Mrm_mot2x50(Robot* robot, uint8_t maxNumberOfBoards) : 
-	MotorBoard(robot, 4, "Mot2x50", maxNumberOfBoards){
+	MotorBoard(robot, 2, "Mot2x50", maxNumberOfBoards){
 }
 
 Mrm_mot2x50::~Mrm_mot2x50()

@@ -30,7 +30,7 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
 			strcpy(robotContainer->errorMessage, "Device name too long");
 			return;
 		}
-		strcpy(nameThis[nextFree], deviceName);
+		strcpy(_name[nextFree], deviceName);
 	}
 
 	timerWidthBits = timerWidth;
@@ -69,13 +69,13 @@ void Mrm_servo::test()
 		for (int16_t i = 0; i <= 180; i += 5) {
 			write(i);
 			robotContainer->print("%i\n\r", i);
-			delay(ms);
+			robotContainer->delayMs(ms);
 		}
 
 		for (int16_t i = 180; i >= 0; i -= 5) {
 			write(i);
 			robotContainer->print("%i\n\r", i);
-			delay(ms);
+			robotContainer->delayMs(ms);
 		}
 	}
 

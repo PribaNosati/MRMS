@@ -205,6 +205,17 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	return false;
 }
 
+/** Set rotation from now on
+@param rotation - 0, 90, or 270 degrees counterclockwise
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_8x8a::rotationSet(enum LED8x8Rotation rotation, uint8_t deviceNumber) {
+	alive(deviceNumber, true);
+	canData[0] = COMMAND_8X8_ROTATION_SET;
+	canData[1] = rotation;
+	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+}
+
 /** Read switch
 @param switchNumber
 @deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -231,7 +242,7 @@ void Mrm_8x8a::test()
 	static uint32_t lastMs = 0;
 	static uint8_t bitmapId = MRM_8x8A_START_BITMAP_1;
 
-	if (robotContainer->actionInitialization(true)) {
+	if (robotContainer->actionPreprocessing(true)) {
 		print("STORE\n\r");
 		uint8_t red[8] = { 0b00000000, 0b01100110, 0b11111111, 0b11111111, 0b11111111, 0b01111110, 0b00111100, 0b00011000 };
 		uint8_t green[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000 };

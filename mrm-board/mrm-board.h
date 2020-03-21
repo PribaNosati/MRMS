@@ -25,6 +25,8 @@
 #define COMMAND_MESSAGE_SENDING_4 0x1F
 #define COMMAND_SPEED_SET 0x20
 #define COMMAND_SPEED_SET_REQUEST_NOTIFICATION 0x21
+#define COMMAND_DUPLICATE_ID_PING 0x22
+#define COMMAND_DUPLICATE_ID_ECHO 0x23
 #define COMMAND_FPS_REQUEST 0x30
 #define COMMAND_FPS_SENDING 0x31
 #define COMMAND_ID_CHANGE_REQUEST 0x40
@@ -45,28 +47,28 @@ enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
 
 class Robot;
 
+/** Board is a class of all the boards of the same type, not a single board!
+*/
 class Board{
 protected:
 	uint32_t _alive; // Responded to ping, maximum 32 devices of the same class, stored bitwise.
-	uint8_t aliveTimeout = 4;//4
+	bool _aliveReport = false;
 	char boardsName[12];
-	BoardType boardTypeThis;
-	uint8_t canData[8];
-	uint8_t commandLastReceivedByTarget = 0xFE;
-	uint8_t devicesOnABoard;
+	BoardType boardTypeThis; // To differentiate derived boards
+	uint8_t canData[8]; // Array used to store temporary CAN Bus data
+	uint8_t devicesOnABoard; // Number of devices on a single board
 	//std::vector<bool>(maxNumberOfBoards * devicesOn1Board) deviceStarted; //todo - not to allow reading if the device not started.
 	uint8_t errorCode = 0;
 	uint8_t errorInDeviceNumber = 0;
-	std::vector<uint16_t>* firmwareVersionLast;
-	uint16_t fpsLast = 0xFFFF;
+	std::vector<uint16_t>* fpsLast; // FPS local copy.
 	std::vector<uint32_t>* idIn;  // Inbound message id
 	std::vector<uint32_t>* idOut; // Outbound message id
 	std::vector<uint32_t>* lastMessageReceivedMs;
 	uint8_t maximumNumberOfBoards;
 	uint8_t measuringMode = 0;
 	uint8_t measuringModeLimit = 0;
-	char _message[29]; // Message a device sent.
-	std::vector<char[10]>* nameThis;// Device's name
+	uint8_t _message[29]; // Message a device sent.
+	std::vector<char[10]>* _name;// Device's name
 	int nextFree;
 	Robot* robotContainer;
 
@@ -143,10 +145,10 @@ public:
 
 	/** Ping devices and refresh alive array
 	@param verbose - prints statuses
-	@param timeout - ms to wait for response
+	@param mask - bitwise, 16 bits - no more than 16 devices! Bit == 1 - scan, 0 - no scan.
 	@return - alive count
 	*/
-	uint8_t devicesScan(bool verbose = true);
+	uint8_t devicesScan(bool verbose = true, uint16_t mask = 0xFFFF);
 
 	/** Last error code
 	@return - last error code from all devices of this kind
@@ -157,16 +159,6 @@ public:
 	@return - device number
 	*/
 	uint8_t errorWasInDeviceNumber() { return errorInDeviceNumber; }
-
-	/** Firmware version
-	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - version
-	*/
-	uint16_t firmware(uint8_t deviceNumber = 0) { return (*firmwareVersionLast)[deviceNumber]; }
-
-	/** Display firmware for all devices of a board
-	*/
-	void firmwareDisplay();
 
 	/** Request firmware version
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
@@ -228,11 +220,18 @@ public:
 	*/
 	bool messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data);
 
+	/** Send CAN Bus message
+	@param dlc - data length
+	@param data - payload
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void messageSend(uint8_t* data, uint8_t dlc, uint8_t deviceNumber = 0);
+
 	/** Returns device's name
 	@param deviceNumber - Motor's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - name
 	*/
-	char * name(uint8_t deviceNumber);
+	char *name(uint8_t deviceNumber);
 
 	/** Returns device group's name
 	@return - name
@@ -244,6 +243,11 @@ public:
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber);
+
+	/** Reset
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
+	*/
+	void reset(uint8_t deviceNumber = 0xFF);
 
 	/** Starts periodical CANBus messages that will be refreshing values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
@@ -302,6 +306,8 @@ public:
 	*/
 	void speedSet(uint8_t motorNumber, int8_t speed);
 
+	/** Stop all motors
+	*/
 	void stop();
 
 	/**Test
@@ -336,29 +342,46 @@ public:
 	virtual bool messageDecode(uint32_t canId, uint8_t data[8]){}
 };
 
-typedef void (*SpeedSetFunction)(uint8_t motorNumber, int8_t speed);
+//typedef void (*SpeedSetFunction)(uint8_t motorNumber, int8_t speed);
 
 class MotorGroup {
 protected:
-	MotorBoard* motorBoard[MAX_MOTORS_IN_GROUP] = { NULL, NULL, NULL, NULL };
+	MotorBoard* motorBoard[MAX_MOTORS_IN_GROUP] = { NULL, NULL, NULL, NULL }; // Motor board for each wheel. It can the same, but need not be.
 	uint8_t motorNumber[MAX_MOTORS_IN_GROUP];
+
+	/** Angle between -180 and 180 degrees
+	@return - angle
+	*/
+	float angleNormalized(float angle);
 public:
 	MotorGroup();
 
-	float angleNormalized(float angle);
-
+	/** Stop motors
+	*/
 	void stop();
 };
 
+/** Motor group for tank-like propulsion.
+*/
 class MotorGroupDifferential : public MotorGroup {
 private:
 	/** Check if speed is inside bounds
-@param speed - speed to be checked
-@return - speed inside bounds
-*/
+	@param speed - speed to be checked
+	@return - speed inside bounds
+	*/
 	int16_t checkBounds(int16_t speed);
 
 public: 
+	/** Constructor
+	@param motorBoardForLeft1 - Controller for one of the left wheels
+	@param motorNumberForLeft1 - Controller's output number
+	@param motorBoardForRight1 - Controller for one of the right wheels
+	@param motorNumberForRight1 - Controller's output number
+	@param motorBoardForLeft2 - Controller for one of the left wheels
+	@param motorNumberForLeft2 - Controller's output number
+	@param motorBoardForRight2 - Controller for one of the right wheels
+	@param motorNumberForRight2 - Controller's output number
+	*/
 	MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
 		MotorBoard* motorBoardForLeft2 = NULL, uint8_t motorNumberForLeft2 = 0, MotorBoard* motorBoardForRight2 = NULL, uint8_t motorNumberForRight2 = 0);
 
@@ -369,8 +392,20 @@ public:
 	void go(int16_t leftSpeed = 0, int16_t rightSpeed = 0, int16_t lateralSpeedToRight = 0);
 };
 
+/** Motors' axles for a star - they all point to a central point. Useful for driving soccer robots with omni-wheels.
+*/
 class MotorGroupStar : public MotorGroup {
 public:
+	/**
+	@param motorBoardFor45Degrees - motor controller for the motor which axle is inclined 45 degrees clockwise from robot's front.
+	@param motorNumberFor45Degrees - Controller's output number.
+	@param motorBoardFor13Degrees - motor controller for the motor which axle is inclined 135 degrees clockwise from robot's front.
+	@param motorNumberFor135Degrees - Controller's output number.
+	@param motorBoardForMinus135Degrees - motor controller for the motor which axle is inclined -135 degrees clockwise from robot's front.
+	@param motorNumberForMinus135Degrees - Controller's output number.
+	@param motorBoardForMinus45Degrees - motor controller for the motor which axle is inclined -45 degrees clockwise from robot's front.
+	@param motorNumberForMinus45Degrees - Controller's output number.
+	*/
 	MotorGroupStar(MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
 		MotorBoard* motorBoardForMinus135Degrees, uint8_t motorNumberForMinus135Degrees, MotorBoard* motorBoardForMinus45Degrees, uint8_t motorNumberForMinus45Degrees);
 

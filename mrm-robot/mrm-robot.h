@@ -1,10 +1,10 @@
 #pragma once
 #include <mrm-action.h>
 
-#define COMMANDS_LIMIT 50 // Increase if more commands are needed
-#define LED_ERROR 15 // Pin number, hardware defined
-#define LED_OK 2 // Pin number, hardware defined
-#define MRM_BOARD_COUNT 14
+#define ACTIONS_LIMIT 50 // Increase if more actions are needed.
+#define BOARDS_LIMIT 14 // Maximum number of different board types.
+#define LED_ERROR 15 // mrm-esp32's pin number, hardware defined.
+#define LED_OK 2 // mrm-esp32's pin number, hardware defined.
 
 // Forward declarations
 
@@ -27,27 +27,31 @@ class Mrm_switch;
 class Mrm_therm_b_can;
 class Mrm_us;
 
+/** Base class for all robots.
+*/
 class Robot {
 
 protected:
 
-	ActionBase* _action[COMMANDS_LIMIT];
+	ActionBase* _action[ACTIONS_LIMIT]; // Collection of all the robot's actions
+	uint8_t _actionNextFree = 0;
+
+	// Robot's actions that can be callect directly, not just by iterating _action collection
 	ActionBase* _actionAny;
 	ActionBase* _actionCurrent;
 	ActionBase* _actionDoNothing;
 	ActionBase* _actionStop;
 	ActionBase* _actionPrevious;
 
-	Board* board[MRM_BOARD_COUNT];
+	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
+	uint8_t _boardNextFree = 0;
 
+	// FPS - frames per second calculation
 	uint32_t fpsMs[2] = { 0, 0 };
-	uint8_t fpsNextIndex = 0; // To count frames per second
+	uint8_t fpsNextIndex = 0;
 	uint32_t fpsTopGap = 0;
 
 	uint8_t menuLevel = 1; // Submenus have bigger numbers
-	uint8_t nextFreeAction = 0;
-	uint8_t nextFreeCommand = 0;
-	uint8_t nextFreeBoardSlot = 0;
 	BluetoothSerial* serial; // Additional serial port
 	bool verbose = false; // Verbose output
 
@@ -126,16 +130,16 @@ public:
 	@param andFinish - finish initialization
 	@return - it is.
 	*/
-	bool actionInitialization(bool andFinish) { 
-		bool itIs = _actionCurrent->initializationGet(); 
+	bool actionPreprocessing(bool andFinish) { 
+		bool itIs = _actionCurrent->preprocessing(); 
 		if (andFinish)
-			_actionCurrent->initializationSet(false);
+			_actionCurrent->preprocessingEnd();
 		return itIs; 
 	}
 
 	/** Finish action's intialization phase
 	*/
-	void actionInitializationFinish() { _actionCurrent->initializationSet(false); }
+	void actionPreprocessingEnd() { _actionCurrent->preprocessingEnd(); }
 
 	/** Add a new board to the collection of possible boards for the robot
 	@param aBoard - the board.
@@ -171,7 +175,7 @@ public:
 	void colorTest();
 
 	/** The right way to use Arduino function delay
-	@param pauseMs - pause in ms.
+	@param pauseMs - pause in ms. One run even if pauseMs == 0, so that delayMs(0) receives all messages.
 	*/
 	void delayMs(uint16_t pauseMs);
 
@@ -275,6 +279,16 @@ public:
 	/** Starts robot's program
 	*/
 	void run();
+
+	/** Reads serial ASCII input and converts it into an integer
+	@param timeoutFirst - timeout for first input
+	@param timeoutBetween - timeout between inputs
+	@param onlySingleDigitInput - completes input after first digit
+	@param limit - returns 0xFFFF if overstepped
+	@param printWarnings - prints out of range or timeout warnings
+	@return - converted number or 0xFFFF when timeout
+	*/
+	uint16_t serialReadNumber(uint16_t timeoutFirst = 3000, uint16_t timeoutBetween = 500, bool onlySingleDigitInput = false, uint16_t limit = 0xFFFE, bool printWarnings = true);
 
 	/** Bluetooth
 	@return - Bluetooth object

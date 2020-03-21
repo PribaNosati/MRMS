@@ -159,7 +159,7 @@ void Mrm_node::servoTest() {
 				}
 			}
 			print("%i deg.\n\r", deg);
-			delay(100);
+			robotContainer->delayMs(100);
 		}
 		lastMs = millis();
 	}

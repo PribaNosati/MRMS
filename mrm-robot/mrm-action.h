@@ -7,7 +7,7 @@
 class Robot;
 class ActionBase {
 protected:
-	bool _firstProcess = true;
+	bool _preprocessing = true;
 	Robot* _robot;
 
 public:
@@ -17,9 +17,15 @@ public:
 
 	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1);
 
-	bool initializationGet() { return _firstProcess; }
+	bool preprocessing() { return _preprocessing; }
 
-	bool initializationSet(bool newValue) { _firstProcess = newValue; }
+	bool preprocessingEnd() { _preprocessing = false; }
+
+	bool preprocessingStart() { _preprocessing = true; }
+
+	virtual void performAfter() {}; // todo, not implemented.
+
+	virtual void performBefore() {};
 
 	virtual void perform() = 0;
 };
@@ -27,246 +33,185 @@ public:
 class Action8x8Test : public ActionBase {
 	void perform();
 public:
-	Action8x8Test(Robot* robot) : ActionBase(robot, "led", "Test 8x8", 1) {
-		_robot = robot;
-	}
+	Action8x8Test(Robot* robot) : ActionBase(robot, "led", "Test 8x8", 1) {}
 };
 
 class ActionAny : public ActionBase {
 	void perform();
 public:
-	ActionAny(Robot* robot) : ActionBase(robot, "any", "Any test", 1) {
-		_robot = robot;
-	}
+	ActionAny(Robot* robot) : ActionBase(robot, "any", "Any test", 1) {}
 };
 
 class ActionBluetoothTest : public ActionBase {
 	void perform();
 public:
-	ActionBluetoothTest(Robot* robot) : ActionBase(robot, "blt", "Test Bluetooth", 1) {
-		_robot = robot;
-	}
+	ActionBluetoothTest(Robot* robot) : ActionBase(robot, "blt", "Test Bluetooth", 1) {}
 };
 
 class ActionCANBusScan : public ActionBase {
 	void perform();
 public:
-	ActionCANBusScan(Robot* robot) : ActionBase(robot, "can", "Report devices", 1) {
-		_robot = robot;
-	}
+	ActionCANBusScan(Robot* robot) : ActionBase(robot, "can", "Report devices", 1) {}
 };
 
 class ActionCANBusSniff : public ActionBase {
 	void perform();
 public:
-	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff CAN Bus", 1) {
-		_robot = robot;
-	}
+	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff CAN Bus", 1) {}
 };
 
 class ActionCANBusStress : public ActionBase {
 	void perform();
 public:
-	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
-		_robot = robot;
-	}
+	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
 };
 
 class ActionColorTest : public ActionBase {
 	void perform();
 public:
-	ActionColorTest(Robot* robot) : ActionBase(robot, "col", "Test color", 1) {
-		_robot = robot;
-	}
+	ActionColorTest(Robot* robot) : ActionBase(robot, "col", "Test color", 1) {}
 };
 
 class ActionDeviceIdChange : public ActionBase {
 	void perform();
 public:
-	ActionDeviceIdChange(Robot* robot) : ActionBase(robot, "idc", "Device's id change", 1) {
-		_robot = robot;
-	}
+	ActionDeviceIdChange(Robot* robot) : ActionBase(robot, "idc", "Device's id change", 1) {}
 };
 
 class ActionDoNothing : public ActionBase {
 	void perform() {}
 public:
-	ActionDoNothing(Robot* robot) : ActionBase(robot, "", "No action", 0) {
-	}
+	ActionDoNothing(Robot* robot) : ActionBase(robot, "", "No action", 0) {}
 };
 
 class ActionFirmware : public ActionBase {
 	void perform();
 public:
-	ActionFirmware(Robot* robot) : ActionBase(robot, "fir", "Firmware", 1) {
-		_robot = robot;
-	}
+	ActionFirmware(Robot* robot) : ActionBase(robot, "fir", "Firmware", 1) {}
 };
 
 class ActionFPS : public ActionBase {
 	void perform();
 public:
-	ActionFPS(Robot* robot) : ActionBase(robot, "fps", "FPS", 1) {
-		_robot = robot;
-	}
+	ActionFPS(Robot* robot) : ActionBase(robot, "fps", "FPS", 1) {}
 };
 
 class ActionGoAhead : public ActionBase {
 	void perform();
 public:
-	ActionGoAhead(Robot* robot) : ActionBase(robot, "ahe", "Go ahead", 1) {
-		_robot = robot;
-	}
+	ActionGoAhead(Robot* robot) : ActionBase(robot, "ahe", "Go ahead", 1) {}
 };
 
 class ActionI2CTest : public ActionBase {
 	void perform();
 public:
-	ActionI2CTest(Robot* robot) : ActionBase(robot, "i2c", "Test I2C", 1) {
-		_robot = robot;
-	}
+	ActionI2CTest(Robot* robot) : ActionBase(robot, "i2c", "Test I2C", 1) {}
 };
 
 class ActionIMUTest : public ActionBase {
 	void perform();
 public:
-	ActionIMUTest(Robot* robot) : ActionBase(robot, "imu", "Test IMU", 1) {
-		_robot = robot;
-	}
+	ActionIMUTest(Robot* robot) : ActionBase(robot, "imu", "Test IMU", 1) {}
 };
 
 class ActionIRFinderTest : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderTest(Robot* robot) : ActionBase(robot, "irf", "Test ball analog", 1) {
-		_robot = robot;
-	}
+	ActionIRFinderTest(Robot* robot) : ActionBase(robot, "irf", "Test ball analog", 1) {}
 };
 
 class ActionIRFinderCanTest : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1) {
-		_robot = robot;
-	}
+	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1) {}
 };
 
 class ActionIRFinderCanTestCalculated : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1) {
-		_robot = robot;
-	}
+	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1) {}
 };
 
 class ActionLidar2mTest : public ActionBase {
 	void perform();
 public:
-	ActionLidar2mTest(Robot* robot) : ActionBase(robot, "li2", "Test li. 2m", 1) {
-		_robot = robot;
-	}
+	ActionLidar2mTest(Robot* robot) : ActionBase(robot, "li2", "Test li. 2m", 1) {}
 };
 
 class ActionLidar4mTest : public ActionBase {
 	void perform();
 public:
-	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1){
-		_robot = robot;
-}
+	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1){}
 };
 
 class ActionLidarCalibrate : public ActionBase {
 	void perform();
 public:
-	ActionLidarCalibrate(Robot* robot) : ActionBase(robot, "lic", "Cal. lidar", 1) {
-		_robot = robot;
-	}
+	ActionLidarCalibrate(Robot* robot) : ActionBase(robot, "lic", "Cal. lidar", 1) {}
 };
 
 class ActionMenuMain : public ActionBase {
 	void perform();
 public:
-	ActionMenuMain(Robot* robot) : ActionBase(robot, "x", "Escape", 2 | 4 | 8 | 16) {//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
-		_robot = robot;
-	}
+	ActionMenuMain(Robot* robot) : ActionBase(robot, "x", "Escape", 2 | 4 | 8 | 16) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
 };
 
 class ActionMotorTest : public ActionBase {
 	void perform();
 public:
-	ActionMotorTest(Robot* robot) : ActionBase(robot, "mot", "Test motors", 1) {
-		_robot = robot;
-	}
+	ActionMotorTest(Robot* robot) : ActionBase(robot, "mot", "Test motors", 1) {}
 };
 
 class ActionNodeTest : public ActionBase {
 	void perform();
 public:
-	ActionNodeTest(Robot* robot) : ActionBase(robot, "nod", "Test node", 1) {
-		_robot = robot;
-	}
+	ActionNodeTest(Robot* robot) : ActionBase(robot, "nod", "Test node", 1) {}
 };
 
 class ActionNodeServoTest : public ActionBase {
 	void perform();
 public:
-	ActionNodeServoTest(Robot* robot) : ActionBase(robot, "nos", "Test node servo", 1) {
-		_robot = robot;
-	}
+	ActionNodeServoTest(Robot* robot) : ActionBase(robot, "nos", "Test node servo", 1) {}
 };
 
 class ActionStop : public ActionBase {
 	void perform();
 public:
-	ActionStop(Robot* robot) : ActionBase(robot, "sto", "Stop", 1) {
-		_robot = robot;
-	}
+	ActionStop(Robot* robot) : ActionBase(robot, "sto", "Stop", 1) {}
 };
 
 class ActionReflectanceArrayAnalogTest : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayAnalogTest(Robot* robot) : ActionBase(robot, "ref", "Test refl. anal.", 1) {
-		_robot = robot;
-	}
+	ActionReflectanceArrayAnalogTest(Robot* robot) : ActionBase(robot, "ref", "Test refl. anal.", 1) {}
 };
 
 class ActionReflectanceArrayDigitalTest : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayDigitalTest(Robot* robot) : ActionBase(robot, "red", "Test refl. digi.", 1) {
-		_robot = robot;
-	}
+	ActionReflectanceArrayDigitalTest(Robot* robot) : ActionBase(robot, "red", "Test refl. digi.", 1) {}
 };
 
 class ActionReflectanceArrayCalibrate : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayCalibrate(Robot* robot) : ActionBase(robot, "cal", "Calibrate refl.", 1) {
-		_robot = robot;
-	}
+	ActionReflectanceArrayCalibrate(Robot* robot) : ActionBase(robot, "cal", "Calibrate refl.", 1) {}
 };
 
 class ActionReflectanceArrayCalibrationPrint : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayCalibrationPrint(Robot* robot) : ActionBase(robot, "cpr", "Calibration print", 1) {
-		_robot = robot;
-	}
+	ActionReflectanceArrayCalibrationPrint(Robot* robot) : ActionBase(robot, "cpr", "Calibration print", 1) {}
 };
 
 class ActionServoTest : public ActionBase {
 	void perform();
 public:
-	ActionServoTest(Robot* robot) : ActionBase(robot, "ser", "Test servo", 1) {
-		_robot = robot;
-	}
+	ActionServoTest(Robot* robot) : ActionBase(robot, "ser", "Test servo", 1) {}
 };
 
 class ActionThermoTest : public ActionBase {
 	void perform();
 public:
-	ActionThermoTest(Robot* robot) : ActionBase(robot, "the", "Test thermo", 1) {
-		_robot = robot;
-	}
+	ActionThermoTest(Robot* robot) : ActionBase(robot, "the", "Test thermo", 1) {}
 };

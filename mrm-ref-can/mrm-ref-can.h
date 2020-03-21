@@ -157,11 +157,6 @@ public:
 	*/
 	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
-	/** Reset
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
-	*/
-	void reset(uint8_t deviceNumber = 0xFF);
-
 	/** Print all readings in a line
 	*/
 	void readingsPrint();

@@ -39,8 +39,11 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_BITMAP_STORE_PART2 0x09
 #define COMMAND_8X8_BITMAP_STORE_PART3 0x0A
 #define COMMAND_8X8_BITMAP_STORED_DISPLAY 0x0B
+#define COMMAND_8X8_ROTATION_SET 0x0C
 
 #define MRM_8x8A_SWITCHES_COUNT 4
+
+enum LED8x8Rotation { LED_8X8_BY_0_DEGREES, LED_8X8_BY_90_DEGREES, LED_8X8_BY_270_DEGREES };
 
 class Mrm_8x8a : public SensorBoard
 {
@@ -101,6 +104,12 @@ public:
 	@return - true if canId for this class
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
+
+	/** Set rotation from now on
+	@param rotation - 0, 90, or 270 degrees counterclockwise
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void rotationSet(enum LED8x8Rotation rotation = LED_8X8_BY_0_DEGREES, uint8_t deviceNumber = 0);
 
 	/** Read switch
 	@param switchNumber

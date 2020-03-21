@@ -17,7 +17,7 @@ typedef bool(*BreakCondition)();
 
 class Mrm_servo
 {
-	char nameThis[MAX_SERVO_COUNT][10]; // Device's name
+	char _name[MAX_SERVO_COUNT][10]; // Device's name
 	int nextFree;
 	uint8_t timerWidthBits;
 	Robot* robotContainer;

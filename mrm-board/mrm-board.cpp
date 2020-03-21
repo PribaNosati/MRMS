@@ -4,7 +4,6 @@
 
 #define REPORT_STRAY 1
 #define REQUEST_NOTIFICATION 0
-#define ENABLE_DEVICE_DISCONNECT 1
 
 /** Board is a single instance for all boards of the same type, not a single board (if there are more than 1 of the same type)! */
 
@@ -19,8 +18,8 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	robotContainer = robot;
 	idIn = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	idOut = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
-	nameThis = new std::vector<char[10]>(maxNumberOfBoards * devicesOn1Board);
-	firmwareVersionLast = new std::vector<uint16_t>(maxNumberOfBoards);
+	_name = new std::vector<char[10]>(maxNumberOfBoards * devicesOn1Board);
+	fpsLast = new std::vector<uint16_t>(maxNumberOfBoards);
 	lastMessageReceivedMs = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	this->devicesOnABoard = devicesOn1Board;
 	this->maximumNumberOfBoards = maxNumberOfBoards;
@@ -46,12 +45,12 @@ void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
 			sprintf(robotContainer->errorMessage, "Name too long: %s", deviceName);
 			return;
 		}
-		strcpy((*nameThis)[nextFree], deviceName);
+		strcpy((*_name)[nextFree], deviceName);
 	}
 	(*idIn)[nextFree] = canIn;
 	(*idOut)[nextFree] = canOut;
-	(*firmwareVersionLast)[nextFree] = 0;
 	(*lastMessageReceivedMs)[nextFree] = 0;
+	(*fpsLast)[nextFree] = 0xFFFF;
 	nextFree++;
 }
 
@@ -115,61 +114,21 @@ uint8_t Board::deadOrAliveCount() { return nextFree; }
 
 /** Ping devices and refresh alive array
 @param verbose - prints statuses
+@param mask - bitwise, 16 bits - no more than 16 devices! Bit == 1 - scan, 0 - no scan.
 @return - alive count
 */
-uint8_t Board::devicesScan(bool verbose) {
-	uint8_t count = 0;
-	for (uint8_t i = 0; i < nextFree; i++) {
-		bool any = false;
-#define BOARD_SCAN_TRIES 1
-		for (uint8_t j = 0; j < BOARD_SCAN_TRIES && !any; j++) {
+uint8_t Board::devicesScan(bool verbose, uint16_t mask) {
+	_aliveReport = verbose;
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+		if (mask >> deviceNumber & 1) {
+			aliveSet(false, deviceNumber);
 			canData[0] = COMMAND_REPORT_ALIVE;
-			robotContainer->esp32CANBus->messageSend((*idIn)[i], 1, canData);
-			//print("%s sent to 0x%x\n\r", (*nameThis)[i], (*idIn)[i]);
-			uint32_t nowMs = millis();
-			while (millis() - nowMs < aliveTimeout && !any) { // 1 is not enough, stray msgs reported
-				//print("Sent at %i ms\n\r", millis());
-				if (robotContainer->esp32CANBus->messageReceive()) {
-					//print("Rcvd 0x%x, expected: 0x%x\n\r", esp32CANBus->rx_frame->MsgID, (*idOut)[i]);
-					if (robotContainer->esp32CANBus->rx_frame->MsgID == (*idOut)[i]) {
-						if (verbose)
-							print("%s found\n\r", (*nameThis)[i]);
-						any = true;
-						count++;
-					}
-#if REPORT_STRAY
-					else
-						if (verbose) {
-							print("Stray msg: ");
-							messagePrint(robotContainer->esp32CANBus->rx_frame);
-							print("\n\r");
-							//print("stray id from: 0x%02X\n\r", robotContainer->esp32CANBus->rx_frame->MsgID);
-						}
-#endif
-				}
-			}
+			messageSend(canData, 3, deviceNumber);
+			robotContainer->delayMs(0); // Exchange CAN Bus messages and receive possible answer, that sets _alive.
 		}
-#if ENABLE_DEVICE_DISCONNECT
-		aliveSet(any, i);
-#else
-		if (any)
-			aliveSet(true, i);
-#endif
 	}
 	//print("%s OVER\n\r", nameGroup);
-	return count;
-}
-
-/** Display firmware for all devices of a board
-*/
-void Board::firmwareDisplay() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-		if (alive(deviceNumber))
-			if ((*firmwareVersionLast)[deviceNumber] == 0xFFFF)
-				print("%s: no response\n\r", (*nameThis)[deviceNumber]);
-			else
-				print("%s: ver. %i \n\r", (*nameThis)[deviceNumber], firmware(deviceNumber));
-	}
+	return aliveCount();
 }
 
 /** Request firmware version
@@ -182,8 +141,7 @@ void Board::firmwareRequest(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_FIRMWARE_REQUEST;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-			(*firmwareVersionLast)[deviceNumber] = 0;
+			messageSend(canData, 1, deviceNumber);
 		}
 	}
 }
@@ -193,7 +151,7 @@ void Board::firmwareRequest(uint8_t deviceNumber) {
 @return - FPS
 */
 uint16_t Board::fps(uint8_t deviceNumber) {
-	return fpsLast;
+	return (*fpsLast)[deviceNumber];
 }
 
 /** Display FPS for all devices
@@ -201,10 +159,10 @@ uint16_t Board::fps(uint8_t deviceNumber) {
 void Board::fpsDisplay() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		if (alive(deviceNumber))
-			if (fpsLast == 0xFFFF)
-				print("%s: no response\n\r", (*nameThis)[deviceNumber]);
+			if ((*fpsLast)[deviceNumber] == 0xFFFF)
+				print("%s: no response\n\r", (*_name)[deviceNumber]);
 			else
-				print("%s: %i FPS\n\r", (*nameThis)[deviceNumber], fps(deviceNumber));
+				print("%s: %i FPS\n\r", (*_name)[deviceNumber], fps(deviceNumber));
 	}
 }
 
@@ -218,8 +176,8 @@ void Board::fpsRequest(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_FPS_REQUEST;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
-			fpsLast = 0xFFFF;
+			messageSend(canData, 1, deviceNumber);
+			(*fpsLast)[deviceNumber] = 0xFFFF;
 		}
 	}
 }
@@ -231,7 +189,7 @@ void Board::fpsRequest(uint8_t deviceNumber) {
 void Board::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 	canData[0] = COMMAND_ID_CHANGE_REQUEST;
 	canData[1] = newDeviceNumber;
-	robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 2, canData);
+	messageSend(canData, 2, deviceNumber);
 }
 
 /** Is the frame addressed to this device?
@@ -258,40 +216,45 @@ bool Board::messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceN
 	bool found = true;
 	uint8_t command = data[0];
 	switch (command) {
+	case COMMAND_DUPLICATE_ID_ECHO:
+	case COMMAND_DUPLICATE_ID_PING:
+		break;
 	case COMMAND_ERROR:
 		errorCode = data[1];
 		errorInDeviceNumber = deviceNumber;
-		print("Error %i in %s.\n\r", errorCode, (*nameThis)[deviceNumber]);
+		print("Error %i in %s.\n\r", errorCode, (*_name)[deviceNumber]);
 		break;
-	case COMMAND_FIRMWARE_SENDING:
-		(*firmwareVersionLast)[deviceNumber] = (data[2] << 8) | data[1];
+	case COMMAND_FIRMWARE_SENDING: {
+		uint16_t firmwareVersion = (data[2] << 8) | data[1];
+		print("%s: ver. %i \n\r", (*_name)[deviceNumber], firmwareVersion);
+	}
 		break;
 	case COMMAND_FPS_SENDING:
-		fpsLast = (data[2] << 8) | data[1];
+		(*fpsLast)[deviceNumber] = (data[2] << 8) | data[1];
 		break;
 	case COMMAND_MESSAGE_SENDING_1:
-		print("From %s \n\r", (*nameThis)[deviceNumber]);
-		for (uint8_t i = 0; i < 7; i++) {
-			print("%i ", data[i + i]);
-			_message[i] = data[i + i];
-		}
+		for (uint8_t i = 0; i < 7; i++) 
+			_message[i] = data[i + 1];
 		break;
 	case COMMAND_MESSAGE_SENDING_2:
 		for (uint8_t i = 0; i < 7; i++)
-			_message[7 + i] = data[i + i];
+			_message[7 + i] = data[i + 1];
 		break;
 	case COMMAND_MESSAGE_SENDING_3:
 		for (uint8_t i = 0; i < 7; i++)
-			_message[14 + i] = data[i + i];
+			_message[14 + i] = data[i + 1];
 		break;
 	case COMMAND_MESSAGE_SENDING_4:
 		for (uint8_t i = 0; i < 7; i++)
-			_message[21 + i] = data[i + i];
-		print("Message from %s: %s\n\r", (*nameThis)[deviceNumber], _message);
+			_message[21 + i] = data[i + 1];
+		print("Message from %s: %s\n\r", (*_name)[deviceNumber], _message);
 		break;
 	case COMMAND_NOTIFICATION:
 		break;
 	case COMMAND_REPORT_ALIVE:
+		if (_aliveReport)
+			print("%s alive.\n\r", name(deviceNumber));
+		aliveSet(true, deviceNumber);
 		break;
 	default:
 		found = false;
@@ -321,7 +284,7 @@ bool Board::messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data) {
 	bool found = false;
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(msgId, deviceNumber)) {
-			print("Id:%s (0x%02X)", (*nameThis)[deviceNumber], msgId);
+			print("Id:%s (0x%02X)", (*_name)[deviceNumber], msgId);
 			found = true;
 		}
 	if (!found)
@@ -334,12 +297,27 @@ bool Board::messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data) {
 	return found;
 }
 
+/** Send CAN Bus message
+@param dlc - data length
+@param data - payload
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Board::messageSend(uint8_t* data, uint8_t dlc, uint8_t deviceNumber) {
+	if (dlc > 8) {
+		errorCode = 127;
+		errorInDeviceNumber = deviceNumber;
+		return;
+	}
+	else
+		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], dlc, data);
+}
+
 /** Returns device's name
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 @return - name
 */
 char* Board::name(uint8_t deviceNumber) {
-	return (*nameThis)[deviceNumber];
+	return (*_name)[deviceNumber];
 }
 
 /** Request notification
@@ -351,7 +329,7 @@ void Board::notificationRequest(uint8_t commandRequestingNotification, uint8_t d
 	while (tries < 10) {
 		tries++;
 		canData[0] = commandRequestingNotification;
-		robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+		messageSend(canData, 1, deviceNumber);
 		while (tries != 0xFF && robotContainer->esp32CANBus->messageReceive()) {
 			uint32_t id = robotContainer->esp32CANBus->rx_frame->MsgID;
 			//print("RCVD id 0x%x, data: 0x%x\n\r", id, esp32CANBus->rx_frame->data.u8[0]);
@@ -375,6 +353,20 @@ void Board::print(const char* fmt, ...) {
 	va_start(argp, fmt);
 	vprint(fmt, argp);
 	va_end(argp);
+}
+
+
+/** Reset
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
+*/
+void Board::reset(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			reset(i);
+	else {
+		canData[0] = COMMAND_RESET;
+		messageSend(canData, 1, deviceNumber);
+	}
 }
 
 
@@ -404,8 +396,8 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 				canData[1] = refreshMs & 0xFF;
 				canData[2] = (refreshMs >> 8) & 0xFF;
 			}
-			//messagePrint((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
+			messageSend(canData, refreshMs == 0 ? 1 : 3, deviceNumber);
+			//robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
 #endif
 		}
 	}
@@ -421,7 +413,7 @@ void Board::stop(uint8_t deviceNumber) {
 	else {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+			messageSend(canData, 1, deviceNumber);
 		}
 	}
 }
@@ -518,11 +510,11 @@ void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
 
 	canData[0] = COMMAND_SPEED_SET;
 	canData[1] = speed + 128;
-	robotContainer->esp32CANBus->messageSend((*idIn)[motorNumber], 2, canData);
-
-
+	messageSend(canData, 2, motorNumber);
 }
 
+/** Stop all motors
+*/
 void MotorBoard::stop() {
 	for (uint8_t i = 0; i < nextFree; i++)
 		speedSet(i, 0);
@@ -542,53 +534,39 @@ void MotorBoard::test()
 	const int8_t step[3] = { 1, -1, 1 };
 
 	// Select motor
-	int8_t selectedMotor = -2;
-	uint32_t lastMs;
-	while (selectedMotor < -1 || selectedMotor >= nextFree) {
-		print("Enter motor number [0-%i] or wait for all\n\r", nextFree - 1);
-		lastMs = millis();
-		selectedMotor = -1;
-		while (millis() - lastMs < 3000 && selectedMotor == -1)
-			if (Serial.available()) {
-				selectedMotor = Serial.read() - 48;
-			}
-		if (selectedMotor == -1)
-			print("Test all\n\r");
-		else if (selectedMotor >= 0 && selectedMotor < nextFree)
-			print("\n\rTest motor %i\n\r", selectedMotor);
-		else
-			print("\n\rMotor %i doesn't exist\n\r", selectedMotor);
-	}
+	print("%s - enter motor number [0-%i] or wait for all\n\r", name(), nextFree - 1);
+	uint16_t selectedMotor = robotContainer->serialReadNumber(3000, 500, nextFree - 1 > 9, nextFree - 1, false);
+	if (selectedMotor == 0xFFFF)
+		print("Test all\n\r");
+	else 
+		print("\n\rTest motor %i\n\r", selectedMotor);
 
 	// Select speed
-	int16_t selectedSpeed = 0;
 	bool fixedSpeed = false;
 	print("Enter speed [0-127] or wait for all\n\r");
-	lastMs = millis();
-	while (millis() - lastMs < 2000)
-		if (Serial.available()) {
-			selectedSpeed = selectedSpeed * 10 + (Serial.read() - 48);
-			fixedSpeed = true;
-			lastMs = millis();
-		}
-	if (fixedSpeed)
-		print("\n\rSpeed %i\n\r", selectedSpeed);
-	else
+	uint16_t selectedSpeed = robotContainer->serialReadNumber(2000, 500, false, 127, false);
+	if (selectedSpeed == 0xFFFF) {
+		fixedSpeed = false;
 		print("All speeds\n\r");
+	}
+	else {
+		fixedSpeed = true;
+		print("\n\rSpeed %i\n\r", selectedSpeed);
+	}
 
 	bool goOn = true;
 	bool encodersStarted[4] = { false, false, false, false };
-	lastMs = 0;
+	uint32_t lastMs = 0;
 	while (goOn) {
 		for (uint8_t motorNumber = 0; motorNumber < nextFree; motorNumber++) {
 
-			if (selectedMotor != -1 && motorNumber != selectedMotor || !alive(motorNumber))
+			if (selectedMotor != 0xFFFF && motorNumber != selectedMotor || !alive(motorNumber))
 				continue;
 
 			if (!encodersStarted[motorNumber]) {
 				encodersStarted[motorNumber] = true;
 				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
-				robotContainer->esp32CANBus->messageSend((*idIn)[motorNumber], 1, canData);
+				messageSend(canData, 1, motorNumber);
 			}
 
 			if (fixedSpeed) {
@@ -626,7 +604,7 @@ void MotorBoard::test()
 
 		if (encodersStarted[motorNumber]) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
-			robotContainer->esp32CANBus->messageSend((*idIn)[motorNumber], 1, canData);
+			messageSend(canData, 1, motorNumber);
 		}
 	}
 }
@@ -659,7 +637,8 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
 			canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS_AND_RETURN_CALCULATED_DATA;
-			robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
+			messageSend(canData, 1, deviceNumber);
+			//robotContainer->esp32CANBus->messageSend((*idIn)[deviceNumber], 1, canData);
 			//print("Sent to 0x%x\n\r, ", (*idIn)[deviceNumber]);
 #endif
 		}
@@ -671,6 +650,9 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 MotorGroup::MotorGroup(){
 }
 
+/** Angle between -180 and 180 degrees
+@return - angle
+*/
 float MotorGroup::angleNormalized(float angle) {
 	if (angle < -180)
 		angle += 360;
@@ -679,6 +661,8 @@ float MotorGroup::angleNormalized(float angle) {
 	return angle;
 }
 
+/** Stop motors
+*/
 void MotorGroup::stop() {
 	for (uint8_t i = 0; i < MAX_MOTORS_IN_GROUP; i++)
 		if (motorBoard[i] == NULL)
@@ -687,6 +671,16 @@ void MotorGroup::stop() {
 			motorBoard[i]->speedSet(motorNumber[i], 0);
 }
 
+/** Constructor
+@param motorBoardForLeft1 - Controller for one of the left wheels
+@param motorNumberForLeft1 - Controller's output number
+@param motorBoardForRight1 - Controller for one of the right wheels
+@param motorNumberForRight1 - Controller's output number
+@param motorBoardForLeft2 - Controller for one of the left wheels
+@param motorNumberForLeft2 - Controller's output number
+@param motorBoardForRight2 - Controller for one of the right wheels
+@param motorNumberForRight2 - Controller's output number
+*/
 MotorGroupDifferential::MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
 	MotorBoard* motorBoardForLeft2, uint8_t motorNumberForLeft2, MotorBoard * motorBoardForRight2, uint8_t motorNumberForRight2) {
 	motorBoard[0] = motorBoardForLeft1;
@@ -725,6 +719,16 @@ void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t l
 	}
 }
 
+/**
+@param motorBoardFor45Degrees - motor controller for the motor which axle is inclined 45 degrees clockwise from robot's front.
+@param motorNumberFor45Degrees - Controller's output number.
+@param motorBoardFor13Degrees - motor controller for the motor which axle is inclined 135 degrees clockwise from robot's front.
+@param motorNumberFor135Degrees - Controller's output number.
+@param motorBoardForMinus135Degrees - motor controller for the motor which axle is inclined -135 degrees clockwise from robot's front.
+@param motorNumberForMinus135Degrees - Controller's output number.
+@param motorBoardForMinus45Degrees - motor controller for the motor which axle is inclined -45 degrees clockwise from robot's front.
+@param motorNumberForMinus45Degrees - Controller's output number.
+*/
 MotorGroupStar::MotorGroupStar(MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
 	MotorBoard* motorBoardForMinus135Degrees, uint8_t motorNumberForMinus135Degrees, MotorBoard* motorBoardForMinus45Degrees, uint8_t motorNumberForMinus45Degrees) {
 	motorBoard[0] = motorBoardFor45Degrees;
