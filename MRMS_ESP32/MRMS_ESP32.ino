@@ -26,7 +26,7 @@
 #include <mrm-us.h>
 #include <Wire.h>
 
-Robot* robot;
+Robot *robot;
 
 void setup() {
 	robot = new RobotLine(); // RobotLine, RobotSoccer, or Your custom robot
