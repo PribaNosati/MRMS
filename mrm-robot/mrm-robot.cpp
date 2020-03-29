@@ -882,7 +882,7 @@ void Robot::stopAll() {
 /** CAN Bus stress test
 */
 bool Robot::stressTest() {
-	const bool STOP_ON_ERROR = true;
+	const bool STOP_ON_ERROR = false;
 	const uint16_t LOOP_COUNT = 10000;
 	const bool TRY_ONLY_ALIVE = true;
 

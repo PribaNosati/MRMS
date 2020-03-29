@@ -1,11 +1,17 @@
 #include "mrm-imu.h"
+#ifdef ESP_PLATFORM
 #include <mrm-robot.h>
+#endif
 
 /**Constructor
 @param robot - robot containing this board
 */
+#ifdef ESP_PLATFORM
 Mrm_imu::Mrm_imu(Robot* robot) {
 	robotContainer = robot;
+#else
+Mrm_imu::Mrm_imu() {
+#endif
 	nextFree = 0;
 }
 
@@ -16,7 +22,14 @@ Mrm_imu::~Mrm_imu() {}
 */
 void Mrm_imu::add(bool defaultI2CAddress) {
 	if (nextFree >= MAX_MRM_IMU) {
-		strcpy(robotContainer->errorMessage, "Too many Bosch IMUs.");//Todo - enabling more sensors by changing bno055Initialize() call.
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "Too many mrm-imus.");//Todo - enabling more sensors by changing bno055Initialize() call.
+		else
+			errorGeneric();
+#else
+		Serial.println("To many IMUs");
+#endif
 		return;
 	}
 
@@ -61,7 +74,14 @@ uint8_t Mrm_imu::accelerationCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return acc;
 	else {
-		strcpy(robotContainer->errorMessage, "No accelerometer");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "No accelerometer");
+		else
+			errorGeneric();
+#else
+		Serial.println("No accelerometer");
+#endif
 		return 0;
 	}
 }
@@ -75,7 +95,14 @@ uint8_t Mrm_imu::gyroCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(robotContainer->errorMessage, "No gyroscope");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "No gyroscope");
+		else
+			errorGeneric();
+#else
+		Serial.println("No gyroscope");
+#endif
 		return 0;
 	}
 }
@@ -89,7 +116,14 @@ uint8_t Mrm_imu::magneticCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(robotContainer->errorMessage, "No magnetometer.");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "No magnetometer.");
+		else
+			errorGeneric();
+#else
+		Serial.println("No magnetometer.");
+#endif
 		return 0;
 	}
 }
@@ -103,7 +137,14 @@ uint8_t Mrm_imu::systemCalibration() {
 	if (ok == BNO055_SUCCESS)
 		return cal;
 	else {
-		strcpy(robotContainer->errorMessage, "mrm-imu calibration error");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "mrm-imu calibration error");
+		else
+			errorGeneric();
+#else
+		Serial.println("mrm-imu calibration error");
+#endif
 		return 0;
 	}
 }
@@ -112,12 +153,33 @@ uint8_t Mrm_imu::systemCalibration() {
 */
 void Mrm_imu::test() {
 	static uint32_t ms = 0;
-	if (millis() - ms > 200){
-		for (int i = 0; i < nextFree; i++) 
-			robotContainer->print("Y:%3i P:%3i R:%3i", (int)round(heading()), (int)round(pitch()), (int)round(roll()));
-		robotContainer->print("\n\r");
+	if (millis() - ms > 200) {
+#ifdef ESP_PLATFORM
+		if (robotContainer == NULL)
+			testHelper();
+		else {
+			for (int i = 0; i < nextFree; i++)
+				robotContainer->print("Y:%3i P:%3i R:%3i", (int)round(heading()), (int)round(pitch()), (int)round(roll()));
+			robotContainer->print("\n\r");
+		}
+#else
+		testHelper();
+#endif
 		ms = millis();
 	}
+}
+
+void Mrm_imu::testHelper() {
+	for (int i = 0; i < nextFree; i++)
+	{
+		Serial.print("Y:");
+		Serial.print((int)round(heading()));
+		Serial.print(" P:");
+		Serial.print((int)round(pitch()));
+		Serial.print(" R:");
+		Serial.print((int)round(roll()));
+	}
+	Serial.println();
 }
 
 /*----------------------------------------------------------------------------*
@@ -646,7 +708,14 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	bno055.dev_addr = defaultI2CAddress ? BNO055_I2C_ADDR2 : BNO055_I2C_ADDR1;
 	comres = bno055_init(&bno055);
 	if (comres != BNO055_SUCCESS) {
-		strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
+		else
+			errorGeneric();
+#else
+		Serial.println("mrm-imu not initialized");
+#endif
 		return;
 	}
 
@@ -655,5 +724,12 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	//	errorHandler();
 	bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
 	if (comres != BNO055_SUCCESS)
-		strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
+#ifdef ESP_PLATFORM
+		if (robotContainer != NULL)
+			strcpy(robotContainer->errorMessage, "mrm-imu not initialized");
+		else
+			errorGeneric();
+#else
+		Serial.println("mrm-imu not initialized");
+#endif
 }

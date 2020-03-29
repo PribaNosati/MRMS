@@ -1,7 +1,11 @@
 #pragma once
 #include <Wire.h>
 #include "bno055.h"// bno055.h and bno055.cpp files must be in Arduino libraries.
+#ifdef ESP_PLATFORM
 #include <mrm-board.h>
+#else
+#include <Arduino.h>
+#endif
 
 /**
 Purpose: Reading of Bosch BNO055 IMU sensor.
@@ -19,16 +23,27 @@ class Mrm_imu
 	bool defaultI2CAddresses[MAX_MRM_IMU]; //If true, it will use default I2C address (0x29) otherwise 0x28.
 	struct bno055_t bno055; // Structure declaration.
 	int nextFree;
+#ifdef ESP_PLATFORM
 	Robot* robotContainer;
+#endif
 
 	void bno055Initialize(bool defaultI2CAddress = true); //IMU initialization of the sensor. It should be called once, after Wire.begin(). 
+
 	s32 bno055_data_readout_template(void); //A function You do not use.
+
+	void errorGeneric() { Serial.println("Error."); }
+
+	void testHelper();
 
 public:
 	/**Constructor
 	@param robot - robot containing this board
 	*/
-	Mrm_imu(Robot* robot);
+#ifdef ESP_PLATFORM
+	Mrm_imu(Robot* robot = NULL);
+#else
+	Mrm_imu();
+#endif
 
 	~Mrm_imu();
 
