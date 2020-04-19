@@ -4,6 +4,7 @@
 #include <mrm-board.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
+#include <mrm-can-esp32.h>
 #include <mrm-col-can.h>
 #include <mrm-common.h>
 #include <mrm-imu.h>
