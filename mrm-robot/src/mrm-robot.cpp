@@ -20,22 +20,26 @@
 #include <mrm-therm-b-can.h>
 #include <mrm-us.h>
 
+extern BluetoothSerial* serialBT;
+
 /**
-@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 */
-Robot::Robot(BluetoothSerial* hardwareSerial) {
+Robot::Robot() {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 	Serial.begin(115200);
-	serial = new BluetoothSerial();
-	serial->begin("ESP32"); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
+	//serial = new BluetoothSerial();
+	if (serialBT == NULL) {
+		serialBT = new BluetoothSerial(); // Additional serial port
+		serialBT->begin("ESP32"); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
+	}
 	delay(50);
 	print("Robot started.\r\n");
 
 	Wire.begin(); // Start I2C
 
-	esp32CANBus = new ESP32CANBus();
+	mrm_can_bus = new Mrm_can_bus();
 
 	_actionCurrent = NULL;
 	_actionPrevious = _actionCurrent;
@@ -96,7 +100,7 @@ Robot::Robot(BluetoothSerial* hardwareSerial) {
 
 	mrm_switch->actionSet(_actionAny, 0);
 	mrm_switch->actionSet(_actionStop, 1);
-	
+
 	// 8x8 LED
 	mrm_8x8a->add("LED8x8-0");
 
@@ -210,7 +214,6 @@ Robot::Robot(BluetoothSerial* hardwareSerial) {
 	mrm_us->add("US-2");
 	mrm_us->add("US-3");
 
-
 	// Add boards
 	add(mrm_8x8a);
 	add(mrm_bldc2x50);
@@ -266,13 +269,14 @@ void Robot::actionSet() {
 	else if (mrm_switch->actionCheck())
 		_actionCurrent = mrm_8x8a->actionCheck();
 	else { // Check keyboard
-		if (Serial.available() || serial->available()) {
+		if (Serial.available() || serialBT != NULL && serialBT->available()) {
 			lastUserActionMs = millis();
 			uint8_t ch;
 			if (Serial.available())
 				ch = Serial.read();
 			else
-				ch = serial->read();
+				if (serialBT != NULL)
+					ch = serialBT->read();
 
 			if (ch != 13) //if received data different from ascii 13 (enter)
 				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
@@ -374,8 +378,11 @@ void Robot::bluetoothTest() {
 */
 void Robot::canBusSniff() {
 	while (!userBreak()) {
-		if (esp32CANBus->messageReceive()) {
-			bool found = mrm_8x8a->messagePrint(esp32CANBus->rx_frame);
+		noLoopWithoutThis();
+		if (!dequeEmpty()) {
+			/*bool found = mrm_8x8a->messagePrint(mrm_can_bus->rx_frame);*/
+			CANBusMessage* msg = dequeBack();
+			bool found = mrm_8x8a->messagePrint(msg->messageId, msg->dlc, msg->data);
 			print("\n\r");
 		}
 	}
@@ -467,6 +474,16 @@ void Robot::delayMs(uint16_t pauseMs) {
 	} while (millis() - startMs < pauseMs);
 }
 
+/** The right way to use Arduino function delayMicros
+@param pauseMicros - pause in micros. One run even if pauseMicros == 0, so that delayMicross(0) receives all messages.
+*/
+void Robot::delayMicros(uint16_t pauseMicros) {
+	uint32_t startMicros = micros();
+	do {
+		noLoopWithoutThis();
+	} while (micros() - startMicros < pauseMicros);
+}
+
 /** Contacts all the CAN Bus devices and checks which one is alive.
 @verbose - if true, print. 
 */
@@ -508,6 +525,7 @@ void Robot::errors() {
 /** Displays each CAN Bus device's firmware
 */
 void Robot::firmwarePrint() {
+	mrm_lid_can_b2->rangingType(0, 3);
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		board[i]->firmwareRequest();
 		uint32_t startMs = millis();
@@ -525,9 +543,9 @@ float Robot::fpsGet() {
 	if (fpsMs[1] == 0 || fpsMs[0] == 0)
 		fpsNow = 0;
 	else if (fpsMs[0] == fpsMs[1])
-		fpsNow = 1000;
+		fpsNow = 1000000;
 	else
-		fpsNow = 1000.0 / (float)(fpsMs[1] > fpsMs[0] ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
+		fpsNow = 1000000.0 / (float)(fpsMs[1] > fpsMs[0] ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
 	return fpsNow;
 }
 
@@ -541,8 +559,8 @@ void Robot::fpsPause() {
 /** Prints FPS all CAN Bus devices and mrm-eps32 boards. Also prints CAN Bus frequency.
 */
 void Robot::fpsPrint() {
-	print("CAN peaks: %i received/s, %i sent/s\n\r", esp32CANBus->messagesPeakReceived(), esp32CANBus->messagesPeakSent());
-	print("Arduino: %i FPS, low peak: %i FPS\n\r", (int)fpsGet(), fpsTopGap == 1000 ? 0 : (int)(1000 / (float)fpsTopGap));
+	print("CAN peaks: %i received/s, %i sent/s\n\r", mrm_can_bus->messagesPeakReceived(), mrm_can_bus->messagesPeakSent());
+	print("Arduino: %i FPS, low peak: %i FPS\n\r", (int)fpsGet(), fpsTopGap == 1000000 ? 0 : (int)(1000000 / (float)fpsTopGap));
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		board[i]->fpsRequest();
 		uint32_t startMs = millis();
@@ -560,12 +578,13 @@ void Robot::fpsReset() {
 	fpsTopGap = 0;
 	fpsMs[0] = 0;
 	fpsMs[1] = 0;
+	mrm_can_bus->messagesReset();
 }
 
 /** Updates data for FPS calculation
 */
 void Robot::fpsUpdate() {
-	fpsMs[fpsNextIndex] = millis();
+	fpsMs[fpsNextIndex] = micros();
 	fpsNextIndex = (fpsNextIndex == 0 ? 1 : 0);
 	if (fpsMs[0] != 0 && fpsMs[1] != 0) {
 		uint32_t gap = (fpsNextIndex == 0 ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
@@ -620,22 +639,24 @@ void Robot::lidar2mTest() {
 	static uint16_t selected;
 	if (actionPreprocessing(true)) {
 		// Select lidar
-		uint8_t aliveCount = mrm_lid_can_b->aliveCount();
-		if (aliveCount > 0) {
-			print("%s - enter lidar number [0-%i] or wait for all\n\r", mrm_lid_can_b->name(), aliveCount - 1);
-			selected = serialReadNumber(3000, 500, aliveCount - 1 > 9, aliveCount - 1, false);
-			if (selected == 0xFFFF)
-				print("Test all\n\r");
-			else
-				print("\n\rTest lidar %i\n\r", selected);
-			mrm_lid_can_b->start();
+		uint8_t count = mrm_lid_can_b->deadOrAliveCount();
+		print("%s - enter lidar number [0-%i] or wait for all\n\r", mrm_lid_can_b->name(), count - 1);
+		selected = serialReadNumber(3000, 1000, count - 1 < 9, count - 1, false);
+		if (selected == 0xFFFF) {
+			print("Test all\n\r");
+			selected == 0xFF;
 		}
 		else {
-			print("No lidars.\n\r");
-			actionEnd();
+			if (mrm_lid_can_b->alive(selected))
+				print("\n\rTest lidar %s\n\r", mrm_lid_can_b->name(selected));
+			else {
+				print("\n\Lidar %s dead, test all\n\r", mrm_lid_can_b->name(selected));
+				selected = 0xFF;
+			}
 		}
+		mrm_lid_can_b->start(selected);
 	}
-	mrm_lid_can_b->test(selected == 0xFFFF ? 0xFF : selected);
+	mrm_lid_can_b->test(selected);
 }
 
 /** Tests mrm-lid-can-b2
@@ -652,39 +673,40 @@ void Robot::lidarCalibrate() {
 	print("Lidar calibration\n\r");
 
 	// Select lidar 2 or 4 m
-	int8_t selectedLidar = -1;
+	int8_t selected2Or4 = -1;
 	uint32_t lastMs;
-	while (selectedLidar != 2 && selectedLidar != 4) {
+	while (selected2Or4 != 2 && selected2Or4 != 4) {
 		print("Enter max distance [2 or 4]m or wait to abort ");
 		lastMs = millis();
-		selectedLidar = -1;
-		while (millis() - lastMs < 10000 && selectedLidar == -1)
+		selected2Or4 = -1;
+		while (millis() - lastMs < 10000 && selected2Or4 == -1)
 			if (Serial.available()) {
 				uint8_t ch = Serial.read() - 48;
 				print("%i\n\r", ch);
-				selectedLidar = ch;
+				selected2Or4 = ch;
 			}
-		if (selectedLidar == -1) {
+		if (selected2Or4 == -1) {
 			print("- abort\n\r");
 			break;
 		}
 	}
 
 	// Select lidar number
-	uint8_t aliveCount = (selectedLidar == 2 ? mrm_lid_can_b : mrm_lid_can_b2)->aliveCount();
-	if (aliveCount > 0) {
-		print("Enter lidar number [0-%i] or wait to abort\n\r", aliveCount - 1);
-		selected = serialReadNumber(3000, 500, aliveCount - 1 > 9, aliveCount - 1, false);
+	if (selected2Or4 != -1) {
+		// Select lidar
+		uint8_t count = selected2Or4 == 2 ? mrm_lid_can_b->deadOrAliveCount() : mrm_lid_can_b2->deadOrAliveCount();
+		print("Enter lidar number [0-%i] or wait to abort", count - 1);
+		uint16_t selected = serialReadNumber(3000, 1000, count - 1 < 9, count - 1, false);
 		if (selected == 0xFFFF)
-			print("Abort\n\r");
+			print("\n\rAbort\n\r");
 		else {
-			print("\n\rCalibrate lidar %i\n\r", selected);
-			(selectedLidar == 2 ? mrm_lid_can_b : mrm_lid_can_b2)->calibration(selected);
+			if (selected2Or4 == 2 ? mrm_lid_can_b->alive(selected) : mrm_lid_can_b2->alive(selected)) {
+				print("\n\rCalibrate lidar %s\n\r", mrm_lid_can_b->name(selected));
+				selected2Or4 == 2 ? mrm_lid_can_b->calibration(selected) : mrm_lid_can_b2->calibration(selected);
+			}
+			else
+				print("\n\rLidar %s dead\n\r", selected2Or4 == 2 ? mrm_lid_can_b->name(selected) : mrm_lid_can_b2->name(selected));
 		}
-	}
-	else {
-		print("No lidars.\n\r");
-		actionEnd();
 	}
 
 	actionEnd();
@@ -736,11 +758,17 @@ void Robot::menuMainAndIdle() {
 /** Receives CAN Bus messages. 
 */
 void Robot::messagesReceive() {
-	while (esp32CANBus->messageReceive()) {
-		uint32_t id = esp32CANBus->rx_frame->MsgID;
+#if !CAN_RECEIVE_INTERRUPT
+	if (mrm_can_bus->messageReceive() == 2)
+		strcpy(errorMessage, "Deque full.");
+#endif
+	while (!dequeEmpty()) {
+		CANBusMessage *msg = dequeBack();
+		dequePopBack();
+		uint32_t id = msg->messageId;
 		bool any = false;
 		for (uint8_t boardId = 0; boardId < _boardNextFree; boardId++) {
-			if (board[boardId]->messageDecode(id, esp32CANBus->rx_frame->data.u8)) {
+			if (board[boardId]->messageDecode(id, msg->data)) {
 				any = true;
 				break;
 			}
@@ -758,9 +786,11 @@ void Robot::messagesReceive() {
 */
 void Robot::motorTest() {
 	print("Test motors\n\r");
-	for (uint8_t i = 0; i < _boardNextFree; i++)
-		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0)
+	for (uint8_t i = 0; i < _boardNextFree; i++) {
+		print("Brd %s %i %i\n\r", board[i]->name(), board[i]->boardType(), board[i]->count());
+		if (board[i]->boardType() == MOTOR_BOARD && board[i]->count() > 0)
 			board[i]->test();
+	}
 	actionEnd();
 }
 
@@ -782,16 +812,16 @@ void Robot::noLoopWithoutThis() {
 	errors();
 }
 
-/** Print to all serial ports
-@param fmt - C format string
-@param ... - variable arguments
-*/
-void Robot::print(const char* fmt, ...) {
-	va_list argp;
-	va_start(argp, fmt);
-	vprint(fmt, argp);
-	va_end(argp);
-}
+///** Print to all serial ports
+//@param fmt - C format string
+//@param ... - variable arguments
+//*/
+//void Robot::print(const char* fmt, ...) {
+//	va_list argp;
+//	va_start(argp, fmt);
+//	vprint(fmt, argp);
+//	va_end(argp);
+//}
 
 /** Prints mrm-ref-can* calibration data
 */
@@ -839,12 +869,12 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 	uint32_t convertedNumber = 0;
 	bool any = false;
 	while (millis() - lastMs < timeoutFirst && !any || !onlySingleDigitInput && millis() - lastMs < timeoutBetween && any) {
-		if (Serial.available() || serial->available()) {
+		if (Serial.available() || serialBT != NULL && serialBT->available()) {
 			uint8_t character = 0;
 			if (Serial.available())
 				character = Serial.read();
-			else if (serial->available())
-				character = serial->read();
+			else if (serialBT != NULL && serialBT->available())
+				character = serialBT->read();
 			if (48 <= character && character <= 57) {
 				convertedNumber = convertedNumber * 10 + (character - 48);
 				any = true;
@@ -857,8 +887,8 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 	// Eat tail
 	while (Serial.available())
 		Serial.read();
-	while (serial->available())
-		serial->read();
+	while (serialBT != NULL && serialBT->available())
+		serialBT->read();
 
 	// Return result
 	if (any) {
@@ -882,7 +912,7 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 void Robot::stopAll() {
 	devicesStop();
 	for (uint8_t i = 0; i < _boardNextFree; i++)
-		if (board[i]->boardType() == MOTOR_BOARD && board[i]->aliveCount() > 0)
+		if (board[i]->boardType() == MOTOR_BOARD && board[i]->count() > 0)
 			((MotorBoard*)board[i])->stop();
 	actionEnd();
 }
@@ -891,7 +921,7 @@ void Robot::stopAll() {
 */
 bool Robot::stressTest() {
 	const bool STOP_ON_ERROR = false;
-	const uint16_t LOOP_COUNT = 10000;
+	const uint16_t LOOP_COUNT = 100000;
 	const bool TRY_ONLY_ALIVE = true;
 
 	// Setup
@@ -925,7 +955,7 @@ bool Robot::stressTest() {
 	}
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		if (count[i] > 0 || !TRY_ONLY_ALIVE) {
-			//delayMs(1);
+			delayMs(1);
 			uint8_t cnt = board[i]->devicesScan(false, mask[i]);
 			if (cnt != count[i]) {
 				errors[i]++;
@@ -969,7 +999,7 @@ void Robot::thermoTest() {
 @return - true if break requested.
 */
 bool Robot::userBreak() {
-	if (/*switchOn() ||*/ Serial.available() || serial->available()) {
+	if (/*switchOn() ||*/ Serial.available() || serialBT != NULL && serialBT->available()) {
 		return true;
 	}
 	else
@@ -994,15 +1024,15 @@ void Robot::verboseToggle() {
 	verbose = !verbose;
 };
 
-/** Print to all serial ports, pointer to list
-*/
-void Robot::vprint(const char* fmt, va_list argp) {
-	if (strlen(fmt) >= 100)
-		return;
-	static char buffer[100];
-	vsprintf(buffer, fmt, argp);
-
-	Serial.print(buffer);
-	if (serialBT() != 0)
-		serialBT()->print(buffer);
-}
+///** Print to all serial ports, pointer to list
+//*/
+//void Robot::vprint(const char* fmt, va_list argp) {
+//	if (strlen(fmt) >= 100)
+//		return;
+//	static char buffer[100];
+//	vsprintf(buffer, fmt, argp);
+//
+//	Serial.print(buffer);
+//	if (serialBT() != 0)
+//		serialBT()->print(buffer);
+//}
