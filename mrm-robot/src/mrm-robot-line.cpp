@@ -1,4 +1,5 @@
 #include <mrm-8x8a.h>
+#include <mrm-col-can.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-mot4x3.6can.h>
 #include "mrm-robot-line.h"
@@ -25,7 +26,7 @@ RobotLine::RobotLine() : Robot() {
 */
 void RobotLine::anyTest() {
 	if (actionPreprocessing(true)) {
-		;// mrm_lid_can_b2->rangingType(0, 3);
+		mrm_col_can->illumination(0, 1);
 	}
 	actionEnd();
 }

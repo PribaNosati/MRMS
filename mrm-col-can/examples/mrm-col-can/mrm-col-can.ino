@@ -8,8 +8,9 @@ void setup() {
   Serial.println("Start");
 
   mrm_col_can.add(); // Add one mrm-col-can board
-  mrm_col_can.test();  // Start testing
+  mrm_col_can.start();
 }
 
 void loop() {
+    mrm_col_can.test(); 
 }

@@ -66,6 +66,16 @@ void Mrm_col_can::add(char * deviceName)
 	SensorBoard::add(deviceName, canIn, canOut);
 }
 
+/** Set illumination intensity
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+@param current - 0 - 3
+*/
+void Mrm_col_can::illumination(uint8_t deviceNumber, uint8_t current) {
+	canData[0] = CAN_COL_ILLUMINATION_CURRENT;
+	canData[1] = current;
+	messageSend(canData, 2, deviceNumber);
+}
+
 /** Read CAN Bus message into local variables
 @param data - 8 bytes from CAN Bus message.
 */

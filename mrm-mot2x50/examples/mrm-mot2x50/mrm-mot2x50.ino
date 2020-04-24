@@ -6,7 +6,7 @@
 #define COMMAND_SPEED_SET 0x20
 
 uint32_t motorId[2] = {ID_MOTOR1, ID_MOTOR2};
-Mrm_can_bus can(NULL);
+Mrm_can_bus can();
 uint8_t data[8];        // Message content: 8 bytes
 
 void setSpeed(uint8_t motorNumber, int8_t speed) {

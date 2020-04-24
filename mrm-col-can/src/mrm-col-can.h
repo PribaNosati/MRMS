@@ -25,6 +25,7 @@ Licence: You can use this code any way you like.
 #define CAN_ID_COL_CAN6_OUT 0x31D
 #define CAN_ID_COL_CAN7_IN 0x31E
 #define CAN_ID_COL_CAN7_OUT 0x31F
+#define CAN_COL_ILLUMINATION_CURRENT 0x50
 
 #define MRM_COL_CAN_COLORS 6
 
@@ -88,6 +89,12 @@ public:
 	@return - color intensity
 	*/
 	uint16_t colorYellow(uint8_t deviceNumber) { return (*readings)[deviceNumber][5]; }
+
+	/** Set illumination intensity
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+	@param current - 0 - 3
+	*/
+	void illumination(uint8_t deviceNumber = 0, uint8_t current = 0);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

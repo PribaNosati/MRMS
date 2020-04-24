@@ -515,10 +515,10 @@ void Robot::devicesStop() {
 */
 void Robot::errors() {
 	if (strcmp(errorMessage, "") != 0) {
-		print("ERROR! %s\n\r", errorMessage);
+		print("Error! %s\n\r", errorMessage);
+		strcpy(errorMessage, "");
 		stopAll(); // Stop all motors
 		actionEnd();
-		strcpy(errorMessage, "");
 	}
 }
 
@@ -722,7 +722,6 @@ void Robot::menu() {
 	bool any = false;
 	uint8_t column = 1;
 	uint8_t maxColumns = 2;
-
 	for (uint8_t i = 0; i < _actionNextFree; i++) {
 		if ((_action[i]->_menuLevel | menuLevel) == _action[i]->_menuLevel) {
 			print("%-3s - %-22s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
@@ -786,11 +785,9 @@ void Robot::messagesReceive() {
 */
 void Robot::motorTest() {
 	print("Test motors\n\r");
-	for (uint8_t i = 0; i < _boardNextFree; i++) {
-		print("Brd %s %i %i\n\r", board[i]->name(), board[i]->boardType(), board[i]->count());
+	for (uint8_t i = 0; i < _boardNextFree; i++) 
 		if (board[i]->boardType() == MOTOR_BOARD && board[i]->count() > 0)
 			board[i]->test();
-	}
 	actionEnd();
 }
 
@@ -848,7 +845,7 @@ void Robot::run() {
 		actionSet(); // Check if a key pressed and update current command buffer.
 		if (_actionCurrent == NULL) // If last command finished, display menu.
 			menu();
-		else
+		else 
 			actionProcess(); // Process current command. The command will be executed while currentCommand is not NULL. Here state maching processing occurs, too.
 		noLoopWithoutThis(); // Receive all CAN Bus messages. This call should be included in any loop, like here.
 	}

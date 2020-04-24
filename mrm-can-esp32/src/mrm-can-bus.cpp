@@ -36,6 +36,15 @@ struct CANBusMessage* dequeBack() {
 		return queue[queueNextBack - 1];
 }
 
+bool dequeEmpty() { return queueNextBack == 0; }
+
+void dequeInitialize() {
+	for (uint8_t i = 0; i < QUEUE_LENGTH; i++) {
+		struct CANBusMessage* p = (CANBusMessage*)malloc(sizeof(struct CANBusMessage));
+		queue[i] = p;
+	}
+}
+
 void dequePopBack() {
 	if (queueNextBack > 0)
 		queueNextBack--;
@@ -44,30 +53,23 @@ void dequePopBack() {
 /** Push a message. queueFirst points to the oldest message and queueLast to the latest.
  */
 bool dequePushFront(uint32_t msgId, uint8_t dlc, uint8_t data[8]) {
-	if (queueNextBack < QUEUE_LENGTH) {
-		struct CANBusMessage* ptr = queue[QUEUE_LENGTH - 1];
-		for (uint8_t i = QUEUE_LENGTH - 1; i > 0; i--)
-			queue[i] = queue[i - 1];
-		ptr->messageId = msgId;
-		ptr->dlc = dlc;
-		for (uint8_t i = 0; i < 8; i++)
-			ptr->data[i] = data[i];
-		queue[0] = ptr;
-
-		queueNextBack++;
-		return true;
+	bool ok = true;
+	if (queueNextBack >= QUEUE_LENGTH) {
+		dequePopBack();
+		ok = false;
 	}
-	else
-		return false;
-}
+	struct CANBusMessage* ptr = queue[QUEUE_LENGTH - 1];
+	for (uint8_t i = QUEUE_LENGTH - 1; i > 0; i--)
+		queue[i] = queue[i - 1];
+	ptr->messageId = msgId;
+	ptr->dlc = dlc;
+	for (uint8_t i = 0; i < 8; i++)
+		ptr->data[i] = data[i];
+	queue[0] = ptr;
 
-bool dequeEmpty() { return queueNextBack == 0; }
-
-void dequeInitialize() {
-	for (uint8_t i = 0; i < QUEUE_LENGTH; i++) {
-		struct CANBusMessage* p = (CANBusMessage *)malloc(sizeof(struct CANBusMessage));
-		queue[i] = p;
-	}
+	queueNextBack++;
+	//print("Q:%i\n\r", queueNextBack);
+	return ok;
 }
 
 
@@ -102,7 +104,7 @@ bool Mrm_can_bus::messageReceive() {
 			while (CAN.available())
 				data[i++] = CAN.read();
 			if (!dequePushFront(CAN.packetId(), packetSize, data)) {
-				strcpy(errorMessage, "Deque full");
+				strcpy(errorMessage, "Deque full.");
 				return false;
 			}
 
@@ -184,8 +186,13 @@ bool Mrm_can_bus::messageReceive() {
 void messageReceiveAsync(int packetSize) {
 	uint8_t i = 0;
 	uint8_t data[8];
-	while (CAN.available())
+	while (CAN.available()) {
+		if (i >= 8) {
+			print("Overflow\n\r");
+			return;
+		}
 		data[i++] = CAN.read();
+	}
 	if (!dequePushFront(CAN.packetId(), packetSize, data)) {
 		strcpy(errorMessage, "Deque full");
 		return;
