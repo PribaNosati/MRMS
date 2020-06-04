@@ -3,22 +3,20 @@
 #include <mrm-robot.h>
 
 // For mrm-8x8 display.
-#define LED_CROSSING_LEFT_RIGHT 0
-#define LED_LINE_FULL 1
-#define LED_LINE_INTERRUPTED 2
-#define LED_CURVE_LEFT 3
-#define LED_CURVE_RIGHT 4
-#define LED_OBSTACLE 5
-#define LED_OBSTACLE_AROUND 6
-#define LED_PAUSE 7
-#define LED_PLAY 8
+enum ledSign { LED_CROSSING_BOTH_MARKS, LED_CROSSING_MARK_LEFT, LED_CROSSING_MARK_RIGHT, LED_CROSSING_NO_MARK, LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
+	LED_LINE_INTERRUPTED, LED_CURVE_LEFT, LED_CURVE_RIGHT, LED_OBSTACLE, LED_OBSTACLE_AROUND_LEFT, LED_OBSTACLE_AROUND_RIGHT, LED_PAUSE, LED_PLAY };
+
+class ActionObstacleAvoid;
+class ActionLineFollow;
 
 /** Robot for RCJ Rescue Line and Maze
 */
 class RobotLine : public Robot {
+	const uint8_t TOP_SPEED = 50; //90
+
 	MotorGroupDifferential* motorGroup = NULL;
-	ActionBase* actionObstacleAvoid;
-	ActionBase* actionLineFollow;
+	ActionObstacleAvoid* actionObstacleAvoid;
+	ActionLineFollow* actionLineFollow;
 	ActionBase* actionWallFollow;
 public:
 	RobotLine();
@@ -56,6 +54,10 @@ public:
 	*/
 	void rcjLine();
 
+	/** Turns the robot clockwise using compass
+	*/
+	void turn(int16_t byDegreesClockwise);
+
 	void wallFollow();
 };
 
@@ -70,6 +72,8 @@ public:
 class ActionObstacleAvoid : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->obstacleAvoid(); }
 public:
+	bool leftOfObstacle;
+
 	ActionObstacleAvoid(RobotLine* robot) : ActionBase(robot, "obs", "Obstacle avoid", 0) {}
 };
 

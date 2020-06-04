@@ -54,6 +54,7 @@ protected:
 	uint32_t fpsTopGap = 0;
 
 	uint8_t menuLevel = 1; // Submenus have bigger numbers
+	bool _sniff = false;
 	bool verbose = false; // Verbose output
 
 	/** Actually perform the action
@@ -68,6 +69,29 @@ protected:
 	@param newAction - the new action.
 	*/
 	void actionSet(ActionBase* newAction);
+
+	/** Displays all boards
+	@return - last board and device's index, 0 if none
+	*/
+	uint8_t boardsDisplayAll();
+
+	/** Finds board and device's index. Similar to next function, but display choices, too.
+	@param selectedBoardIndex - output
+	@param selectedDeviceIndex - otuput
+	@param maxInput - output
+	@param lastBoardAndIndex - output
+	@return - true if found
+	*/
+	bool boardDisplayAndSelect(uint8_t* selectedBoardIndex, uint8_t* selectedDeviceIndex, uint8_t* maxInput, uint8_t* lastBoardAndIndex);
+
+	/** Finds board and device's index for a number received from boardsDisplayAll(). Similar to previous function, but no display.
+	@param selectedNumber - input
+	@param selectedBoardIndex - output, NULL if none found
+	@param selectedDeviceIndex - otuput
+	@param maxInput - output
+	@return - true if found
+	*/
+	bool boardSelect(uint8_t selectedNumber, uint8_t *selectedBoardIndex, uint8_t* selectedDeviceIndex, uint8_t* maxInput);
 
 	/** Avoids FPS measuring in the next 2 cycles.
 	*/
@@ -163,15 +187,44 @@ public:
 
 	/** Display all the incomming and outcomming CAN Bus messages
 	*/
-	void canBusSniff();
+	void canBusSniffToggle();
 
 	/** Change device's id
 	*/
 	void canIdChange();
 
-	/** mrm-color-can test
+	/** mrm-color-can illumination off
 	*/
-	void colorTest();
+	void colorIlluminationOff();
+
+	/** mrm-color-can illumination on
+	*/
+	void colorIlluminationOn();
+
+	/** Erase HSV patterns
+	*/
+	void colorPatternErase();
+
+	/** Print HSV patterns
+	*/
+	void colorPatternPrint();
+
+	/** Recognize HSV color pattern
+	*/
+	void colorPatternRecognize();
+
+	/** Record HSV color patterns
+	*/
+	void colorPatternRecord();
+
+	/** mrm-color-can test 6 colors
+	*/
+	void colorTest6Colors();
+
+	/** mrm-color-can test hue-saturation-value (HSV)
+	*/
+	void colorTestHSV();
+
 
 	/** The right way to use Arduino function delay
 	@param pauseMs - pause in ms. One run even if pauseMs == 0, so that delayMs(0) receives all messages.
@@ -221,6 +274,10 @@ public:
 	*/
 	void i2cTest();
 
+	/** Request information
+	*/
+	void info();
+
 	/** Tests mrm-ir-finder-can, raw data.
 	*/
 	void irFinderCanTest();
@@ -245,9 +302,23 @@ public:
 	*/
 	void menu();
 
+	/** Color menu
+	*/
+	void menuColor();
+
 	/** Displays menu and stops motors
 	*/
 	void menuMainAndIdle();
+
+	/** Reflectance menu
+	*/
+	void menuReflectance();
+
+	/** Print CAN Bus message
+	@param msg - message
+	@param oubound - if not, inbound
+	*/
+	void messagePrint(CANBusMessage* msg, bool outbound);
 
 	/** Receives CAN Bus messages.
 	*/
@@ -262,14 +333,12 @@ public:
 	void nodeTest();
 
 	/** Any for or while loop must include call to this function.
-*/
+	*/
 	void noLoopWithoutThis();
 
-	///** Print to all serial ports
-	//@param fmt - C format string
-	//@param ... - variable arguments
-	//*/
-	//void print(const char* fmt, ...);
+	/** Production test
+	*/
+	void oscillatorTest();
 
 	/** Prints mrm-ref-can* calibration data
 	*/
@@ -294,10 +363,10 @@ public:
 	*/
 	uint16_t serialReadNumber(uint16_t timeoutFirst = 3000, uint16_t timeoutBetween = 500, bool onlySingleDigitInput = false, uint16_t limit = 0xFFFE, bool printWarnings = true);
 
-	///** Bluetooth
-	//@return - Bluetooth object
-	//*/
-	//BluetoothSerial* serialBT() { return serial; }
+	/** Checks if sniffing is active
+	@return - active or not
+	*/
+	bool sniffing() { return _sniff; }
 
 	/** Stops all motors
 	*/

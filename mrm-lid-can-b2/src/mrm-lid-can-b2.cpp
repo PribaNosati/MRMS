@@ -7,8 +7,7 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_lid_can_b2::Mrm_lid_can_b2(Robot* robot, uint8_t maxNumberOfBoards) :
-	SensorBoard(robot, 1, "Lid4m", maxNumberOfBoards) {
+Mrm_lid_can_b2::Mrm_lid_can_b2(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "Lid4m", maxNumberOfBoards, ID_MRM_LID_CAN_B2) {
 	readings = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 
@@ -71,9 +70,63 @@ void Mrm_lid_can_b2::calibration(uint8_t deviceNumber){
 			calibration(i);
 	else{
 		canData[0] = COMMAND_LID_CAN_B2_CALIBRATE;
-		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 1, canData);
+		messageSend(canData, 1, deviceNumber);
 	}
 }
+
+
+/** Reset sensor's non-volatile memory to defaults (distance mode, timing budget, region of interest, and measurement time, but leaves CAN Bus id intact
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - resets all.
+*/
+void Mrm_lid_can_b2::defaults(uint8_t deviceNumber) {
+	timingBudget(deviceNumber);
+	robotContainer->delayMs(50); // Allow 50 ms for flash to be written
+	measurementTime(deviceNumber);
+	robotContainer->delayMs(50);
+	distanceMode(deviceNumber);
+	robotContainer->delayMs(50);
+	roi(deviceNumber);
+}
+
+
+/** Distance mode. Short mode has better ambient light immunity but the maximum distance is limited to 1.3 m. Long distance ranges up to
+	4 m but is less performant under ambient light. Stored in sensors non-volatile memory. Allow 50 ms for flash to be written.
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param isShort - if not short, long.
+*/
+void Mrm_lid_can_b2::distanceMode(uint8_t deviceNumber, bool isShort) {
+	if (deviceNumber == 0xFF) {
+		for (uint8_t i = 0; i < nextFree; i++)
+			if (alive(i)) {
+				distanceMode(i, isShort);
+				delay(1);
+			}
+	}
+	else {
+		canData[0] = COMMAND_LID_CAN_B2_DISTANCE_MODE;
+		canData[1] = isShort;
+		messageSend(canData, 2, deviceNumber);
+	}
+}
+
+
+/** Measurement time (IMP) in ms. IMP must be >= TB. Probably the best value is IMP = TB. Stored in sensors non-volatile memory.
+Allow 50 ms for flash to be written.
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param ms - default 100.
+*/
+void Mrm_lid_can_b2::measurementTime(uint8_t deviceNumber, uint16_t ms) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			measurementTime(i, ms);
+	else if (alive(deviceNumber)) {
+		canData[0] = COMMAND_LID_CAN_B2_MEASUREMENT_TIME;
+		canData[1] = ms & 0xFF;
+		canData[2] = ms >> 8;
+		messageSend(canData, 3, deviceNumber);
+	}
+}
+
 
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
@@ -90,10 +143,13 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 					(*readings)[deviceNumber] = mm;
 				}
 				break;
+				case COMMAND_INFO_SENDING_1:
+					print("%s: %s dist., budget %i ms, %ix%i, intermeas. %i ms\n\r", name(deviceNumber), data[1] ? "short" : "long", data[2] | (data[3] << 8),
+						data[4] & 0xFF, data[5] & 0xFF, data[6] | (data[7] << 8));
+					break;
 				default:
 					print("Unknown command. ");
-					messagePrint(canId, 8, data);
-					print("\n\r");
+					messagePrint(canId, 8, data, false);
 					errorCode = 202;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -103,20 +159,6 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 	return false;
 }
 
-/** Ranging type
-@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@param value - 1 short, 2 medium, 3 long.
-*/
-void Mrm_lid_can_b2::rangingType(uint8_t deviceNumber, uint8_t value) {
-	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
-			calibration(i);
-	else {
-		canData[0] = COMMAND_LID_CAN_B2_RANGING_TYPE;
-		canData[1] = value;
-		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
-	}
-}
 
 /** Analog readings
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -139,6 +181,27 @@ void Mrm_lid_can_b2::readingsPrint() {
 			print(" %4i", (*readings)[deviceNumber]);
 }
 
+
+/** ROI, region of interest, a matrix from 4x4 up to 16x16 (x, y). Smaller x and y - smaller view angle. Stored in sensors non-volatile memory.
+Allow 50 ms for flash to be written.
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param x - default 16.
+@param y - default 16.
+*/
+void Mrm_lid_can_b2::roi(uint8_t deviceNumber, uint8_t x, uint8_t y) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			roi(i, x, y);
+	else if (alive(deviceNumber)) {
+		delay(1);
+		canData[0] = COMMAND_LID_CAN_B2_ROI;
+		canData[1] = x;
+		canData[2] = y;
+		messageSend(canData, 3, deviceNumber);
+	}
+}
+
+
 /**Test
 */
 void Mrm_lid_can_b2::test()
@@ -157,6 +220,25 @@ void Mrm_lid_can_b2::test()
 		lastMs = millis();
 		if (pass)
 			print("\n\r");
+	}
+}
+
+
+/** Timing budget (TB) in ms. TB improves the measurement reliability but increases power consumption. Stored in sensors non-volatile memory.
+	Set before measurement time as measurement time checks this value and returns error if not appropriate. Allow 50 ms for flash to be written.
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param ms - (TB) in ms possible values [20, 50, 100, 200, 500]. Default 100.
+*/
+void Mrm_lid_can_b2::timingBudget(uint8_t deviceNumber, uint16_t ms) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			timingBudget(i, ms);
+	else if (alive(deviceNumber)) {
+		delay(1);
+		canData[0] = COMMAND_LID_CAN_B2_TIMING_BUDGET;
+		canData[1] = ms & 0xFF;
+		canData[2] = ms >> 8;
+		messageSend(canData, 3, deviceNumber);
 	}
 }
 

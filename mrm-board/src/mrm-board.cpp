@@ -13,8 +13,9 @@
 @param maxNumberOfBoards - maximum number of boards
 @param devicesOn1Board - number of devices on each board
 @param boardName - board's name
+@param id - unique id
 */
-Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[], BoardType boardType) {
+Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[], BoardType boardType, BoardId id) {
 	robotContainer = robot;
 	idIn = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	idOut = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
@@ -23,11 +24,12 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	lastMessageReceivedMs = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	this->devicesOnABoard = devicesOn1Board;
 	this->maximumNumberOfBoards = maxNumberOfBoards;
-	strcpy(this->boardsName, boardName);
+	strcpy(this->_boardsName, boardName);
 	_alive = 0;
 	nextFree = 0;
 	_boardType = boardType;
 	_message[28] = '\0';
+	_id = id;
 }
 
 /** Add a device.
@@ -55,33 +57,40 @@ void Board::add(char* deviceName, uint16_t canIn, uint16_t canOut) {
 }
 
 /** Did it respond to last ping? If not, try another ping and see if it responds.
-@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - any alive.
 @param checkAgainIfDead - try another ping
 @param errorIfNotAfterCheckingAgain - the robot will stop. Otherwise only warning displayed.
 @return - alive or not
 */
 bool Board::alive(uint8_t deviceNumber, bool checkAgainIfDead, bool errorIfNotAfterCheckingAgain) {
-	if (deviceNumber > 31) {
-		strcpy(errorMessage, "Device number too big.");
+	if (deviceNumber == 0xFF) {
+		for (uint8_t i = 0; i < nextFree; i++)
+			if (alive(i, checkAgainIfDead, errorIfNotAfterCheckingAgain))
+				return true;
 		return false;
 	}
-
-	if ((_alive >> deviceNumber) & 1) 
-		return true;
-	else if (checkAgainIfDead) {
-		devicesScan(false);
-		if ((_alive >> deviceNumber) & 1)
-			return true;
-		else {
-			if (errorIfNotAfterCheckingAgain)
-				sprintf(errorMessage, "%s no. %i dead", name(), deviceNumber);
-			else
-				print("%s %i dead\n\r", name(), deviceNumber);
+	else {
+		if (deviceNumber > 31) {
+			strcpy(errorMessage, "Device number too big.");
 			return false;
 		}
+		if ((_alive >> deviceNumber) & 1)
+			return true;
+		else if (checkAgainIfDead) {
+			devicesScan(false);
+			if ((_alive >> deviceNumber) & 1)
+				return true;
+			else {
+				if (errorIfNotAfterCheckingAgain)
+					sprintf(errorMessage, "%s no. %i dead", name(), deviceNumber);
+				else
+					print("%s %i dead\n\r", name(), deviceNumber);
+				return false;
+			}
+		}
+		else
+			return false;
 	}
-	else 
-		return false;
 }
 
 /** Did any device respond to last ping?
@@ -182,6 +191,22 @@ void Board::fpsRequest(uint8_t deviceNumber) {
 	}
 }
 
+/** Request information
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - for all devices.
+*/
+void Board::info(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			info(i);
+	else {
+		if (alive(deviceNumber)) {
+			canData[0] = COMMAND_INFO_REQUEST;
+			messageSend(canData, 1, deviceNumber);
+			delay(1);
+		}
+	}
+}
+
 /** Change CAN Bus id
 @param newId - CAN Bus id
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -192,7 +217,7 @@ void Board::idChange(uint16_t newDeviceNumber, uint8_t deviceNumber) {
 	messageSend(canData, 2, deviceNumber);
 }
 
-/** Is the frame addressed to this device?
+/** Is the frame addressed to this device's Arduino object?
 @param canIdOut - CAN Bus id.
 @param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the deviceNumber, starting with 0.
 @return - if true, it is
@@ -203,6 +228,19 @@ bool Board::isForMe(uint32_t canIdOut, uint8_t deviceNumber) {
 		return false;
 	}
 	return canIdOut == (*idOut)[deviceNumber];
+}
+
+/** Does the frame originate from this device's Arduino object?
+@param canIdOut - CAN Bus id.
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the deviceNumber, starting with 0.
+@return - if true, it does
+*/
+bool Board::isFromMe(uint32_t canIdOut, uint8_t deviceNumber) {
+	if (deviceNumber >= nextFree) {
+		strcpy(errorMessage, "Board doesn't exist");
+		return false;
+	}
+	return canIdOut == (*idIn)[deviceNumber];
 }
 
 /** Common part of message decoding
@@ -278,21 +316,30 @@ bool Board::messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceN
 @param msgId - messageId
 @param dlc - data length
 @param data - payload
+@param outbound - otherwise inbound
 @return - if true, found and printed
 */
-bool Board::messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data) {
+bool Board::messagePrint(uint32_t msgId, uint8_t dlc, uint8_t* data, bool outbound) {
 	bool found = false;
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
-		if (isForMe(msgId, deviceNumber)) {
-			print("Id:%s (0x%02X)", (*_name)[deviceNumber], msgId);
+		if (isForMe(msgId, deviceNumber) || isFromMe(msgId, deviceNumber)) {
+			print("%s id:%s (0x%02X)", outbound ? "Out" : "In", (*_name)[deviceNumber], msgId);
+			for (uint8_t i = 0; i < dlc; i++) {
+				if (i == 0)
+					print(" data:");
+				print(" %02X", data[i]);
+			}
+			print("\n\r");
 			found = true;
 		}
-	if (!found)
-		print("Id:0x%02X", msgId);
-	for (uint8_t i = 0; i < dlc; i++) {
-		if (i == 0)
-			print(" data:");
-		print(" %02X", data[i]);
+	if (!found) {
+		print("%s id:0x%02X", outbound ? "Out" : "In", msgId);
+		for (uint8_t i = 0; i < dlc; i++) {
+			if (i == 0)
+				print(" data:");
+			print(" %02X", data[i]);
+		}
+		print("\n\r");
 	}
 	return found;
 }
@@ -308,8 +355,11 @@ void Board::messageSend(uint8_t* data, uint8_t dlc, uint8_t deviceNumber) {
 		errorInDeviceNumber = deviceNumber;
 		return;
 	}
-	else 
+	else {
+		if (robotContainer->sniffing())
+			messagePrint((*idIn)[deviceNumber], dlc, data, true);
 		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], dlc, data);
+	}
 }
 
 /** Returns device's name
@@ -326,38 +376,42 @@ char* Board::name(uint8_t deviceNumber) {
 */
 void Board::notificationRequest(uint8_t commandRequestingNotification, uint8_t deviceNumber) {
 	printf("THIS FUNCTION DOESN'T WORK\n\r");
-	while (1);
-	uint8_t tries = 0;
-	while (tries < 10) {
-		tries++;
-		canData[0] = commandRequestingNotification;
-		messageSend(canData, 1, deviceNumber);
-		while (tries != 0xFF && !dequeEmpty()) {
-			robotContainer->noLoopWithoutThis();
-			uint32_t id = dequeBack()->messageId;
-			//print("RCVD id 0x%x, data: 0x%x\n\r", id, mrm_can_bus->dequeBack->data[0]);
-			if (isForMe(id, deviceNumber) && dequeBack()->data[0] == COMMAND_NOTIFICATION) {
-				tries = 0xFF;
-				//print("OK...\n\r");
-			}
-		}
-	}
-	if (tries != 0xFF)
-		strcpy(errorMessage, "Notification failed");
+	//while (1);
+	//uint8_t tries = 0;
+	//while (tries < 10) {
+	//	tries++;
+	//	canData[0] = commandRequestingNotification;
+	//	messageSend(canData, 1, deviceNumber);
+	//	while (tries != 0xFF && !dequeEmpty()) {
+	//		robotContainer->noLoopWithoutThis();
+	//		uint32_t id = dequeBack()->messageId;
+	//		//print("RCVD id 0x%x, data: 0x%x\n\r", id, mrm_can_bus->dequeBack->data[0]);
+	//		if (isForMe(id, deviceNumber) && dequeBack()->data[0] == COMMAND_NOTIFICATION) {
+	//			tries = 0xFF;
+	//			//print("OK...\n\r");
+	//		}
+	//	}
+	//}
+	//if (tries != 0xFF)
+	//	strcpy(errorMessage, "Notification failed");
 }
 
 
-///** Print to all serial ports
-//@param fmt - C format string
-//@param ... - variable arguments
-//*/
-//void Board::print(const char* fmt, ...) {
-//	va_list argp;
-//	va_start(argp, fmt);
-//	vprint(fmt, argp);
-//	va_end(argp);
-//}
-
+/** Reserved for production
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Board::oscillatorTest(uint8_t deviceNumber) {
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			oscillatorTest(i);
+	else {
+		if (alive(deviceNumber)) {
+			print("Test %s\n\r", name(deviceNumber));
+			canData[0] = COMMAND_OSCILLATOR_TEST;
+			messageSend(canData, 1, deviceNumber);
+		}
+	}
+}
 
 /** Reset
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
@@ -384,7 +438,7 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 			start(i, measuringModeNow, refreshMs);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", boardsName);
+			print("Alive, start reading: %s\n\r", _boardsName);
 #if REQUEST_NOTIFICATION
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
@@ -406,6 +460,7 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 	}
 }
 
+
 /** Stops periodical CANBus messages that refresh values that can be read by reading()
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
@@ -421,30 +476,19 @@ void Board::stop(uint8_t deviceNumber) {
 	}
 }
 
-///** Print to all serial ports, pointer to list
-//*/
-//void Board::vprint(const char* fmt, va_list argp) {
-//
-//	static char buffer[100]; // Caution !!! No checking if longer than 100!
-//	vsprintf(buffer, fmt, argp);
-//
-//	Serial.print(buffer);
-//	if (robotContainer->serialBT() != 0)
-//		robotContainer->serialBT()->print(buffer);
-//}
-
 
 /**
 @param robot - robot containing this board
-@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 @param devicesOnABoard - number of devices on each board
 @param boardName - board's name
 @param maxNumberOfBoards - maximum number of boards
+@param id - unique id
 */
-MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards) :
-	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, MOTOR_BOARD) {
+MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards, BoardId id) :
+	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, MOTOR_BOARD, id) {
 	encoderCount = new std::vector<uint32_t>(devicesOnABoard * maxNumberOfBoards);
 	reversed = new std::vector<bool>(devicesOnABoard * maxNumberOfBoards);
+	lastSpeed = new std::vector<int8_t>(devicesOnABoard * maxNumberOfBoards);
 }
 
 /** Read CAN Bus message into local variables
@@ -464,8 +508,7 @@ bool MotorBoard::messageDecode(uint32_t canId, uint8_t data[8]) {
 				}
 				default:
 					print("Unknown command. ");
-					messagePrint(canId, 8, data);
-					print("\n\r");
+					messagePrint(canId, 8, data, false);
 					errorCode = 200;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -507,6 +550,10 @@ void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
 		sprintf(errorMessage, "Mot. %i doesn't exist", motorNumber);
 		return;
 	}
+
+	if ((*lastSpeed)[motorNumber] == speed)
+		return;
+	(*lastSpeed)[motorNumber] = speed;
 
 	if ((*reversed)[motorNumber])
 		speed = -speed;
@@ -623,9 +670,10 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 @param devicesOnABoard - number of devices on each board
 @param boardName - board's name
 @param maxNumberOfBoards - maximum number of boards
+@param id - unique id
 */
-SensorBoard::SensorBoard(Robot* robot, uint8_t devicesOnABoard, char boardName[], uint8_t maxNumberOfBoards) : 
-	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, SENSOR_BOARD) {
+SensorBoard::SensorBoard(Robot* robot, uint8_t devicesOnABoard, char boardName[], uint8_t maxNumberOfBoards, BoardId id) : 
+	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, SENSOR_BOARD, id) {
 }
 
 /** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values

@@ -2,6 +2,7 @@
 #include <mrm-8x8a.h>
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
+#include <mrm-can-bus.h>
 #include <mrm-col-can.h>
 #include <mrm-imu.h>
 #include <mrm-pid.h>
@@ -20,6 +21,7 @@
 #include <mrm-therm-b-can.h>
 #include <mrm-us.h>
 
+
 extern BluetoothSerial* serialBT;
 
 /**
@@ -34,6 +36,7 @@ Robot::Robot() {
 		serialBT = new BluetoothSerial(); // Additional serial port
 		serialBT->begin("ESP32"); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
 	}
+
 	delay(50);
 	print("Robot started.\r\n");
 
@@ -50,23 +53,34 @@ Robot::Robot() {
 	actionAdd(new ActionCANBusScan(this));
 	actionAdd(new ActionCANBusSniff(this));
 	actionAdd(new ActionCANBusStress(this));
-	actionAdd(new ActionColorTest(this));
+	actionAdd(new ActionColorIlluminationOff(this));
+	actionAdd(new ActionColorIlluminationOn(this));
+	actionAdd(new ActionColorPatternErase(this));
+	actionAdd(new ActionColorPatternPrint(this));
+	actionAdd(new ActionColorPatternRecognize(this));
+	actionAdd(new ActionColorPatternRecord(this));
+	actionAdd(new ActionColorTest6Colors(this));
+	actionAdd(new ActionColorTestHSV(this));
 	actionAdd(new ActionDeviceIdChange(this));
 	actionAdd(new ActionFirmware(this));
 	actionAdd(new ActionFPS(this));
 	actionAdd(new ActionGoAhead(this));
 	actionAdd(new ActionI2CTest(this));
 	actionAdd(new ActionIMUTest(this));
+	actionAdd(new ActionInfo(this));
 	actionAdd(new ActionIRFinderTest(this));
 	actionAdd(new ActionIRFinderCanTest(this));
 	actionAdd(new ActionIRFinderCanTestCalculated(this));
 	actionAdd(new ActionLidar2mTest(this));
 	actionAdd(new ActionLidar4mTest(this));
 	actionAdd(new ActionLidarCalibrate(this));
+	actionAdd(new ActionMenuColor(this));
 	actionAdd(new ActionMenuMain(this));
+	actionAdd(new ActionMenuReflectance(this));
 	actionAdd(new ActionMotorTest(this));
 	actionAdd(new ActionNodeTest(this));
 	actionAdd(new ActionNodeServoTest(this));
+	actionAdd(new ActionOscillatorTest(this));
 	actionAdd(new ActionReflectanceArrayCalibrate(this));
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
 	actionAdd(new ActionReflectanceArrayAnalogTest(this));
@@ -125,6 +139,8 @@ Robot::Robot() {
 	// Colors sensors mrm-col-can
 	mrm_col_can->add("Col-0");
 	mrm_col_can->add("Col-1");
+	mrm_col_can->add("Col-2");
+	mrm_col_can->add("Col-3");
 
 	// IMU
 	mrm_imu->add();
@@ -150,8 +166,8 @@ Robot::Robot() {
 	mrm_mot4x10->add(true, "Mot4x10-3");
 
 	// Motors mrm-mot4x3.6can
-	mrm_mot4x3_6can->add(false, "Mot3.6-0");
-	mrm_mot4x3_6can->add(false, "Mot3.6-1");
+	mrm_mot4x3_6can->add(true, "Mot3.6-0");
+	mrm_mot4x3_6can->add(true, "Mot3.6-1");
 	mrm_mot4x3_6can->add(true, "Mot3.6-2");
 	mrm_mot4x3_6can->add(true, "Mot3.6-3");
 
@@ -364,33 +380,10 @@ void Robot::blink() {
 	}
 }
 
-/** Test Bluetooth
+/** Displays all boards
+@return - last board and device's index, 0 if none
 */
-void Robot::bluetoothTest() {
-	static uint32_t startMs = millis();
-	if (millis() - startMs > 100) {
-		print("Time: %i ms.\r\n", millis() - startMs);
-		startMs = millis();
-	}
-}
-
-/** Display all the incomming and outcomming CAN Bus messages
-*/
-void Robot::canBusSniff() {
-	while (!userBreak()) {
-		noLoopWithoutThis();
-		if (!dequeEmpty()) {
-			/*bool found = mrm_8x8a->messagePrint(mrm_can_bus->rx_frame);*/
-			CANBusMessage* msg = dequeBack();
-			bool found = mrm_8x8a->messagePrint(msg->messageId, msg->dlc, msg->data);
-			print("\n\r");
-		}
-	}
-}
-
-/** Change device's id
-*/
-void Robot::canIdChange() {
+uint8_t Robot::boardsDisplayAll() {
 	// Print all devices alive
 	uint8_t last = 0;
 	for (uint8_t boardNumber = 0; boardNumber < _boardNextFree; boardNumber++) {
@@ -410,57 +403,171 @@ void Robot::canIdChange() {
 	}
 	if (last == 0)
 		print("No boards\n\r");
-	else {
+	return last;
+}
 
-		// Choose device to be changed
-		print("Enter board [1 - %i]: ", last);
-		uint16_t selectedNumber = serialReadNumber(8000, 500, last <= 9, last);
+/** Finds board and device's index. Similar to next function, but display choices, too.
+@param selectedBoardIndex - output
+@param selectedDeviceIndex - otuput
+@param maxInput - output
+@param lastBoardAndIndex - output
+@return - true if found
+*/
+bool Robot::boardDisplayAndSelect(uint8_t *selectedBoardIndex, uint8_t* selectedDeviceIndex, uint8_t* maxInput, uint8_t* lastBoardAndIndex) {
+	*lastBoardAndIndex = boardsDisplayAll();
+	bool found = false;
+	if (*lastBoardAndIndex > 0) {
 
-		if (selectedNumber != 0xFFFF) {
+		// Choose device 
+		print("Enter board [1 - %i]: ", *lastBoardAndIndex);
+		uint16_t selectedNumber = serialReadNumber(8000, 500, *lastBoardAndIndex <= 9, *lastBoardAndIndex);
+		print("%i", selectedNumber);
 
-			// Find selected board
-			last = 0;
-			Board* selectedBoard = NULL;
-			uint8_t selectedDeviceIndex = 0xFF;
-			uint8_t maxInput = 0;
-			for (uint8_t boardNumber = 0; boardNumber < _boardNextFree && selectedDeviceIndex == 0xFF; boardNumber++) {
-				uint8_t currentCount = 0;
-				for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && selectedDeviceIndex == 0xFF; deviceNumber++)
-					if (board[boardNumber]->alive(deviceNumber)) {
-						if (currentCount == 0) {
-							if (++last == selectedNumber) {
-								selectedBoard = board[boardNumber];
-								selectedDeviceIndex = deviceNumber;
-								maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
-								break;
-							}
-						}
+		if (selectedNumber != 0xFFFF)
+			found = boardSelect(selectedNumber, selectedBoardIndex, selectedDeviceIndex, maxInput);
 
-						if (++currentCount == board[boardNumber]->devicesOnASingleBoard())
-							currentCount = 0;
-					}
-			}
-
-			// Enter new id
-			print("%i. %s\n\rEnter new board id [0..%i]: ", last, selectedBoard->name(), maxInput);
-			uint8_t newDeviceNumber = serialReadNumber(8000, 500, maxInput <= 9, maxInput);
-
-			if (newDeviceNumber != 0xFF) {
-				// Change
-				print("%i\n\rChange requested.\n\r", newDeviceNumber);
-				selectedBoard->idChange(newDeviceNumber, selectedDeviceIndex);
-				delayMs(500); // Delay for firmware handling of devices with the same ids.
-			}
-		}
 	}
+	return found;
+}
+
+/** Finds board and device's index for a number received from boardsDisplayAll()
+@param selectedNumber - input
+@param selectedBoardIndex - output
+@param selectedDeviceIndex - otuput
+@param maxInput - output
+@return - true if found
+*/
+bool Robot::boardSelect(uint8_t selectedNumber, uint8_t *selectedBoardIndex, uint8_t * selectedDeviceIndex, uint8_t *maxInput) {
+	// Find selected board
+	uint8_t lastBoardAndIndex = 0;
+	*selectedBoardIndex = 0;
+	*selectedDeviceIndex = 0xFF;
+	*maxInput = 0;
+	for (uint8_t boardNumber = 0; boardNumber < _boardNextFree && *selectedDeviceIndex == 0xFF; boardNumber++) {
+		uint8_t currentCount = 0;
+		for (uint8_t deviceNumber = 0; deviceNumber < board[boardNumber]->deadOrAliveCount() && *selectedDeviceIndex == 0xFF; deviceNumber++)
+			if (board[boardNumber]->alive(deviceNumber)) {
+				if (currentCount == 0) {
+					if (++lastBoardAndIndex == selectedNumber) {
+						Board *selectedBoard = board[boardNumber];
+						*selectedDeviceIndex = deviceNumber;
+						*selectedBoardIndex = boardNumber;
+						*maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
+						break;
+					}
+				}
+
+				if (++currentCount == board[boardNumber]->devicesOnASingleBoard())
+					currentCount = 0;
+			}
+	}
+	return *selectedDeviceIndex != 0xFF;
+}
+
+/** Test Bluetooth
+*/
+void Robot::bluetoothTest() {
+	static uint32_t startMs = millis();
+	if (millis() - startMs > 100) {
+		print("Time: %i ms.\r\n", millis() - startMs);
+		startMs = millis();
+	}
+}
+
+/** Display all the incomming and outcomming CAN Bus messages
+*/
+void Robot::canBusSniffToggle() {
+	_sniff = !_sniff;
+	if (_sniff)
+		print("Sniff on\n\r");
+	else
+		print("Sniff off\n\r");
 	actionEnd();
 }
 
-/** mrm-color-can test
+/** Change device's id
 */
-void Robot::colorTest() {
-	if (actionPreprocessing(true))
+void Robot::canIdChange() {
+	uint8_t selectedBoardIndex;
+	uint8_t selectedDeviceIndex;
+	uint8_t maxInput;
+	uint8_t lastBoardAndDeviceIndex;
+	if (boardDisplayAndSelect(&selectedBoardIndex, &selectedDeviceIndex, &maxInput, &lastBoardAndDeviceIndex)) {
+		// Enter new id
+		print(". %s\n\rEnter new board id [0..%i]: ", board[selectedBoardIndex]->name(), maxInput);
+		uint8_t newDeviceNumber = serialReadNumber(8000, 500, maxInput <= 9, maxInput);
+
+		if (newDeviceNumber != 0xFF) {
+			// Change
+			print("%i\n\rChange requested.\n\r", newDeviceNumber);
+				board[selectedBoardIndex]->idChange(newDeviceNumber, selectedDeviceIndex);
+			delayMs(500); // Delay for firmware handling of devices with the same ids.
+		}
+	}
+
+	actionEnd();
+}
+
+/** mrm-color-can illumination off
+*/
+void Robot::colorIlluminationOff() {
+	mrm_col_can->illumination(0xFF, 0);
+	actionEnd();
+}
+
+/** mrm-color-can illumination on
+*/
+void Robot::colorIlluminationOn() {
+	mrm_col_can->illumination(0xFF, 1);
+	actionEnd();
+}
+
+/** Erase HSV patterns
+*/
+void Robot::colorPatternErase() {
+	mrm_col_can->patternErase();
+	actionEnd();
+}
+
+/** Print HSV patterns
+*/
+void Robot::colorPatternPrint() {
+	mrm_col_can->patternPrint();
+	actionEnd();
+}
+
+/** Record HSV color patterns
+*/
+void Robot::colorPatternRecord() {
+	mrm_col_can->patternsRecord();
+	actionEnd();
+}
+
+/** Recognize HSV color pattern
+*/
+void Robot::colorPatternRecognize() {
+	actionEnd();
+}
+
+/** mrm-color-can test 6 colors
+*/
+void Robot::colorTest6Colors() {
+	if (actionPreprocessing(true)) {
 		mrm_col_can->start();
+		delayMs(1);
+		mrm_col_can->switchTo6Colors();
+	}
+	mrm_col_can->test();
+}
+
+/** mrm-color-can test hue-saturation-value (HSV)
+*/
+void Robot::colorTestHSV() {
+	if (actionPreprocessing(true)) {
+		mrm_col_can->start();
+		delayMs(1);
+		mrm_col_can->switchToHSV();
+	}
 	mrm_col_can->test();
 }
 
@@ -525,7 +632,6 @@ void Robot::errors() {
 /** Displays each CAN Bus device's firmware
 */
 void Robot::firmwarePrint() {
-	mrm_lid_can_b2->rangingType(0, 3);
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		board[i]->firmwareRequest();
 		uint32_t startMs = millis();
@@ -614,6 +720,16 @@ void Robot::i2cTest() {
 	if (!any)
 		print("Nothing found.\n\n\r");
 
+	actionEnd();
+}
+
+/** Request information
+*/
+void Robot::info() {
+	for (uint8_t i = 0; i < _boardNextFree; i++) {
+		board[i]->info();
+		delay(1);
+	}
 	actionEnd();
 }
 
@@ -724,11 +840,20 @@ void Robot::menu() {
 	uint8_t maxColumns = 2;
 	for (uint8_t i = 0; i < _actionNextFree; i++) {
 		if ((_action[i]->_menuLevel | menuLevel) == _action[i]->_menuLevel) {
-			print("%-3s - %-22s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
-			delayMs(2);
-			any = true;
-			if (column++ == maxColumns)
-				column = 1;
+			bool anyAlive = false;
+			if (_action[i]->boardsId() == ID_ANY)
+				anyAlive = true;
+			else
+				for (uint8_t j = 0; j < _boardNextFree && !anyAlive; j++)
+					if (board[j]->alive(0xFF) && board[j]->id() == _action[i]->boardsId())
+						anyAlive = true;
+			if (anyAlive) {
+				print("%-3s - %-22s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
+				delayMs(2);
+				any = true;
+				if (column++ == maxColumns)
+					column = 1;
+			}
 		}
 	}
 	if (!any)
@@ -747,6 +872,13 @@ void Robot::menu() {
 	_actionCurrent = _actionDoNothing;
 }
 
+/** Color menu
+*/
+void Robot::menuColor() {
+	menuLevel = 4;
+	actionEnd();
+}
+
 /** Displays menu and stops motors
 */
 void Robot::menuMainAndIdle() {
@@ -754,17 +886,46 @@ void Robot::menuMainAndIdle() {
 	menuLevel = 1;
 }
 
+/** Reflectance menu
+*/
+void Robot::menuReflectance() {
+	menuLevel = 2;
+	actionEnd();
+}
+
+/** Print CAN Bus message
+@param msg - message
+@param oubound - if not, inbound
+*/
+void Robot::messagePrint(CANBusMessage *msg, bool outbound) {
+	bool any = false;
+	for (uint8_t boardId = 0; boardId < _boardNextFree; boardId++) {
+		if (board[boardId]->messagePrint(msg->messageId, msg->dlc, msg->data, outbound)) {
+			any = true;
+			break;
+		}
+	}
+	if (!any) {
+		print("Id:0x%02X", msg->messageId);
+		for (uint8_t i = 0; i < msg->dlc; i++) {
+			if (i == 0)
+				print(" data:");
+			print(" %02X", msg->data[i]);
+		}
+		print("\n\r");
+	}
+}
+
 /** Receives CAN Bus messages. 
 */
 void Robot::messagesReceive() {
-#if !CAN_RECEIVE_INTERRUPT
-	if (mrm_can_bus->messageReceive() == 2)
-		strcpy(errorMessage, "Deque full.");
-#endif
-	while (!dequeEmpty()) {
-		CANBusMessage *msg = dequeBack();
-		dequePopBack();
+	while (true) {
+		CANBusMessage* msg = mrm_can_bus->messageReceive();
+		if (msg == NULL) // No more messages
+			break;
 		uint32_t id = msg->messageId;
+		if (_sniff)
+			messagePrint(msg, false);
 		bool any = false;
 		for (uint8_t boardId = 0; boardId < _boardNextFree; boardId++) {
 			if (board[boardId]->messageDecode(id, msg->data)) {
@@ -809,16 +970,20 @@ void Robot::noLoopWithoutThis() {
 	errors();
 }
 
-///** Print to all serial ports
-//@param fmt - C format string
-//@param ... - variable arguments
-//*/
-//void Robot::print(const char* fmt, ...) {
-//	va_list argp;
-//	va_start(argp, fmt);
-//	vprint(fmt, argp);
-//	va_end(argp);
-//}
+/** Production test
+*/
+void Robot::oscillatorTest() {
+	if (actionPreprocessing(true)) {
+		uint8_t selectedBoardIndex;
+		uint8_t selectedDeviceIndex;
+		uint8_t maxInput;
+		uint8_t lastBoardAndDeviceIndex;
+		if (boardDisplayAndSelect(&selectedBoardIndex, &selectedDeviceIndex, &maxInput, &lastBoardAndDeviceIndex)) {
+			print("\n\r");
+			board[selectedBoardIndex]->oscillatorTest(selectedDeviceIndex);
+		}
+	}
+}
 
 /** Prints mrm-ref-can* calibration data
 */
@@ -918,7 +1083,7 @@ void Robot::stopAll() {
 */
 bool Robot::stressTest() {
 	const bool STOP_ON_ERROR = false;
-	const uint16_t LOOP_COUNT = 100000;
+	const uint32_t LOOP_COUNT = 1000000;
 	const bool TRY_ONLY_ALIVE = true;
 
 	// Setup
@@ -953,7 +1118,9 @@ bool Robot::stressTest() {
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		if (count[i] > 0 || !TRY_ONLY_ALIVE) {
 			delayMs(1);
+			digitalWrite(15, HIGH);
 			uint8_t cnt = board[i]->devicesScan(false, mask[i]);
+			digitalWrite(15, LOW);
 			if (cnt != count[i]) {
 				errors[i]++;
 				print("***** %s: found %i, not %i.\n\r", board[i]->name(), cnt, count[i]);
@@ -966,7 +1133,7 @@ bool Robot::stressTest() {
 	}
 
 	// Results
-	if (++pass >= LOOP_COUNT) {
+	if (++pass >= LOOP_COUNT || userBreak()) {
 		bool allOK = true;
 		for (uint8_t i = 0; i < _boardNextFree; i++)
 			if (count[i] > 0 && errors[i] > 0) {

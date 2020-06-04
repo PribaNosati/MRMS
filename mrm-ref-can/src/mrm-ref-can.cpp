@@ -7,8 +7,7 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : 
-	SensorBoard(robot, 1, "ReflArray", maxNumberOfBoards) {
+Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "ReflArray", maxNumberOfBoards, ID_MRM_REF_CAN) {
 	_reading = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	calibrationDataBright = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	calibrationDataDark = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
@@ -268,8 +267,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				default:
 					print("Unknown command. ");
-					messagePrint(canId, 8, data);
-					print("\n\r");
+					messagePrint(canId, 8, data, false);
 					errorCode = 201;
 					errorInDeviceNumber = deviceNumber;
 				}

@@ -39,7 +39,7 @@ void Mrm_imu::add(bool defaultI2CAddress) {
 }
 
 /**Compass
-@return - North direction.
+@return - North is 0º, clockwise are positive angles, values 0 - 360.
 */
 float Mrm_imu::heading() {
 	struct bno055_euler_float_t eulerData;
@@ -57,7 +57,7 @@ float Mrm_imu::pitch() {
 }
 
 /**Roll
-@return - Roll in degrees. Inclination to the left or right.
+@return - Roll in degrees. Inclination to the left or right. Values -90 - 90
 */
 float Mrm_imu::roll() {
 	struct bno055_euler_float_t eulerData;

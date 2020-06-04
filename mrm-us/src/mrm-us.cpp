@@ -7,8 +7,7 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_us::Mrm_us(Robot* robot, uint8_t maxNumberOfBoards) : 
-	SensorBoard(robot, 1, "US", maxNumberOfBoards) {
+Mrm_us::Mrm_us(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "US", maxNumberOfBoards, ID_MRM_US) {
 	readings = new std::vector<uint16_t[MRM_US_ECHOES_COUNT]>(maxNumberOfBoards);
 }
 
@@ -82,8 +81,7 @@ bool Mrm_us::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				default:
 					print("Unknown command. ");
-					messagePrint(canId, 8, data);
-					print("\n\r");
+					messagePrint(canId, 8, data, false);
 					errorCode = 204;
 					errorInDeviceNumber = deviceNumber;
 				}

@@ -5,8 +5,7 @@
 @param robot - robot containing this board
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_ir_finder_can::Mrm_ir_finder_can(Robot* robot, uint8_t maxNumberOfBoards) : 
-	SensorBoard(robot, 1, "IRFindCan", maxNumberOfBoards) {
+Mrm_ir_finder_can::Mrm_ir_finder_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "IRFindCan", maxNumberOfBoards, ID_MRM_IR_FINDER_CAN) {
 	readings = new std::vector<uint16_t[MRM_IR_FINDER_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 }
 
@@ -93,8 +92,7 @@ bool Mrm_ir_finder_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				default:
 					print("Unknown command. ");
-					messagePrint(canId, 8, data);
-					print("\n\r");
+					messagePrint(canId, 8, data, false);
 					errorCode = 201;
 					errorInDeviceNumber = deviceNumber;
 				}

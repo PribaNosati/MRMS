@@ -45,7 +45,10 @@ Licence: You can use this code any way you like.
 
 //CANBus commands
 #define COMMAND_LID_CAN_B2_CALIBRATE 0x05
-#define COMMAND_LID_CAN_B2_RANGING_TYPE 0x42
+#define COMMAND_LID_CAN_B2_DISTANCE_MODE 0x50
+#define COMMAND_LID_CAN_B2_TIMING_BUDGET 0x51
+#define COMMAND_LID_CAN_B2_MEASUREMENT_TIME 0x52
+#define COMMAND_LID_CAN_B2_ROI 0x53
 
 class Mrm_lid_can_b2 : public SensorBoard
 {
@@ -71,18 +74,31 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void calibration(uint8_t deviceNumber = 0);
+
+	/** Reset sensor's non-volatile memory to defaults (distance mode, timing budget, region of interest, and measurement time, but leaves CAN Bus id intact
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - resets all.
+	*/
+	void defaults(uint8_t deviceNumber = 0xFF);
+
+	/** Distance mode. Short mode has better ambient light immunity but the maximum distance is limited to 1.3 m. Long distance ranges up to 
+		4 m but is less performant under ambient light. Stored in sensors non-volatile memory. Allow 50 ms for flash to be written.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param isShort - if not short, long.
+	*/
+	void distanceMode(uint8_t deviceNumber, bool isShort = true);
 	
+	/** Measurement time (IMP) in ms. IMP must be >= TB. Probably the best value is IMP = TB. Stored in sensors non-volatile memory.
+	Allow 50 ms for flash to be written.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param ms - default 100.
+	*/
+	void measurementTime(uint8_t deviceNumber, uint16_t ms = 100);
+
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
-
-	/** Ranging type
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@param value - 1 short, 2 medium, 3 long.
-	*/
-	void rangingType(uint8_t deviceNumber, uint8_t value = 2);
 
 	/** Analog readings
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
@@ -95,9 +111,23 @@ public:
 	*/
 	void readingsPrint();
 
+	/** ROI, region of interest, a matrix from 4x4 up to 16x16 (x, y). Smaller x and y - smaller view angle. Stored in sensors non-volatile memory.
+	Allow 50 ms for flash to be written.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param x - default 16.
+	@param y - default 16.
+	*/
+	void roi(uint8_t deviceNumber, uint8_t x = 16, uint8_t y = 16);
+
 	/**Test
 	*/
 	void test();
 
+	/** Timing budget (TB) in ms. TB improves the measurement reliability but increases power consumption. Stored in sensors non-volatile memory.
+			Set before measurement time as measurement time checks this value and returns error if not appropriate. Allow 50 ms for flash to be written.
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param ms - (TB) in ms possible values [20, 50, 100, 200, 500]. Default 100.
+	*/
+	void timingBudget(uint8_t deviceNumber, uint16_t ms = 100);
 };
 

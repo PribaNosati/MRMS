@@ -63,7 +63,7 @@ public:
 	uint8_t gyroCalibration();
 
 	/**Compass
-	@return - North direction.
+	@return - North is 0º, clockwise are positive angles, values 0 - 360.
 	*/
 	float heading();
 
@@ -78,7 +78,7 @@ public:
 	float pitch();
 
 	/**Roll
-	@return - Roll in degrees. Inclination to the left or right.
+	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90
 	*/
 	float roll();
 

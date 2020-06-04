@@ -7,8 +7,7 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_bldc2x50::Mrm_bldc2x50(Robot* robot, uint8_t maxNumberOfBoards) : 
-	MotorBoard(robot, 2, "Bldc2x50", maxNumberOfBoards) {
+Mrm_bldc2x50::Mrm_bldc2x50(Robot* robot, uint8_t maxNumberOfBoards) : MotorBoard(robot, 2, "Bldc2x50", maxNumberOfBoards, ID_MRM_BLDC2X50) {
 }
 
 Mrm_bldc2x50::~Mrm_bldc2x50()

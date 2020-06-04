@@ -7,6 +7,7 @@
 class Robot;
 class ActionBase {
 protected:
+	BoardId _boardsId;
 	bool _preprocessing = true;
 	Robot* _robot;
 
@@ -15,7 +16,9 @@ public:
 	char _text[20];
 	uint8_t _menuLevel;
 
-	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1);
+	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1, BoardId boardsId = ID_ANY);
+
+	BoardId boardsId() { return _boardsId; }
 
 	bool preprocessing() { return _preprocessing; }
 
@@ -33,7 +36,7 @@ public:
 class Action8x8Test : public ActionBase {
 	void perform();
 public:
-	Action8x8Test(Robot* robot) : ActionBase(robot, "led", "Test 8x8", 1) {}
+	Action8x8Test(Robot* robot) : ActionBase(robot, "led", "Test 8x8", 1, ID_MRM_8x8A) {}
 };
 
 class ActionAny : public ActionBase {
@@ -57,7 +60,7 @@ public:
 class ActionCANBusSniff : public ActionBase {
 	void perform();
 public:
-	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff CAN Bus", 1) {}
+	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff bus toggle", 1) {}
 };
 
 class ActionCANBusStress : public ActionBase {
@@ -66,10 +69,53 @@ public:
 	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
 };
 
-class ActionColorTest : public ActionBase {
+
+class ActionColorIlluminationOff : public ActionBase {
 	void perform();
 public:
-	ActionColorTest(Robot* robot) : ActionBase(robot, "col", "Test color", 1) {}
+	ActionColorIlluminationOff(Robot* robot) : ActionBase(robot, "lof", "Light off", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorIlluminationOn : public ActionBase {
+	void perform();
+public:
+	ActionColorIlluminationOn(Robot* robot) : ActionBase(robot, "lon", "Light on", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorPatternErase : public ActionBase {
+	void perform();
+public:
+	ActionColorPatternErase(Robot* robot) : ActionBase(robot, "per", "Erase patterns", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorPatternPrint : public ActionBase {
+	void perform();
+public:
+	ActionColorPatternPrint(Robot* robot) : ActionBase(robot, "ppr", "Print patterns", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorPatternRecognize : public ActionBase {
+	void perform();
+public:
+	ActionColorPatternRecognize(Robot* robot) : ActionBase(robot, "pre", "Recognize pattern", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorPatternRecord : public ActionBase {
+	void perform();
+public:
+	ActionColorPatternRecord(Robot* robot) : ActionBase(robot, "par", "Record patterns", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorTest6Colors : public ActionBase {
+	void perform();
+public:
+	ActionColorTest6Colors(Robot* robot) : ActionBase(robot, "6co", "Test 6 colors", 4, ID_MRM_COL_CAN) {}
+};
+
+class ActionColorTestHSV : public ActionBase {
+	void perform();
+public:
+	ActionColorTestHSV(Robot* robot) : ActionBase(robot, "hsv", "Test HSV", 4, ID_MRM_COL_CAN) {}
 };
 
 class ActionDeviceIdChange : public ActionBase {
@@ -114,6 +160,12 @@ public:
 	ActionIMUTest(Robot* robot) : ActionBase(robot, "imu", "Test IMU", 1) {}
 };
 
+class ActionInfo : public ActionBase {
+	void perform();
+public:
+	ActionInfo(Robot* robot) : ActionBase(robot, "inf", "Info", 1) {}
+};
+
 class ActionIRFinderTest : public ActionBase {
 	void perform();
 public:
@@ -123,25 +175,25 @@ public:
 class ActionIRFinderCanTest : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1) {}
+	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1, ID_MRM_IR_FINDER_CAN) {}
 };
 
 class ActionIRFinderCanTestCalculated : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1) {}
+	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1, ID_MRM_IR_FINDER_CAN) {}
 };
 
 class ActionLidar2mTest : public ActionBase {
 	void perform();
 public:
-	ActionLidar2mTest(Robot* robot) : ActionBase(robot, "li2", "Test li. 2m", 1) {}
+	ActionLidar2mTest(Robot* robot) : ActionBase(robot, "li2", "Test li. 2m", 1, ID_MRM_LID_CAN_B) {}
 };
 
 class ActionLidar4mTest : public ActionBase {
 	void perform();
 public:
-	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1){}
+	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1, ID_MRM_LID_CAN_B2){}
 };
 
 class ActionLidarCalibrate : public ActionBase {
@@ -150,10 +202,22 @@ public:
 	ActionLidarCalibrate(Robot* robot) : ActionBase(robot, "lic", "Cal. lidar", 1) {}
 };
 
+class ActionMenuColor : public ActionBase {
+	void perform();
+public:
+	ActionMenuColor(Robot* robot) : ActionBase(robot, "col", "Color", 1, ID_MRM_COL_CAN) {}
+};
+
 class ActionMenuMain : public ActionBase {
 	void perform();
 public:
 	ActionMenuMain(Robot* robot) : ActionBase(robot, "x", "Escape", 2 | 4 | 8 | 16) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
+};
+
+class ActionMenuReflectance : public ActionBase {
+	void perform();
+public:
+	ActionMenuReflectance(Robot* robot) : ActionBase(robot, "ref", "Reflectance", 1, ID_MRM_REF_CAN) {}
 };
 
 class ActionMotorTest : public ActionBase {
@@ -165,13 +229,19 @@ public:
 class ActionNodeTest : public ActionBase {
 	void perform();
 public:
-	ActionNodeTest(Robot* robot) : ActionBase(robot, "nod", "Test node", 1) {}
+	ActionNodeTest(Robot* robot) : ActionBase(robot, "nod", "Test node", 1, ID_MRM_NODE) {}
 };
 
 class ActionNodeServoTest : public ActionBase {
 	void perform();
 public:
-	ActionNodeServoTest(Robot* robot) : ActionBase(robot, "nos", "Test node servo", 1) {}
+	ActionNodeServoTest(Robot* robot) : ActionBase(robot, "nos", "Test node servo", 1, ID_MRM_NODE) {}
+};
+
+class ActionOscillatorTest : public ActionBase {
+	void perform();
+public:
+	ActionOscillatorTest(Robot* robot) : ActionBase(robot, "osc", "Oscillator test", 1, ID_ANY) {}
 };
 
 class ActionStop : public ActionBase {
@@ -183,25 +253,25 @@ public:
 class ActionReflectanceArrayAnalogTest : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayAnalogTest(Robot* robot) : ActionBase(robot, "ref", "Test refl. anal.", 1) {}
+	ActionReflectanceArrayAnalogTest(Robot* robot) : ActionBase(robot, "anr", "Test refl. anal.", 2, ID_MRM_REF_CAN) {}
 };
 
 class ActionReflectanceArrayDigitalTest : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayDigitalTest(Robot* robot) : ActionBase(robot, "red", "Test refl. digi.", 1) {}
+	ActionReflectanceArrayDigitalTest(Robot* robot) : ActionBase(robot, "dgr", "Test refl. digi.", 2, ID_MRM_REF_CAN) {}
 };
 
 class ActionReflectanceArrayCalibrate : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayCalibrate(Robot* robot) : ActionBase(robot, "cal", "Calibrate refl.", 1) {}
+	ActionReflectanceArrayCalibrate(Robot* robot) : ActionBase(robot, "cal", "Calibrate refl.", 2, ID_MRM_REF_CAN) {}
 };
 
 class ActionReflectanceArrayCalibrationPrint : public ActionBase {
 	void perform();
 public:
-	ActionReflectanceArrayCalibrationPrint(Robot* robot) : ActionBase(robot, "cpr", "Calibration print", 1) {}
+	ActionReflectanceArrayCalibrationPrint(Robot* robot) : ActionBase(robot, "pri", "Calibration print", 2, ID_MRM_REF_CAN) {}
 };
 
 class ActionServoTest : public ActionBase {
@@ -213,5 +283,5 @@ public:
 class ActionThermoTest : public ActionBase {
 	void perform();
 public:
-	ActionThermoTest(Robot* robot) : ActionBase(robot, "the", "Test thermo", 1) {}
+	ActionThermoTest(Robot* robot) : ActionBase(robot, "the", "Test thermo", 1, ID_MRM_THERM_B_CAN) {}
 };
