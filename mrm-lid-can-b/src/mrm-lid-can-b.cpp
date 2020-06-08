@@ -149,9 +149,9 @@ void Mrm_lid_can_b::rangingType(uint8_t deviceNumber, uint8_t value) {
 	}
 }
 
-/** Analog readings
+/** Distance in mm
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@return - analog value
+@return - distance in mm
 */
 uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
 	if (deviceNumber > nextFree) {

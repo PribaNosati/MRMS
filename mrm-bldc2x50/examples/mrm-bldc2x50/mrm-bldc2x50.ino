@@ -33,13 +33,10 @@ void loop() {
       uint32_t ms = millis();
       while (millis() - ms < 30){
         // Receive a message
-        while (!dequeEmpty()) {
-          CANBusMessage *msg = dequeBack();
-          dequePopBack();
-          if (msg->messageId == motorId[motor] + 1 && msg->data[0] ==  COMMAND_SENSORS_MEASURE_SENDING){
-            uint32_t enc = (msg->data[4] << 24) | (msg->data[3] << 16) | (msg->data[2] << 8) | msg->data[1];
-            Serial.println(enc);
-          }
+        CANBusMessage* msg = can.messageReceive();
+        if (msg != NULL && msg->messageId == motorId[motor] + 1 && msg->data[0] ==  COMMAND_SENSORS_MEASURE_SENDING){
+          uint32_t enc = (msg->data[4] << 24) | (msg->data[3] << 16) | (msg->data[2] << 8) | msg->data[1];
+          Serial.println(enc);
         }
       }
       if (abs(speed) == 127)

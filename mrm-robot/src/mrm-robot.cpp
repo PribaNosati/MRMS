@@ -212,8 +212,9 @@ Robot::Robot() {
 	mrm_ref_can->add("RefArr-2");
 	mrm_ref_can->add("RefArr-3");
 
-	// Servo motors
-	mrm_servo->add(16, "Servo", 10);
+	// Servo motors. Note that some pins are not appropriate for PWM (servo)
+	mrm_servo->add(18, "Servo1", 0, 300, 0.5, 2.5); // Data for mrm-rds5060-300
+	mrm_servo->add(19, "Servo2", 0, 300, 0.5, 2.5);
 
 	// Switch
 	mrm_switch->add(18, 19, "Switch");
@@ -252,7 +253,7 @@ Robot::Robot() {
 */
 void Robot::actionAdd(ActionBase* action) {
 	if (_actionNextFree >= ACTIONS_LIMIT) {
-		strcpy(errorMessage, "ACTIONSS_LIMIT exceeded.");
+		strcpy(errorMessage, "ACTIONS_LIMIT exceeded.");
 		return;
 	}
 	_action[_actionNextFree++] = action;

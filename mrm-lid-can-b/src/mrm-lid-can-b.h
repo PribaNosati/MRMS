@@ -86,10 +86,9 @@ public:
 	*/
 	void rangingType(uint8_t deviceNumber, uint8_t value = 0);
 	
-	/** Analog readings
-	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	/** Distance in mm
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - analog value
+	@return - distance in mm
 	*/
 	uint16_t reading(uint8_t deviceNumber = 0);
 

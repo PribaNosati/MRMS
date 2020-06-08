@@ -17,13 +17,10 @@ void setup() {
 
 void loop() {
   // Receive a message
-  while (!dequeEmpty()) {
-	CANBusMessage *msg = dequeBack();
-	dequePopBack();
-	if (msg->data[0] ==  COMMAND_SENSORS_MEASURE_SENDING){
-          uint16_t deg = (msg->data[2] << 8) | msg->data[1];
-          Serial.print(deg);
-          Serial.println(" deg C");
-    }
+  CANBusMessage* msg = can.messageReceive();
+  if (msg != NULL && msg->data[0] ==  COMMAND_SENSORS_MEASURE_SENDING){
+    uint16_t deg = (msg->data[2] << 8) | msg->data[1];
+    Serial.print(deg);
+    Serial.println(" deg C");
   }
 }

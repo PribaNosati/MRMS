@@ -16,9 +16,13 @@ Mrm_servo::~Mrm_servo()
 /** Add a servo motor
 @param gpioPin - pin number, allowed: 0 - 19, 21 - 23, 25 - 27, 32 - 36, 39
 @param deviceName - device's name
-@param timerWidth - timer width in bits, 1 - 16
+@param minDegrees - minimum servo angle
+@param maxDegrees - maximum servo angle
+@param minDegreesPulseMicroSec - pulse ms for minimum angle
+@param maxDegreesPulseMicroSec - pulse ms for maximum angle
+@param timerWidth - timer width in bits, 1 - 16. 12 yields angle resolution of about 1º.
 */
-void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
+void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint16_t minDegrees, uint16_t maxDegrees, float minDegreesPulseMs, float maxDegreesPulseMs, uint8_t timerWidth)
 {
 	if (nextFree >= MAX_SERVO_COUNT) {
 		strcpy(errorMessage, "Too many servo motors");
@@ -33,12 +37,23 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint8_t timerWidth)
 		strcpy(_name[nextFree], deviceName);
 	}
 
-	timerWidthBits = timerWidth;
+	_timerWidth = timerWidth;
+	_minDegrees = minDegrees;
+	_maxDegrees = maxDegrees;
+	_minDegreesPulseMs = minDegreesPulseMs;
+	_maxDegreesPulseMs = maxDegreesPulseMs;
 
-	// Servo: 20 ms period, duty 1 - 2 ms. 1.5 ms - neutral position.
-#define FREQUENCY_HZ 50
-	double resFreq = ledcSetup(nextFree, FREQUENCY_HZ, timerWidthBits); // nextFree is channel number, which can be 0 - 15.
-	ledcAttachPin(gpioPin, nextFree); // GPIO 16 assigned to channel 1
+
+	// Standard servo, 0-180º: 20 ms period, duty 1 - 2 ms. 1.5 ms - neutral position.
+	// For pulseWidth=20 ms (50 Hz) and _timerWidth=12, tickLength = (1000 / 50) / (2^12 - 1) = 20/4095 = 0.004884 ms
+	// pulseHighWidth = numberOfTicks*tickLength
+	// numberOfTicksNeeded = pulseHighWidth/tickLength pulseHighWidthMicroSec/1000000/tickLength = pulseHighWidthMicroSec * f. For 90 degrees numberOfTicksNeeded = 1.5/0.004884 = 307. For 0 degrees numberOfTicksNeeded = 1/0.004884 = 205
+
+	float tickLength = (1000 / (float)MRM_SERVO_FREQUENCY_HZ) / ((1 << _timerWidth) - 1); //tickLength = pulsePeriod/(2^timerWidthBits-1) * 1000, in ms. 
+	f = 1 / tickLength;
+	
+	double resFreq = ledcSetup(nextFree, MRM_SERVO_FREQUENCY_HZ, _timerWidth); // nextFree is channel number, which can be 0 - 15.
+	ledcAttachPin(gpioPin, nextFree); // gpioPin assigned to channel nextFree
 
 	nextFree++;
 }
@@ -63,20 +78,18 @@ void Mrm_servo::sweep() {
 */
 void Mrm_servo::test()
 {
-	const uint8_t ms = 12;
+	const uint16_t ms = 300; // Min. 12.
+	int16_t step = 5;
+	int16_t degrees = _minDegrees;
 	while (!robotContainer->userBreak()) {
-
-		for (int16_t i = 0; i <= 180; i += 5) {
-			write(i);
-			print("%i\n\r", i);
-			robotContainer->delayMs(ms);
+		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+			write(degrees, deviceNumber);
+			print("%i\n\r", degrees);
 		}
-
-		for (int16_t i = 180; i >= 0; i -= 5) {
-			write(i);
-			print("%i\n\r", i);
-			robotContainer->delayMs(ms);
-		}
+		robotContainer->delayMs(ms);
+		if (degrees + step < _minDegrees || degrees + step > _maxDegrees)
+			step = -step;
+		degrees += step;
 	}
 
 	print("\n\rTest over.\n\r");
@@ -84,7 +97,7 @@ void Mrm_servo::test()
 }
 
 /** Move servo
-@param degrees - Servo's target angle, 0 - 180
+@param degrees - Servo's target angle, 0 - 180º, counting clockwise
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 */
 void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
@@ -92,8 +105,11 @@ void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
 		strcpy(errorMessage, "Servo doesn't exist");
 		return;
 	}
-	degrees = constrain(degrees, 0, 180);
-	uint16_t period = (1 << timerWidthBits) - 1;
-	ledcWrite(servoNumber, map(degrees, 0, 180, period * 0.025, period * 0.125));// /20 /10
-	//ledcWrite(1, map(degrees, 0, 180, PERIOD / 20, PERIOD / 10));
+	degrees = constrain(degrees, _minDegrees, _maxDegrees);
+	ledcWrite(servoNumber, map(degrees, _minDegrees, _maxDegrees, _minDegreesPulseMs * f, _maxDegreesPulseMs * f));
+
+	uint16_t _minDegrees;
+	uint16_t _minDegreesPulseMicroSec;
+	uint16_t _maxDegrees;
+	uint16_t _maxDegreesPulseMicroSec;
 }

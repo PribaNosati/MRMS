@@ -2,21 +2,31 @@
 #include <mrm-action.h>
 #include <mrm-robot.h>
 
+#define CATCH_SERVO_CLOSE 250
+#define CATCH_SERVO_OPEN 70
+#define LIFT_SERVO_DOWN 150
+#define LIFT_SERVO_PUT 80
+#define LIFT_SERVO_UP 10
+
 // For mrm-8x8 display.
 enum ledSign { LED_CROSSING_BOTH_MARKS, LED_CROSSING_MARK_LEFT, LED_CROSSING_MARK_RIGHT, LED_CROSSING_NO_MARK, LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
 	LED_LINE_INTERRUPTED, LED_CURVE_LEFT, LED_CURVE_RIGHT, LED_OBSTACLE, LED_OBSTACLE_AROUND_LEFT, LED_OBSTACLE_AROUND_RIGHT, LED_PAUSE, LED_PLAY };
 
+class ActionEvacuationZone;
 class ActionObstacleAvoid;
 class ActionLineFollow;
+class ActionRCJLine;
 
-/** Robot for RCJ Rescue Line and Maze
+/** Robot for RCJ Rescue Line
 */
 class RobotLine : public Robot {
 	const uint8_t TOP_SPEED = 50; //90
 
 	MotorGroupDifferential* motorGroup = NULL;
+	ActionEvacuationZone* actionEvacuationZone;
 	ActionObstacleAvoid* actionObstacleAvoid;
 	ActionLineFollow* actionLineFollow;
+	ActionRCJLine* actionRCJLine;
 	ActionBase* actionWallFollow;
 public:
 	RobotLine();
@@ -24,6 +34,16 @@ public:
 	/** Custom test
 	*/
 	void anyTest();
+
+	void armCatch();
+
+	void armCatchReady();
+
+	void armIdle();
+
+	void armPut();
+
+	void armPutReady();
 
 	/** Store bitmaps in mrm-led8x8a.
 	*/
@@ -33,6 +53,8 @@ public:
 	@param bitmap - user bitmap's id
 	*/
 	void display(uint8_t bitmap);
+
+	void evacuationZone();
 
 	/** Test - go straight ahead using a defined speed.
 	*/
@@ -77,10 +99,11 @@ public:
 	ActionObstacleAvoid(RobotLine* robot) : ActionBase(robot, "obs", "Obstacle avoid", 0) {}
 };
 
-class ActionOmniWheelsTest : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->omniWheelsTest(); }
+class ActionEvacuationZone : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->evacuationZone(); }
 public:
-	ActionOmniWheelsTest(Robot* robot) : ActionBase(robot, "omn", "Test omni wheels", 1) {}
+
+	ActionEvacuationZone(RobotLine* robot) : ActionBase(robot, "eva", "Evacuation zone", 1) {}
 };
 
 class ActionRCJLine : public ActionBase {

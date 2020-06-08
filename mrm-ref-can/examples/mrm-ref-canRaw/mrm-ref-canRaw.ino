@@ -43,9 +43,8 @@ void setup() {
 void loop() {
   // Receive a message
   uint8_t startIndex;
-  while (!dequeEmpty()) {
-	CANBusMessage *msg = dequeBack();
-	dequePopBack();
+  CANBusMessage* msg = can.messageReceive();
+  if (msg != NULL){
     switch (msg->data[0]) {
     case COMMAND_REF_CAN_SENDING_SENSORS_1_TO_3:
       startIndex = 0;

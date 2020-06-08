@@ -41,13 +41,10 @@ void setup() {
 
 void loop() {
   // Receive a message
-  while (!dequeEmpty()) {
-	CANBusMessage *msg = dequeBack();
-	dequePopBack();
-	if (msg->data[0] == COMMAND_SENSORS_MEASURE_SENDING){
-      uint16_t mm = (msg->data[2] << 8) | msg->data[1];
-      Serial.print(mm);
-      Serial.println(" mm");
-    }
+  CANBusMessage* msg = can.messageReceive();
+  if (msg != NULL && msg->data[0] == COMMAND_SENSORS_MEASURE_SENDING){
+    uint16_t mm = (msg->data[2] << 8) | msg->data[1];
+    Serial.print(mm);
+    Serial.println(" mm");
   }
 }

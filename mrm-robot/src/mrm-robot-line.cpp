@@ -11,26 +11,54 @@
 RobotLine::RobotLine() : Robot() {
 	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 3);
 	
+	actionEvacuationZone = new ActionEvacuationZone(this);
 	actionLineFollow = new ActionLineFollow(this);
 	actionObstacleAvoid = new ActionObstacleAvoid(this);
 	actionWallFollow = new ActionWallFollow(this);
 
+	actionAdd(actionEvacuationZone);
 	actionAdd(actionLineFollow);
 	actionAdd(actionObstacleAvoid);
+	actionAdd(actionRCJLine);
 	actionAdd(actionWallFollow);
-	actionAdd(new ActionOmniWheelsTest(this));
-	actionAdd(new ActionRCJLine(this));
+
+	mrm_8x8a->actionSet(actionRCJLine, 0); // Button 0 starts RCJ Line
+	mrm_8x8a->actionSet(actionEvacuationZone, 1); // Button 1 starts evacution zone
 }
 
 /** Custom test
 */
 void RobotLine::anyTest() {
-	static bool yes = true;
-	if (actionPreprocessing(true)) {
-		mrm_lid_can_b->reset();
-		delay(1);
-	}
-	actionEnd();
+	armIdle();
+	armCatchReady();
+	armCatch();
+	armPutReady();
+	armPut();
+}
+
+void RobotLine::armCatch() {
+	mrm_servo->write(LIFT_SERVO_DOWN, 0); // Lift servo
+	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Catch servo
+}
+
+void RobotLine::armCatchReady() {
+	mrm_servo->write(LIFT_SERVO_DOWN, 0); // Lift servo
+	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Catch servo
+}
+
+void RobotLine::armIdle() {
+	mrm_servo->write(LIFT_SERVO_UP, 0); // Lift servo
+	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Catch servo
+} 
+
+void RobotLine::armPut() {
+	mrm_servo->write(LIFT_SERVO_PUT, 0); // Lift servo
+	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Catch servo
+}
+
+void RobotLine::armPutReady() {
+	mrm_servo->write(LIFT_SERVO_PUT, 0); // Lift servo
+	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Catch servo
 }
 
 /** Store bitmaps in mrm-led8x8a.
@@ -296,6 +324,31 @@ void RobotLine::display(uint8_t bitmap) {
 	}
 }
 
+void RobotLine::evacuationZone() {
+	if (actionPreprocessing(true)) {
+		delayMs(8000);
+		devicesStart(1);
+		print("Catch ready\n\r");
+		armCatchReady();
+		delayMs(500);
+		motorGroup->go(50, 50);
+	}
+	//print("Distance %i\n\r", mrm_lid_can_b->reading(1));
+	if (mrm_lid_can_b->reading(1) < 40) {
+		print("Found");
+		motorGroup->stop();
+		armCatch();
+		delay(1000);
+		armPutReady();
+		motorGroup->go(50, 50);
+		delayMs(1000);
+		motorGroup->stop();
+		armPut();
+		delay(500);
+		armIdle();
+	}
+}
+
 /** Test - go straight ahead using a defined speed.
 */
 void RobotLine::goAhead() {
@@ -488,54 +541,6 @@ void RobotLine::obstacleAvoid() {
 	}
 }
 
-/** Test for Mecanum wheels.
-*/
-void RobotLine::omniWheelsTest() {
-	static uint8_t nextMove;
-	static uint32_t lastMs;
-	if (actionPreprocessing(true)) {
-		if (motorGroup == NULL) {
-			print("Differential motor group needed.");
-			actionEnd();
-			return;
-		}
-		nextMove = 0;
-		lastMs = millis();
-	}
-	switch (nextMove) {
-	case 0:
-		if (millis() - lastMs > 2000) {
-			lastMs = millis();
-			nextMove = 1;
-		}
-		else
-			motorGroup->go(20, 20, 70);
-		break;
-	case 1:
-		if (millis() - lastMs > 15000) {
-			lastMs = millis();
-			nextMove = 2;
-		}
-		else {
-			float angle = (millis() - lastMs) / 1500.0;
-			int8_t x = cos(angle) * 50;
-			int8_t y = sin(angle) * 50;
-			motorGroup->go(y, y, x);
-			//print("%i %i %i\n\r", (int)(angle*100), (int)(x * 100), (int)(y * 100));
-			//delay(100);
-		}
-		break;
-	case 2:
-		if (millis() - lastMs > 2000) {
-			lastMs = millis();
-			nextMove = 0;
-		}
-		else
-			motorGroup->go(-20, -20, -70);
-		break;
-	}
-}
-
 /** Starts the robot after this action selected.
 */
 void RobotLine::rcjLine() {
@@ -544,6 +549,7 @@ void RobotLine::rcjLine() {
 	display(LED_PLAY);
 	devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
 	mrm_col_can->illumination(0xFF, 1);
+	armIdle();
 	delayMs(20);
 	actionSet(actionLineFollow);
 }
