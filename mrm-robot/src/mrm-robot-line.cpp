@@ -8,7 +8,7 @@
 #include <mrm-servo.h>
 #include <mrm-therm-b-can.h>
 
-RobotLine::RobotLine() : Robot() {
+RobotLine::RobotLine(char name[]) : Robot(name) {
 	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 3);
 	
 	actionEvacuationZone = new ActionEvacuationZone(this);
@@ -24,6 +24,9 @@ RobotLine::RobotLine() : Robot() {
 
 	mrm_8x8a->actionSet(actionRCJLine, 0); // Button 0 starts RCJ Line
 	mrm_8x8a->actionSet(actionEvacuationZone, 1); // Button 1 starts evacution zone
+
+	for (uint8_t i = 0; i < 4; i++)
+		mrm_mot4x3_6can->directionChange(i);
 }
 
 /** Custom test

@@ -6,7 +6,7 @@
 #include <mrm-mot2x50.h>
 #include "mrm-robot-Soccer.h"
 
-RobotSoccer::RobotSoccer() : Robot() {
+RobotSoccer::RobotSoccer(char name[]) : Robot(name) {
 	motorGroup = new MotorGroupStar(mrm_mot2x50, 0, mrm_mot2x50, 1, mrm_mot2x50, 2, mrm_mot2x50, 3);
 
 	pidXY = new Mrm_pid(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the x-y plane

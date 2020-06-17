@@ -8,6 +8,8 @@
 @param maxNumberOfBoards - maximum number of boards
 */
 Mrm_8x8a::Mrm_8x8a(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "LED8x8", maxNumberOfBoards, ID_MRM_8x8A) {
+	displayedLast = new std::vector<uint8_t>(maxNumberOfBoards);
+	displayedTypeLast = new std::vector<uint8_t>(maxNumberOfBoards);
 	lastOn = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	on = new std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
 	offOnAction = new std::vector<ActionBase* [MRM_8x8A_SWITCHES_COUNT]>(maxNumberOfBoards);
@@ -23,10 +25,9 @@ Mrm_8x8a::~Mrm_8x8a()
 ActionBase* Mrm_8x8a::actionCheck() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t switchNumber = 0; switchNumber < MRM_8x8A_SWITCHES_COUNT; switchNumber++)
-			if ((*lastOn)[deviceNumber][switchNumber] == false && (*on)[deviceNumber][switchNumber] == true && (*offOnAction)[deviceNumber][switchNumber] != NULL) {
-				((*lastOn)[deviceNumber][switchNumber]) = true;
+			if ((*lastOn)[deviceNumber][switchNumber] == false && (*on)[deviceNumber][switchNumber] == true && (*offOnAction)[deviceNumber][switchNumber] != NULL)
 				return (*offOnAction)[deviceNumber][switchNumber];
-			} else if ((*lastOn)[deviceNumber][switchNumber] == true && (*on)[deviceNumber][switchNumber] == false)
+			else if ((*lastOn)[deviceNumber][switchNumber] == true && (*on)[deviceNumber][switchNumber] == false)
 				((*lastOn)[deviceNumber][switchNumber]) = false;
 	}
 	return NULL;
@@ -85,18 +86,25 @@ void Mrm_8x8a::add(char * deviceName)
 		(*offOnAction)[nextFree][i] = NULL;
 	}
 
+	(*displayedLast)[nextFree] = 0xFF;
+	(*displayedTypeLast)[nextFree] = LED8x8Type::LED_8X8_CUSTOM;
+
 	SensorBoard::add(deviceName, canIn, canOut);
 }
 
-/** Display bitmap
+/** Display stored (in sensor, read-only) bitmap
 @param bitmapId - bitmap's id
 @param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
 void Mrm_8x8a::bitmapDisplay(uint8_t bitmapId, uint8_t deviceNumber){
-	alive(deviceNumber, true);
-	canData[0] = COMMAND_8X8_DISPLAY;
-	canData[1] = bitmapId;
-	robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
+	if (bitmapId != (*displayedLast)[deviceNumber] || (*displayedTypeLast)[deviceNumber] != LED8x8Type::LED_8X8_STORED) {
+		(*displayedLast)[deviceNumber] = bitmapId;
+		(*displayedTypeLast)[deviceNumber] = LED8x8Type::LED_8X8_STORED;
+		alive(deviceNumber, true);
+		canData[0] = COMMAND_8X8_DISPLAY;
+		canData[1] = bitmapId;
+		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
+	}
 }
 
 /** Display custom bitmap
@@ -121,6 +129,8 @@ void Mrm_8x8a::bitmapCustomDisplay(uint8_t red[], uint8_t green[], uint8_t devic
 	for (uint8_t i = 0; i < 2; i++) 
 		canData[i + 1] = red[i + 6];
 	robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 3, canData);
+
+	(*displayedTypeLast)[deviceNumber] = LED8x8Type::LED_8X8_CUSTOM;
 }
 
 /** Store custom bitmap
@@ -150,15 +160,19 @@ void Mrm_8x8a::bitmapCustomStore(uint8_t red[], uint8_t green[], uint8_t address
 	robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 4, canData);
 }
 
-/** Store custom bitmap
+/** Display custom stored bitmap
 @param addres - address in display's RAM. 0 - 99.
 @param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
 void Mrm_8x8a::bitmapCustomStoredDisplay(uint8_t address, uint8_t deviceNumber) {
-	alive(deviceNumber, true);
-	canData[0] = COMMAND_8X8_BITMAP_STORED_DISPLAY;
-	canData[1] = address;
-	robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
+	if (address != (*displayedLast)[deviceNumber] || (*displayedTypeLast)[deviceNumber] != LED8x8Type::LED_8X8_STORED_CUSTOM) {
+		(*displayedLast)[deviceNumber] = address;
+		(*displayedTypeLast)[deviceNumber] = LED8x8Type::LED_8X8_STORED_CUSTOM;
+		alive(deviceNumber, true);
+		canData[0] = COMMAND_8X8_BITMAP_STORED_DISPLAY;
+		canData[1] = address;
+		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
+	}
 }
 
 /** Read CAN Bus message into local variables

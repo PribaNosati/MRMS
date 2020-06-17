@@ -29,7 +29,7 @@ class RobotLine : public Robot {
 	ActionRCJLine* actionRCJLine;
 	ActionBase* actionWallFollow;
 public:
-	RobotLine();
+	RobotLine(char name[] = "RCJ Line");
 
 	/** Custom test
 	*/

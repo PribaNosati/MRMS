@@ -49,7 +49,7 @@
 #endif
 
 enum BoardId{ID_MRM_8x8A, ID_ANY, ID_MRM_BLDC2X50, ID_MRM_BLDC4x2_5, ID_MRM_COL_CAN, ID_MRM_IR_FINDER_2, ID_MRM_IR_FINDER_CAN, ID_MRM_LID_CAN_B, ID_MRM_LID_CAN_B2, ID_MRM_MOT2X50, ID_MRM_MOT4X3_6CAN, ID_MRM_MOT4X10, 
-	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US};
+	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US, ID_MRM_IR_FINDER3};
 
 enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
 
@@ -282,6 +282,13 @@ public:
 	*/
 	void start(uint8_t deviceNumber = 0xFF, uint8_t measuringModeNow = 0, uint16_t refreshMs = 0);
 
+	/** add() assigns device numbers one after another. swap() changes the sequence later. Therefore, add(); add(); will assign number 0 to a device with the smallest CAN Bus id and 1 to the one with the next smallest. 
+	If we want to change the order so that now the device 1 is the one with the smalles CAN Bus id, we will call swap(0, 1); after the the add() commands.
+	@param deviceNumber1 - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param deviceNumber2 - Second device.
+	*/
+	void swap(uint8_t deviceNumber1, uint8_t deviceNumber2);
+
 	/** Stops periodical CANBus messages that refresh values that can be read by reading()
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
@@ -312,6 +319,11 @@ public:
 	@param id - unique id
 	*/
 	MotorBoard(Robot* robot, uint8_t devicesOnABoard, char * boardName, uint8_t maxNumberOfBoards, BoardId id);
+
+	/** Changes rotation's direction
+	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void directionChange(uint8_t deviceNumber);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -421,8 +433,9 @@ public:
 	/** Start all motors
 	@param leftSpeed, in range -127 to 127
 	@param right Speed, in range -127 to 127
+	@param speedLimit - Speed limit, 0 to 127. For example, 80 will limit all the speeds to 80/127%. 0 will turn the motors off.
 	*/
-	void go(int16_t leftSpeed = 0, int16_t rightSpeed = 0, int16_t lateralSpeedToRight = 0);
+	void go(int16_t leftSpeed = 0, int16_t rightSpeed = 0, int16_t lateralSpeedToRight = 0, uint8_t speedLimit = 127);
 };
 
 /** Motors' axles for a star - they all point to a central point. Useful for driving soccer robots with omni-wheels.

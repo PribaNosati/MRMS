@@ -45,9 +45,12 @@ Licence: You can use this code any way you like.
 #define MRM_8x8A_SWITCHES_COUNT 4
 
 enum LED8x8Rotation { LED_8X8_BY_0_DEGREES, LED_8X8_BY_90_DEGREES, LED_8X8_BY_270_DEGREES };
+enum LED8x8Type{LED_8X8_CUSTOM, LED_8X8_STORED, LED_8X8_STORED_CUSTOM };
 
 class Mrm_8x8a : public SensorBoard
 {
+	std::vector<uint8_t>* displayedLast;
+	std::vector<uint8_t>* displayedTypeLast;
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* lastOn;
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* on;
 	std::vector<ActionBase *[MRM_8x8A_SWITCHES_COUNT]>* offOnAction;
@@ -72,7 +75,7 @@ public:
 	*/
 	void add(char * deviceName = "");
 
-	/** Display bitmap
+	/** Display stored (in sensor, read-only) bitmap
 	@param bitmapId - bitmap's id
 	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
@@ -93,7 +96,7 @@ public:
 	*/
 	void bitmapCustomStore(uint8_t red[], uint8_t green[], uint8_t address, uint8_t deviceNumber = 0);
 
-	/** Store custom bitmap
+	/** Display custom custom bitmap
 	@param addres - address in display's RAM. 0 - 99.
 	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/

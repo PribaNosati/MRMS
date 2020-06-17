@@ -13,7 +13,7 @@ Mrm_ir_finder_can::~Mrm_ir_finder_can()
 {
 }
 
-/** Add a mrm-ir-finder sensor
+/** Add a mrm-ir-finder-can sensor
 @param deviceName - device's name
 */
 void Mrm_ir_finder_can::add(char * deviceName)

@@ -477,6 +477,25 @@ void Board::stop(uint8_t deviceNumber) {
 }
 
 
+/** add() assigns device numbers one after another. swap() changes the sequence later. Therefore, add(); add(); will assign number 0 to a device with the smallest CAN Bus id and 1 to the one with the next smallest.
+If we want to change the order so that now the device 1 is the one with the smalles CAN Bus id, we will call swap(0, 1); after the the add() commands.
+@param deviceNumber1 - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param deviceNumber2 - Second device.
+*/
+void Board::swap(uint8_t deviceNumber1, uint8_t deviceNumber2) {
+	if (deviceNumber1 >= nextFree || deviceNumber2 >= nextFree)
+		strcpy(errorMessage, "Device overflow");
+	else {
+		uint16_t idInTemp = (*idIn)[deviceNumber1];
+		uint16_t idOutTemp = (*idOut)[deviceNumber1];
+		(*idIn)[deviceNumber1] = (*idIn)[deviceNumber2];
+		(*idOut)[deviceNumber1] = (*idOut)[deviceNumber2];
+		(*idIn)[deviceNumber2] = idInTemp;
+		(*idOut)[deviceNumber2] = idOutTemp;
+	}
+}
+
+
 /**
 @param robot - robot containing this board
 @param devicesOnABoard - number of devices on each board
@@ -489,6 +508,16 @@ MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, u
 	encoderCount = new std::vector<uint32_t>(devicesOnABoard * maxNumberOfBoards);
 	reversed = new std::vector<bool>(devicesOnABoard * maxNumberOfBoards);
 	lastSpeed = new std::vector<int8_t>(devicesOnABoard * maxNumberOfBoards);
+}
+
+/** Changes rotation's direction
+@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void MotorBoard::directionChange(uint8_t deviceNumber) {
+	if (deviceNumber >= nextFree) 
+		strcpy(errorMessage, "Wrong device");
+	else
+		(*reversed)[deviceNumber] = !(*reversed)[deviceNumber];
 }
 
 /** Read CAN Bus message into local variables
@@ -762,13 +791,35 @@ int16_t MotorGroupDifferential::checkBounds(int16_t speed) {
 /** Start all motors
 @param leftSpeed, in range -127 to 127
 @param right Speed, in range -127 to 127
+@param speedLimit - Speed limit, 0 to 127. For example, 80 will limit all the speeds to 80/127%. 0 will turn the motors off.
 */
-void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t lateralSpeedToRight) {
+void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t lateralSpeedToRight, uint8_t speedLimit) {
 	if (motorBoard[0] != NULL) {
-		motorBoard[0]->speedSet(motorNumber[0], checkBounds(leftSpeed - lateralSpeedToRight));
-		motorBoard[1]->speedSet(motorNumber[1], checkBounds(-rightSpeed + lateralSpeedToRight));
-		motorBoard[2]->speedSet(motorNumber[2], checkBounds(leftSpeed - lateralSpeedToRight));
-		motorBoard[3]->speedSet(motorNumber[3], checkBounds(-rightSpeed + lateralSpeedToRight));
+		if (speedLimit == 0)
+			stop();
+		else {
+			if (speedLimit > 127)
+				speedLimit = 127;
+			int16_t speeds[4];
+			speeds[0] = checkBounds(leftSpeed - lateralSpeedToRight);
+			speeds[1] = checkBounds(-rightSpeed + lateralSpeedToRight);
+			speeds[2] = checkBounds(leftSpeed - lateralSpeedToRight);
+			speeds[3] = checkBounds(-rightSpeed + lateralSpeedToRight);
+			float maxSpeed = abs(speeds[0]);
+			for (int i = 1; i < 4; i++)
+				if (abs(speeds[i]) > maxSpeed)
+					maxSpeed = abs(speeds[i]);
+			for (uint8_t i = 0; i < 4; i++)
+				//motorBoard[i]->speedSet(motorNumber[i], speeds[i]);
+				if (maxSpeed > speedLimit) {
+					motorBoard[i]->speedSet(motorNumber[i], (int8_t)(speeds[i] / maxSpeed * speedLimit));
+					//Serial.print("MAX ");
+				}
+				else {
+					motorBoard[i]->speedSet(motorNumber[i], (int8_t)speeds[i]);
+					//Serial.print((String)speeds[i] + " ");
+				}
+		}
 	}
 }
 

@@ -13,7 +13,7 @@ class RobotSoccer : public Robot {
 	Mrm_pid* pidXY; // PID controller, regulates motors' speeds for linear motion in the x-y plane
 	Mrm_pid* pidRotation; // PID controller, regulates rotation around z axis
 public:
-	RobotSoccer();
+	RobotSoccer(char name[] = "RCJ Soccer");
 
 	/** Custom test
 	*/

@@ -8,6 +8,7 @@
 #include <mrm-pid.h>
 #include <mrm-ir-finder2.h>
 #include <mrm-ir-finder-can.h>
+#include <mrm-ir-finder3.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
 #include <mrm-mot2x50.h>
@@ -26,19 +27,22 @@ extern BluetoothSerial* serialBT;
 
 /**
 */
-Robot::Robot() {
+Robot::Robot(char name[15]) {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 	Serial.begin(115200);
 	//serial = new BluetoothSerial();
+	if (strlen(name) > 15)
+		strcpy(errorMessage, "Name overflow");
+	strcpy(_name, name);
 	if (serialBT == NULL) {
 		serialBT = new BluetoothSerial(); // Additional serial port
-		serialBT->begin("ESP32"); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
+		serialBT->begin(_name); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
 	}
 
 	delay(50);
-	print("Robot started.\r\n");
+	print("%s started.\r\n", _name);
 
 	Wire.begin(); // Start I2C
 
@@ -160,21 +164,21 @@ Robot::Robot() {
 	mrm_mot2x50->add(false, "Mot2x50-5");
 
 	// Motors mrm-mot4x10
-	mrm_mot4x10->add(true, "Mot4x10-0");
-	mrm_mot4x10->add(true, "Mot4x10-1");
-	mrm_mot4x10->add(true, "Mot4x10-2");
-	mrm_mot4x10->add(true, "Mot4x10-3");
+	mrm_mot4x10->add(false, "Mot4x10-0");
+	mrm_mot4x10->add(false, "Mot4x10-1");
+	mrm_mot4x10->add(false, "Mot4x10-2");
+	mrm_mot4x10->add(false, "Mot4x10-3");
 
 	// Motors mrm-mot4x3.6can
-	mrm_mot4x3_6can->add(true, "Mot3.6-0");
-	mrm_mot4x3_6can->add(true, "Mot3.6-1");
-	mrm_mot4x3_6can->add(true, "Mot3.6-2");
-	mrm_mot4x3_6can->add(true, "Mot3.6-3");
+	mrm_mot4x3_6can->add(false, "Mot3.6-0");
+	mrm_mot4x3_6can->add(false, "Mot3.6-1");
+	mrm_mot4x3_6can->add(false, "Mot3.6-2");
+	mrm_mot4x3_6can->add(false, "Mot3.6-3");
 
 	mrm_mot4x3_6can->add(false, "Mot3.6-4");
 	mrm_mot4x3_6can->add(false, "Mot3.6-5");
-	mrm_mot4x3_6can->add(true, "Mot3.6-6");
-	mrm_mot4x3_6can->add(true, "Mot3.6-7");
+	mrm_mot4x3_6can->add(false, "Mot3.6-6");
+	mrm_mot4x3_6can->add(false, "Mot3.6-7");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
 	mrm_lid_can_b->add("Lidar2m-0");
@@ -281,10 +285,12 @@ void Robot::actionSet() {
 	const uint16_t TIMEOUT_MS = 2000;
 
 	// If a button pressed, first execute its action
-	if (mrm_8x8a->actionCheck() != NULL)
-		_actionCurrent = mrm_8x8a->actionCheck();
-	else if (mrm_switch->actionCheck())
-		_actionCurrent = mrm_8x8a->actionCheck();
+	ActionBase* action8x8 = mrm_8x8a->actionCheck();
+	ActionBase* actionSw = mrm_switch->actionCheck();
+	if (action8x8 != NULL)
+		_actionCurrent = action8x8;
+	else if (actionSw != NULL)
+		_actionCurrent = actionSw;
 	else { // Check keyboard
 		if (Serial.available() || serialBT != NULL && serialBT->available()) {
 			lastUserActionMs = millis();

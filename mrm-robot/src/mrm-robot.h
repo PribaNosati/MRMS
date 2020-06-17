@@ -54,6 +54,7 @@ protected:
 	uint32_t fpsTopGap = 0;
 
 	uint8_t menuLevel = 1; // Submenus have bigger numbers
+	char _name[16];
 	bool _sniff = false;
 	bool verbose = false; // Verbose output
 
@@ -138,7 +139,7 @@ public:
 
 	/**
 	*/
-	Robot();
+	Robot(char name[15] = "MRMS robot");
 
 	/** Add a new action to the collection of robot's possible actions.
 	@param action - the new action.
