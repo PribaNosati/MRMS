@@ -15,10 +15,14 @@ Tile* Tile::first; // Neccessary for static member variable.
 */
 RobotMaze::RobotMaze(char name[]) : Robot(name) {
 	// MotorGroup class drives the motors.
-	// 2nd, 4th, 6th, and 8th parameters are output connectors of the controller. 2nd one must be connected to LB (Left-Back) motor,
+	// 2nd, 4th, 6th, and 8th parameters are output connectors of the controller (0 - 3, meaning 1 - 4. connector). 2nd one must be connected to LB (Left-Back) motor,
 	// 4th to LF (Left-Front), 6th to RF (Right-Front), and 8th to RB (Right-Back). Therefore, You can connect motors freely, but have to
 	// adjust the parameters here. In this example output (connector) 3 is LB, etc.
 	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 3, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 0);
+
+	// Depending on your wiring, it may be necessary to spin some motors in the other direction. In this example, no change needed,
+	// but uncommenting the following line will change the direction of the motor 2.
+	//mrm_mot4x3_6can->directionChange(2);
 
 	// All the actions will be defined here; the objects will be created.
 	actionDecide = new ActionDecide(this);
@@ -39,6 +43,7 @@ RobotMaze::RobotMaze(char name[]) : Robot(name) {
 
 	// Set buttons' actions
 	mrm_8x8a->actionSet(actionRescueMaze, 0); // Button 0 starts RCJ Maze.
+	// Put Your buttons' actions here.
 
 	// Upload custom bitmaps into mrm-8x8a.
 	bitmapsSet();
@@ -61,7 +66,7 @@ void RobotMaze::anyTest() {
 /** Store custom bitmaps in mrm-led8x8a.
 */
 void RobotMaze::bitmapsSet() {
-	mrm_8x8a->alive(0, true); // Make sure that mrm-8x8a is present and functioning. If not, issue warning.
+	mrm_8x8a->alive(0, true); // Makes sure that mrm-8x8a is present and functioning. If not, issues a warning message.
 
 	// The 2 arrays will hold red and green pixels. Both red an green pixel on - orange color.
 	uint8_t red[8];
@@ -84,12 +89,11 @@ void RobotMaze::bitmapsSet() {
 	for (uint8_t i = 0; i < 8; i++)
 		red[i] = 0;
 	/* Store this bitmap in mrm-8x8a. The 3rd parameter is bitmap's address. If You want to define new bitmaps, expand LedSign enum with
-	Your names, and use the new values for Your bitmaps. This parameter can be a plain number, but enum keeps thing tidy.
-	*/
+	Your names, and use the new values for Your bitmaps. This parameter can be a plain number, but enum keeps thing tidy.*/
 	mrm_8x8a->bitmapCustomStore(red, green, LedSign::MAZE_LED_PAUSE); 
 	delayMs(1); // Wait a little in order not to queue too many CAN Buss messages at once.
 
-	// Play
+	// Play.
 	green[0] = 0b0110000;
 	green[1] = 0b0111000;
 	green[2] = 0b0111100;
@@ -103,7 +107,7 @@ void RobotMaze::bitmapsSet() {
 	mrm_8x8a->bitmapCustomStore(red, green, LedSign::MAZE_LED_PLAY);
 	delayMs(1);
 
-	// Follow IMU
+	// Follow IMU.
 	green[0] = 0b00000000;
 	green[1] = 0b00010000;
 	green[2] = 0b00111000;
@@ -145,7 +149,7 @@ void RobotMaze::bitmapsSet() {
 
 	// Define Your bitmaps here.
 
-	delayMs(10);
+	delayMs(10); // Wait a little to be sure that the next sign will be displayed.
 }
 
 
