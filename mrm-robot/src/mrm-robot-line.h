@@ -123,7 +123,7 @@ issue commands.
 They also all feature perform() function, the one that is called to do what they are supposed to. Their constructors always call base class' constructors [ActionBase(...)] with 3 or more
 parameters specified here.
 First parameter is robot and is always the same.
-The second one is a 3-letter shortcut that is displayed in command menu. For example "line" will be displayed for starting the Rescue Line run. When action is not supposed to be started from menu,
+The second one is a 3-letter shortcut that is displayed in command menu. For example "lin" will be displayed for starting the Rescue Line run. When action is not supposed to be started from menu,
 it can be an empty string.
 The third parameter is a name of the action, again displayed in menu. For "lin", the name is "RCJ Line", causing menu entry "line - RCJ Line" to be displayed. Again, use empty string
 for no-menu actions.
@@ -135,7 +135,7 @@ The fourth pareameter is menu level. When omitted, the action will not be a part
 class ActionLineFollow : public ActionBase {
 	void perform(){ ((RobotLine*)_robot)->lineFollow(); }
 public:
-	ActionLineFollow(RobotLine* robot) : ActionBase(robot, "lnf", "Line follow", 0) {}
+	ActionLineFollow(RobotLine* robot) : ActionBase(robot, "lnf", "Line follow", 1) {}
 };
 
 /** Avoid an obstacle.

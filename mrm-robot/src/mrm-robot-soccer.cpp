@@ -4,8 +4,11 @@
 #include <mrm-lid-can-b2.h>
 #include <mrm-ir-finder2.h>
 #include <mrm-mot2x50.h>
-#include "mrm-robot-Soccer.h"
+#include "mrm-robot-soccer.h"
 
+/** Constructor
+@param name - it is also used for Bluetooth so a Bluetooth client (like a phone) will list the device using this name.
+*/
 RobotSoccer::RobotSoccer(char name[]) : Robot(name) {
 	motorGroup = new MotorGroupStar(mrm_mot2x50, 0, mrm_mot2x50, 1, mrm_mot2x50, 2, mrm_mot2x50, 3);
 
@@ -16,7 +19,7 @@ RobotSoccer::RobotSoccer(char name[]) : Robot(name) {
 	actionIdle = new ActionSoccerIdle(this);
 }
 
-/** Custom test
+/** Custom test.
 */
 void RobotSoccer::anyTest() {
 	if (actionPreprocessing(true)) {

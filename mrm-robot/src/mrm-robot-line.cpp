@@ -46,11 +46,10 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 /** Custom test. The function will be called many times during the test, till You issue "x" menu command.
 */
 void RobotLine::anyTest() {
-	armIdle();
-	armCatchReady();
-	armCatch();
-	armPutReady();
-	armPut();
+	if (actionPreprocessing(true))
+		devicesStart();
+	print("%i\n\r", mrm_lid_can_b->reading(0));
+	delayMs(500);
 }
 
 /** Arm will go to ball-catch position.
