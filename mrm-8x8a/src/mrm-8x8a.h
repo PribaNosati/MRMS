@@ -41,8 +41,15 @@ Licence: You can use this code any way you like.
 #define COMMAND_8X8_BITMAP_STORE_PART3 0x0A
 #define COMMAND_8X8_BITMAP_STORED_DISPLAY 0x0B
 #define COMMAND_8X8_ROTATION_SET 0x0C
+#define COMMAND_8X8_TEXT_1 0x50
+#define COMMAND_8X8_TEXT_2 0x51
+#define COMMAND_8X8_TEXT_3 0x52
+#define COMMAND_8X8_TEXT_4 0x53
+#define COMMAND_8X8_TEXT_5 0x54
+#define COMMAND_8X8_TEXT_6 0x55
 
 #define MRM_8x8A_SWITCHES_COUNT 4
+#define MRM_8X8A_TEXT_LENGTH 44
 
 enum LED8x8Rotation { LED_8X8_BY_0_DEGREES, LED_8X8_BY_90_DEGREES, LED_8X8_BY_270_DEGREES };
 enum LED8x8Type{LED_8X8_CUSTOM, LED_8X8_STORED, LED_8X8_STORED_CUSTOM };
@@ -109,6 +116,14 @@ public:
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
 
+	/** Displays 8-row progress bar. Useful for visual feedback of a long process.
+	@param period - total count (100%)
+	@param current - current count (current percentage)
+	@param reset - reset to start (no bar)
+	@return - display changed
+	*/
+	bool progressBar(uint32_t period, uint32_t current, bool reset = false);
+
 	/** Set rotation from now on
 	@param rotation - 0, 90, or 270 degrees counterclockwise
 	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -121,6 +136,12 @@ public:
 	@return - true if pressed, false otherwise
 	*/
 	bool switchRead(uint8_t switchNumber, uint8_t deviceNumber = 0);
+
+	/** Display text
+	@param content - text
+	@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void text(char content[], uint8_t deviceNumber = 0);
 
 	/**Test
 	*/

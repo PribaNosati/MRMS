@@ -51,8 +51,13 @@ Robot::Robot(char name[15]) {
 	_actionCurrent = NULL;
 	_actionPrevious = _actionCurrent;
 
+	_actionAny = new ActionAny(this);
+	_actionDoNothing = new ActionDoNothing(this);
+	_actionStop = new ActionStop(this);
+	_actionCANBusStress = new ActionCANBusStress(this);
+
 	actionAdd(new Action8x8Test(this));
-	actionAdd(new ActionAny(this));
+	actionAdd(_actionAny);
 	actionAdd(new ActionBluetoothTest(this));
 	actionAdd(new ActionCANBusScan(this));
 	actionAdd(new ActionCANBusSniff(this));
@@ -90,12 +95,8 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionReflectanceArrayAnalogTest(this));
 	actionAdd(new ActionReflectanceArrayDigitalTest(this));
 	actionAdd(new ActionServoTest(this));
-	actionAdd(new ActionStop(this));
+	actionAdd(_actionStop);
 	actionAdd(new ActionThermoTest(this));
-
-	_actionAny = new ActionAny(this);
-	_actionDoNothing = new ActionDoNothing(this);
-	_actionStop = new ActionStop(this);
 
 	mrm_8x8a = new Mrm_8x8a(this);
 	mrm_bldc2x50 = new Mrm_bldc2x50(this);
@@ -600,12 +601,16 @@ void Robot::delayMicros(uint16_t pauseMicros) {
 
 /** Contacts all the CAN Bus devices and checks which one is alive.
 @verbose - if true, print. 
+@return count
 */
-void Robot::devicesScan(bool verbose) {
+uint8_t Robot::devicesScan(bool verbose) {
 	devicesStop();
+	uint8_t count = 0;
 	delayMs(100); // Read all the messages sent after stop.
 	for (uint8_t i = 0; i < _boardNextFree; i++)
-		board[i]->devicesScan(verbose);
+		count += board[i]->devicesScan(verbose);
+	if (verbose)
+		print("%i devices.\n\r", count);
 	actionEnd();
 }
 
@@ -1089,7 +1094,7 @@ void Robot::stopAll() {
 /** CAN Bus stress test
 */
 bool Robot::stressTest() {
-	const bool STOP_ON_ERROR = false;
+	const bool STOP_ON_ERROR = true;
 	const uint32_t LOOP_COUNT = 1000000;
 	const bool TRY_ONLY_ALIVE = true;
 
@@ -1106,25 +1111,39 @@ bool Robot::stressTest() {
 		devicesStop();
 		for (uint8_t i = 0; i < _boardNextFree; i++)
 			errors[i] = 0;
+		uint8_t totalCnt = 0;
 		for (uint8_t i = 0; i < _boardNextFree; i++) {
 			count[i] = board[i]->devicesScan(true);
+			totalCnt += count[i];
 			mask[i] = TRY_ONLY_ALIVE ? 0 : 0xFFFF;
 			for (uint8_t j = 0; j < board[i]->deadOrAliveCount(); j++)
 				if (board[i]->alive(j))
 					mask[i] |= 1 << j;
 		}
 		print("Start.\n\r");
+		if (mrm_8x8a->alive()) {
+			char buffer[50];
+			sprintf(buffer, "%i devices.\n\r", totalCnt);
+			mrm_8x8a->text(buffer);
+		}
 	}
 
-	// Stress test
+	// Display progress numerically
 	uint8_t percent = 100 * pass / LOOP_COUNT;
-	if (percent != lastPercent) {
+	if (percent != lastPercent && percent > 0) {
 		lastPercent = percent;
 		print("%i %%\n\r", percent);
 	}
+
+	// Display progress using mrm-8x8a
+	if (mrm_8x8a->alive())
+		if (mrm_8x8a->progressBar(LOOP_COUNT, pass, pass == 0))
+			delayMs(5); // To avoid disturbing stress test
+
+	// Stress test
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		if (count[i] > 0 || !TRY_ONLY_ALIVE) {
-			delayMs(1);
+			delayMicros(40);
 			digitalWrite(15, HIGH);
 			uint8_t cnt = board[i]->devicesScan(false, mask[i]);
 			digitalWrite(15, LOW);
@@ -1132,6 +1151,11 @@ bool Robot::stressTest() {
 				errors[i]++;
 				print("***** %s: found %i, not %i.\n\r", board[i]->name(), cnt, count[i]);
 				if (STOP_ON_ERROR) {
+					if (mrm_8x8a->alive()) {
+						char buffer[50];
+						sprintf(buffer, "%s: error.\n\r", board[i]->name());
+						mrm_8x8a->text(buffer);
+					}
 					pass = LOOP_COUNT - 1;
 					break;
 				}
@@ -1148,8 +1172,11 @@ bool Robot::stressTest() {
 				allOK = false;
 				delay(5000); // To freeze oscilloscope
 			}
-		if (allOK)
+		if (allOK) {
+			if (mrm_8x8a->alive())
+				mrm_8x8a->bitmapDisplay(0);
 			print("No errors.");
+		}
 		print("\n\r");
 		actionEnd();
 		return true;

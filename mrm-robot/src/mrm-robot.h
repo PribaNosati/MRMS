@@ -44,6 +44,7 @@ protected:
 	ActionBase* _actionDoNothing;
 	ActionBase* _actionStop;
 	ActionBase* _actionPrevious;
+	ActionBase* _actionCANBusStress;
 
 	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
 	uint8_t _boardNextFree = 0;
@@ -239,8 +240,9 @@ public:
 
 	/** Contacts all the CAN Bus devices and checks which one is alive.
 	@verbose - if true, print.
+	@return count
 	*/
-	void devicesScan(bool verbose);
+	uint8_t devicesScan(bool verbose);
 
 	/** Starts devices' CAN Bus messages broadcasting.
 	*/

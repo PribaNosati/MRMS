@@ -216,6 +216,57 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 	return false;
 }
 
+/** Displays 8-row progress bar. Useful for visual feedback of a long process.
+@param period - total count (100%)
+@param current - current count (current percentage)
+@param reset - reset to start (no bar)
+@return - display changed
+*/
+bool Mrm_8x8a::progressBar(uint32_t period, uint32_t current, bool reset) {
+	static uint32_t _period = 0;
+	static uint32_t lastDisplayMs = 0;
+	static uint8_t lastDot = 0xFF;
+	static bool lastGreen = true;
+
+	if (current > period) {
+		strcpy(errorMessage, "Overflow in progress bar");
+		return false;
+	}
+
+	if (reset) {
+		_period = period;
+		lastDisplayMs = 0;
+	}
+
+	uint8_t currentDot = ceil(current * 64 / (float)period); // 0 - 64
+	if (millis() - lastDisplayMs > 500 || currentDot != lastDot) { // Blink each 0.5 sec
+		uint8_t green[8], red[8];
+		for (uint8_t i = 0; i < 8; i++)
+			red[i] = 0b00000000;
+
+		// Display full rows.
+		uint8_t partialRow = currentDot / 8;
+		for (uint8_t i = 0; i < partialRow; i++) // Display full rows, 0 - 8
+			green[i] = 0b11111111;
+
+		// Display partially full row.
+		for (uint8_t i = 0; i < 8; i++)
+			green[partialRow] = (green[partialRow] << 1) | (i < currentDot - partialRow * 8 ? 1 : 0);
+
+		// Display empty rows.
+		for (uint8_t i = partialRow + 1; i < 8; i++)
+			green[i] = 0b00000000;
+
+		bitmapCustomDisplay(lastGreen ? red : green, lastGreen ? green : red);
+		lastDot = currentDot;
+		lastDisplayMs = millis();
+		lastGreen = !lastGreen; // todo
+		return true;
+	}
+	else
+		return false;
+}
+
 /** Set rotation from now on
 @param rotation - 0, 90, or 270 degrees counterclockwise
 @param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -293,6 +344,32 @@ void Mrm_8x8a::test()
 		lastMs = millis();
 		if (pass)
 			print("\n\r");
+	}
+}
+
+/** Display text
+@param content - text
+@param deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_8x8a::text(char content[], uint8_t deviceNumber) {
+	uint8_t message = 0;
+	bool unsent = false;
+	for (uint8_t i = 0; i < MRM_8X8A_TEXT_LENGTH; i++) {
+		if (i % 7 == 0 && i != 0) {
+			canData[0] = COMMAND_8X8_TEXT_1 + message;
+			messageSend(canData, 8, deviceNumber);
+			robotContainer->delayMs(1);
+			message++;
+			unsent = false;
+		}
+		canData[i % 7 + 1] = content[i];
+		unsent = true;
+		if (content[i] == '\0')
+			break;
+	}
+	if (unsent) {
+		canData[0] = COMMAND_8X8_TEXT_1 + message;
+		messageSend(canData, 8, deviceNumber);
 	}
 }
 
