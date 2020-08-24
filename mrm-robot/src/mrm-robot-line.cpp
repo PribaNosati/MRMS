@@ -17,11 +17,12 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	// 4th to LF (Left-Front), 6th to RF (Right-Front), and 8th to RB (Right-Back). Therefore, You can connect motors freely, but have to
 	// adjust the parameters here. In this example output (connector) 3 is LB, etc.
 	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 3);
-	
+
 	// All the actions will be defined here; the objects will be created.
 	actionEvacuationZone = new ActionEvacuationZone(this);
 	actionLineFollow = new ActionLineFollow(this);
 	actionObstacleAvoid = new ActionObstacleAvoid(this);
+	actionRCJLine = new ActionRCJLine(this);
 	actionWallFollow = new ActionWallFollow(this);
 
 	// The actions that should be displayed in menus must be added to menu-callable actions. You can use action-objects defined
@@ -46,10 +47,21 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 /** Custom test. The function will be called many times during the test, till You issue "x" menu command.
 */
 void RobotLine::anyTest() {
-	if (actionPreprocessing(true))
+	if (actionPreprocessing(true)) {
 		devicesStart();
-	print("%i\n\r", mrm_lid_can_b->reading(0));
-	delayMs(500);
+		armCatchReady();
+		delayMs(500);
+		armCatch();
+		delayMs(500);
+		armLeftReady();
+		delayMs(500);
+		armLeftPut();
+		delayMs(500);
+		armLeftReady();
+		delayMs(500);
+		armCatchReady();
+	}
+
 }
 
 /** Arm will go to ball-catch position.
@@ -57,34 +69,78 @@ void RobotLine::anyTest() {
 void RobotLine::armCatch() {
 	mrm_servo->write(LIFT_SERVO_DOWN, 0); // Lower the arm. Parameter 0 defines servo, in this case lift-servo. LIFT_SERVO_DOWN is angle.
 	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Catch the ball. Parameter 1 - catch-servo. CATCH_SERVO_CLOSE is angle.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_DOWN, 3); // Rotate down.
 }
 
 /** Arm will go to ball-catch ready position.
 */
 void RobotLine::armCatchReady() {
 	mrm_servo->write(LIFT_SERVO_DOWN, 0); // Lower the arm.
-	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Open jaws.
+	mrm_servo->write(CATCH_SERVO_OPEN_FULL, 1); // Open jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_DOWN, 3); // Rotate down.
 }
 
 /** Arm will go to idle (top) position.
 */
 void RobotLine::armIdle() {
 	mrm_servo->write(LIFT_SERVO_UP, 0); // Lift the arm.
-	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Open jaws.
+	mrm_servo->write(CATCH_SERVO_OPEN_FULL, 1); // Open jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_DOWN, 3); // Rotate down.
 } 
+
+/** Arm will put the ball left
+*/
+void RobotLine::armLeftPut() {
+	mrm_servo->write(LIFT_SERVO_PUT_BACK, 0); // Lift the arm.
+	mrm_servo->write(CATCH_SERVO_OPEN_MIN, 1); // Open jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_LEFT, 3); // Rotate left.
+}
+
+/** Arm will go to top left position
+*/
+void RobotLine::armLeftReady() {
+	mrm_servo->write(LIFT_SERVO_BACK, 0); // Lift the arm.
+	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Close jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_LEFT, 3); // Rotate left.
+}
 
 /** Arm will drop the ball.
 */
 void RobotLine::armPut() {
-	mrm_servo->write(LIFT_SERVO_PUT, 0); // Lift the arm halfways.
-	mrm_servo->write(CATCH_SERVO_OPEN, 1); // Open jaws.
+	mrm_servo->write(LIFT_SERVO_PUT_FRONT, 0); // Lift the arm halfways.
+	mrm_servo->write(CATCH_SERVO_OPEN_FULL, 1); // Open jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
 }
 
 /** Arm will lift the caught ball in the position where will be ready to drop it.
 */
 void RobotLine::armPutReady() {
-	mrm_servo->write(LIFT_SERVO_PUT, 0); // Lift the arm halfways.
+	mrm_servo->write(LIFT_SERVO_PUT_FRONT, 0); // Lift the arm halfways.
 	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Keep the ball in jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+}
+
+/** Arm will put the ball right
+*/
+void RobotLine::armRightPut() {
+	mrm_servo->write(LIFT_SERVO_PUT_BACK, 0); // Lift the arm.
+	mrm_servo->write(CATCH_SERVO_OPEN_MIN, 1); // Open jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_RIGHT, 3); // Rotate right.
+}
+
+/** Arm will go to top right position
+*/
+void RobotLine::armRightReady() {
+	mrm_servo->write(LIFT_SERVO_BACK, 0); // Lift the arm.
+	mrm_servo->write(CATCH_SERVO_CLOSE, 1); // Close jaws.
+	mrm_servo->write(BLOCK_SERVO_BOTH, 2); // Block both.
+	mrm_servo->write(ROTATE_SERVO_RIGHT, 3); // Rotate right.
 }
 
 /** Stores bitmaps in mrm-led8x8a.
@@ -463,7 +519,7 @@ void RobotLine::lineFollow() {
 		}
 	}
 	// Not in crossing already but maybe just entered it?
-	else if (millis() - lastCurveLMs < CURVE_BEFORE_MS && millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Both edge sensord sense a line - crossing.
+	else if (millis() - lastCurveLMs < CURVE_BEFORE_MS && millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Both edge sensors sense a line - crossing.
 		//print("STOP %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
 		if (enteredCrossingAtMs == 0) // This should be 0.
 			enteredCrossingAtMs = millis(); // Mark crossing start.
@@ -555,7 +611,7 @@ void RobotLine::obstacleAvoid() {
 	*/
 	switch (part) {
 	case 0: // Turn in place in front of obstacle.
-		if (mrm_lid_can_b->reading(0) < 60 || mrm_ref_can->any(true)) // If obstacle is still in front or robot still on line - continue rotating.
+		if (mrm_lid_can_b->reading(1) < 60 || mrm_ref_can->any(true)) // If obstacle is still in front or robot still on line - continue rotating.
 			// Read the member variable of the current action (of class ActionObstacleAvoid) to determine direction of rotation.
 			motorGroup->go(actionObstacleAvoid->leftOfObstacle ? -100 : 100, actionObstacleAvoid->leftOfObstacle ? 100 : -100);
 		else { // No more obastacle or line.

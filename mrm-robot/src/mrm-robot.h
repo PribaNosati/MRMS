@@ -17,6 +17,7 @@ class Mrm_col_can;
 class Mrm_imu;
 class Mrm_ir_finder2;
 class Mrm_ir_finder_can;
+class Mrm_ir_finder3;
 class Mrm_lid_can_b;
 class Mrm_lid_can_b2;
 class Mrm_mot2x50;
@@ -125,6 +126,7 @@ public:
 	Mrm_col_can* mrm_col_can;
 	Mrm_imu* mrm_imu;
 	Mrm_ir_finder2* mrm_ir_finder2;
+	Mrm_ir_finder3* mrm_ir_finder3;
 	Mrm_ir_finder_can* mrm_ir_finder_can;
 	Mrm_lid_can_b* mrm_lid_can_b;// 10
 	Mrm_lid_can_b2* mrm_lid_can_b2;

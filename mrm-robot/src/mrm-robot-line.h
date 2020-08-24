@@ -5,13 +5,24 @@
 // Change these values to get optimal robot's behaviour.
 
 // CATCH_SERVO drives jaws that catch ball.
-#define CATCH_SERVO_CLOSE 250 // Open position, ready to catch a ball.
-#define CATCH_SERVO_OPEN 70 // Closed position, ball caught.
+#define CATCH_SERVO_CLOSE 250 // Closed position, ball caught.
+#define CATCH_SERVO_OPEN_FULL 70 // Open position, ready to catch a ball.
+#define CATCH_SERVO_OPEN_MIN 150 // Open just to drop the ball
 
 // LIFT_SERVO lifts catch servo and the rest of mechanism.
-#define LIFT_SERVO_DOWN 150 // Lowest position, catching a ball.
-#define LIFT_SERVO_PUT 80 // Middle position, for caught ball dropping.
+#define LIFT_SERVO_BACK 70 // Top (idle) position.
+#define LIFT_SERVO_DOWN 130 // Lowest position, catching a ball.
+#define LIFT_SERVO_PUT_BACK 50
+#define LIFT_SERVO_PUT_FRONT 80 // Middle position, for caught ball dropping.
 #define LIFT_SERVO_UP 10 // Top (idle) position.
+
+// ROTATE_SERVO rotates gripper
+#define ROTATE_SERVO_DOWN 300
+#define ROTATE_SERVO_LEFT 90
+#define ROTATE_SERVO_RIGHT 125
+
+// BLOCK_SERVO blocks balls
+#define BLOCK_SERVO_BOTH 150
 
 // mrm-8x8a display bitmaps.
 enum ledSign { LED_CROSSING_BOTH_MARKS, LED_CROSSING_MARK_LEFT, LED_CROSSING_MARK_RIGHT, LED_CROSSING_NO_MARK, LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
@@ -62,6 +73,14 @@ public:
 	*/
 	void armIdle();
 
+	/** Arm will put the ball left
+	*/
+	void armLeftPut();
+
+	/** Arm will go to top left position
+	*/
+	void armLeftReady();
+
 	/** Arm will drop the ball.
 	*/
 	void armPut();
@@ -69,6 +88,14 @@ public:
 	/** Arm will lift the caught ball in the position where will be ready to drop it.
 	*/
 	void armPutReady();
+
+	/** Arm will put the ball right
+	*/
+	void armRightPut();
+
+	/** Arm will go to top right position
+	*/
+	void armRightReady();
 
 	/** Stores bitmaps in mrm-led8x8a.
 	*/

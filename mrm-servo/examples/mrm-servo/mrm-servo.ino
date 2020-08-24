@@ -1,5 +1,6 @@
 #include <mrm-servo.h>
 
+// Angle is being increased from 0 counterclockwise to 300 degrees
 #define MAXIMUM_DEGREES 300
 #define SET_DEGREES 290
 #define SWEEP 0 // 0 - sweep, 1 position servo at SET_DEGREES

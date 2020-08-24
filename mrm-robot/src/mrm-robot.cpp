@@ -105,6 +105,7 @@ Robot::Robot(char name[15]) {
 	mrm_imu = new Mrm_imu(this);
 	mrm_ir_finder2 = new Mrm_ir_finder2(this);
 	mrm_ir_finder_can = new Mrm_ir_finder_can(this);
+	mrm_ir_finder3 = new Mrm_ir_finder3(this);
 	mrm_lid_can_b = new Mrm_lid_can_b(this);
 	mrm_lid_can_b2 = new Mrm_lid_can_b2(this);
 	mrm_mot2x50 = new Mrm_mot2x50(this);
@@ -155,6 +156,9 @@ Robot::Robot(char name[15]) {
 
 	// mrm-ir-finder-can
 	mrm_ir_finder_can->add("IRFind-0");
+
+	// mrm-ir-finder3
+	mrm_ir_finder3->add("IR3Fin-0");
 
 	// Motors mrm-mot2x50
 	mrm_mot2x50->add(false, "Mot2x50-0");
@@ -220,6 +224,9 @@ Robot::Robot(char name[15]) {
 	// Servo motors. Note that some pins are not appropriate for PWM (servo)
 	mrm_servo->add(18, "Servo1", 0, 300, 0.5, 2.5); // Data for mrm-rds5060-300
 	mrm_servo->add(19, "Servo2", 0, 300, 0.5, 2.5);
+	mrm_servo->add(16, "Servo3", 0, 300, 0.5, 2.5); 
+	mrm_servo->add(17, "Servo4", 0, 300, 0.5, 2.5);
+
 
 	// Switch
 	mrm_switch->add(18, 19, "Switch");
@@ -241,7 +248,7 @@ Robot::Robot(char name[15]) {
 	add(mrm_bldc2x50);
 	add(mrm_bldc4x2_5);
 	add(mrm_col_can);
-	add(mrm_ir_finder_can);
+	add(mrm_ir_finder3);
 	add(mrm_lid_can_b);
 	add(mrm_lid_can_b2);
 	add(mrm_mot2x50);
@@ -612,6 +619,7 @@ uint8_t Robot::devicesScan(bool verbose) {
 	if (verbose)
 		print("%i devices.\n\r", count);
 	actionEnd();
+	return count;
 }
 
 /** Starts devices' CAN Bus messages broadcasting.
@@ -772,13 +780,13 @@ void Robot::lidar2mTest() {
 		selected = serialReadNumber(3000, 1000, count - 1 < 9, count - 1, false);
 		if (selected == 0xFFFF) {
 			print("Test all\n\r");
-			selected == 0xFF;
+			selected = 0xFF;
 		}
 		else {
 			if (mrm_lid_can_b->alive(selected))
 				print("\n\rTest lidar %s\n\r", mrm_lid_can_b->name(selected));
 			else {
-				print("\n\Lidar %s dead, test all\n\r", mrm_lid_can_b->name(selected));
+				print("\n\rLidar %s dead, test all\n\r", mrm_lid_can_b->name(selected));
 				selected = 0xFF;
 			}
 		}
@@ -868,11 +876,11 @@ void Robot::menu() {
 			}
 		}
 	}
+
 	if (!any)
 		print("Menu level %i empty.\r\n", menuLevel);
 	else
 		if (column != 1)
-			print("\r\n");
 
 	// Display errors
 	for (uint8_t deviceNumber = 0; deviceNumber < _boardNextFree; deviceNumber++)

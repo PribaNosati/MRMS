@@ -22,9 +22,9 @@ public:
 
 	bool preprocessing() { return _preprocessing; }
 
-	bool preprocessingEnd() { _preprocessing = false; }
+	void preprocessingEnd() { _preprocessing = false; }
 
-	bool preprocessingStart() { _preprocessing = true; }
+	void preprocessingStart() { _preprocessing = true; }
 
 	virtual void performAfter() {}; // todo, not implemented.
 

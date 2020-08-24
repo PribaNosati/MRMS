@@ -76,6 +76,7 @@ bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber) {
 		for (uint8_t i = 0; i < 8; i++)
 			if ((*_reading)[deviceNumber][i] == 1)
 				return true;
+	return false;
 }
 
 /** Calibrate the array
