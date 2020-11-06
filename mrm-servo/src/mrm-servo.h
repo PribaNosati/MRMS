@@ -54,10 +54,14 @@ public:
 	void test();
 
 	/** Move servo
-	@param degrees - Servo's target angle, counting clockwise
+	@param degrees - Servo's target angle, 0 - 180º, or 0 - 360°, depending on model, counting clockwise
 	@param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 	*/
 	void write(uint16_t degrees = 90, uint8_t servoNumber = 0);
+
+	/** Position servo according to user input.
+	*/
+	void writeInteractive();
 };
 
 

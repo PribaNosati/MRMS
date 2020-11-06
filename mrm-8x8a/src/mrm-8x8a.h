@@ -131,7 +131,7 @@ public:
 	void rotationSet(enum LED8x8Rotation rotation = LED_8X8_BY_0_DEGREES, uint8_t deviceNumber = 0);
 
 	/** Read switch
-	@param switchNumber
+	@param switchNumber - 0 - 3
 	@deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - true if pressed, false otherwise
 	*/

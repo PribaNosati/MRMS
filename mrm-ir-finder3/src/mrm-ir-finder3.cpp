@@ -7,6 +7,7 @@
 */
 Mrm_ir_finder3::Mrm_ir_finder3(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "IRFind3", maxNumberOfBoards, ID_MRM_IR_FINDER3) {
 	readings = new std::vector<uint16_t[MRM_IR_FINDER3_SENSOR_COUNT]>(maxNumberOfBoards);
+	measuringModeLimit = 2;
 }
 
 Mrm_ir_finder3::~Mrm_ir_finder3()
@@ -81,8 +82,8 @@ bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8]) {
 					any = true;
 					break;
 				case COMMAND_SENSORS_MEASURE_CALCULATED_SENDING:
-					angle = ((data[1] << 8) | data[2]) - 180;
-					distance = (data[3] << 8) | data[4];
+					_angle = ((data[1] << 8) | data[2]) - 180;
+					_distance = (data[3] << 8) | data[4];
 					near = data[5];
 					break;
 				default:
@@ -156,7 +157,7 @@ void Mrm_ir_finder3::testCalculated()
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) 
-				print("%i deg., dist: %i\n\r", angle, distance);
+				print("%i deg., dist: %i\n\r", _angle, _distance);
 		}
 		lastMs = millis();
 		if (pass)

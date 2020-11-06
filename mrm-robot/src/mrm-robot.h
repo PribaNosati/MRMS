@@ -2,7 +2,7 @@
 #include <mrm-action.h>
 #include <mrm-can-bus.h>
 
-#define ACTIONS_LIMIT 50 // Increase if more actions are needed.
+#define ACTIONS_LIMIT 80 // Increase if more actions are needed.
 #define BOARDS_LIMIT 14 // Maximum number of different board types.
 #define LED_ERROR 15 // mrm-esp32's pin number, hardware defined.
 #define LED_OK 2 // mrm-esp32's pin number, hardware defined.
@@ -41,14 +41,17 @@ protected:
 
 	// Robot's actions that can be callect directly, not just by iterating _action collection
 	ActionBase* _actionAny;
+	ActionBase* _actionCANBusStress;
 	ActionBase* _actionCurrent;
 	ActionBase* _actionDoNothing;
-	ActionBase* _actionStop;
 	ActionBase* _actionPrevious;
-	ActionBase* _actionCANBusStress;
+	ActionBase* _actionMenuMain;
+	ActionBase* _actionStop;
 
 	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
 	uint8_t _boardNextFree = 0;
+
+	bool _devicesScanBeforeMenu = true;
 
 	// FPS - frames per second calculation
 	uint32_t fpsMs[2] = { 0, 0 };
@@ -285,11 +288,11 @@ public:
 
 	/** Tests mrm-ir-finder-can, raw data.
 	*/
-	void irFinderCanTest();
+	void irFinder3Test();
 
 	/** Tests mrm-ir-finder-can, calculated data.
 	*/
-	void irFinderCanTestCalculated();
+	void irFinder3TestCalculated();
 
 	/** Tests mrm-lid-can-b
 	*/
@@ -367,6 +370,10 @@ public:
 	@return - converted number or 0xFFFF when timeout
 	*/
 	uint16_t serialReadNumber(uint16_t timeoutFirst = 3000, uint16_t timeoutBetween = 500, bool onlySingleDigitInput = false, uint16_t limit = 0xFFFE, bool printWarnings = true);
+
+	/** Moves servo motor manually
+	*/
+	void servoInteractive();
 
 	/** Checks if sniffing is active
 	@return - active or not

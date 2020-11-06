@@ -18,7 +18,7 @@ RobotMaze::RobotMaze(char name[]) : Robot(name) {
 	// 2nd, 4th, 6th, and 8th parameters are output connectors of the controller (0 - 3, meaning 1 - 4. connector). 2nd one must be connected to LB (Left-Back) motor,
 	// 4th to LF (Left-Front), 6th to RF (Right-Front), and 8th to RB (Right-Back). Therefore, You can connect motors freely, but have to
 	// adjust the parameters here. In this example output (connector) 3 is LB, etc.
-	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 3, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 0);
+	motorGroup = new MotorGroupDifferential(this, mrm_mot4x3_6can, 3, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 0);
 
 	// Depending on your wiring, it may be necessary to spin some motors in the other direction. In this example, no change needed,
 	// but uncommenting the following line will change the direction of the motor 2.

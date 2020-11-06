@@ -3,30 +3,55 @@
 #include <mrm-imu.h>
 #include <mrm-lid-can-b2.h>
 #include <mrm-ir-finder2.h>
+#include <mrm-ir-finder3.h>
 #include <mrm-mot2x50.h>
+#include <mrm-mot4x10.h>
+#include <mrm-mot4x3.6can.h>
 #include "mrm-robot-soccer.h"
 
 /** Constructor
 @param name - it is also used for Bluetooth so a Bluetooth client (like a phone) will list the device using this name.
 */
 RobotSoccer::RobotSoccer(char name[]) : Robot(name) {
-	motorGroup = new MotorGroupStar(mrm_mot2x50, 0, mrm_mot2x50, 1, mrm_mot2x50, 2, mrm_mot2x50, 3);
+	motorGroup = new MotorGroupStar(this, mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 3);
 
 	pidXY = new Mrm_pid(0.5, 200, 0); // PID controller, regulates motors' speeds for linear motion in the x-y plane
 	pidRotation = new Mrm_pid(0.5, 100, 0); // PID controller, regulates rotation around z axis
 	actionAdd(new ActionSoccerPlay(this));
 	actionCatch = new ActionSoccerCatch(this);
 	actionIdle = new ActionSoccerIdle(this);
+
+	mrm_mot4x3_6can->directionChange(0); // Uncomment to change 1st wheel's rotation direction
+	mrm_mot4x3_6can->directionChange(1); // Uncomment to change 2nd wheel's rotation direction
+	mrm_mot4x3_6can->directionChange(2); // Uncomment to change 3rd wheel's rotation direction
+	mrm_mot4x3_6can->directionChange(3); // Uncomment to change 4th wheel's rotation direction
 }
 
 /** Custom test.
 */
 void RobotSoccer::anyTest() {
+	static int initialDirection;
 	if (actionPreprocessing(true)) {
-		mrm_ref_can->start(0xFF, 1, 15);
-		mrm_bldc2x50->start(0xFF, 0, 15);
-		fpsPause();
+		devicesStart(1);
+		initialDirection = mrm_imu->heading();
 	}
+
+	int rotationalError = mrm_imu->heading() - initialDirection;
+
+	int positionError = 0;
+	if (mrm_lid_can_b2->reading(1) > 80)
+		positionError = 91 - mrm_lid_can_b2->reading(1);
+	else if (mrm_lid_can_b2->reading(3) > 80)
+		positionError = mrm_lid_can_b2->reading(1) - 91;
+
+	motorGroup->go(abs(positionError), positionError < 0 ? -90 : 90, rotationalError);
+}
+
+/** Read barrier
+@return - true if interrupted
+*/
+bool RobotSoccer::barrier() {
+	return analogRead(35) < 300; // Adjust this value
 }
 
 /** Store bitmaps in mrm-led8x8a.

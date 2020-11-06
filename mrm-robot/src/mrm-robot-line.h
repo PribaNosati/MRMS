@@ -25,7 +25,9 @@
 #define BLOCK_SERVO_BOTH 150
 
 // mrm-8x8a display bitmaps.
-enum ledSign { LED_CROSSING_BOTH_MARKS, LED_CROSSING_MARK_LEFT, LED_CROSSING_MARK_RIGHT, LED_CROSSING_NO_MARK, LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
+enum ledSign { LED_FULL_CROSSING_BOTH_MARKS, LED_FULL_CROSSING_MARK_LEFT, LED_FULL_CROSSING_MARK_RIGHT, LED_FULL_CROSSING_NO_MARK, 
+	LED_HALF_CROSSING_MARK_LEFT, LED_HALF_CROSSING_MARK_RIGHT, LED_HALF_CROSSING_LEFT_NO_MARK, LED_HALF_CROSSING_RIGHT_NO_MARK,
+	LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
 	LED_LINE_INTERRUPTED, LED_CURVE_LEFT, LED_CURVE_RIGHT, LED_OBSTACLE, LED_OBSTACLE_AROUND_LEFT, LED_OBSTACLE_AROUND_RIGHT, LED_PAUSE, LED_PLAY };
 
 /* All the Action-classes have to be forward declared here (before RobotLine) as RobotLine declaration uses them. The other option would be
@@ -36,11 +38,23 @@ class ActionObstacleAvoid;
 class ActionLineFollow;
 class ActionRCJLine;
 
+class ActionGeneric0;
+class ActionGeneric1;
+class ActionGeneric2;
+class ActionGeneric3;
+class ActionGeneric4;
+class ActionGeneric5;
+class ActionGeneric6;
+class ActionGeneric7;
+class ActionGeneric8;
+class ActionGeneric9;
+class ActionGenericMenu;
+
 /** Robot for RCJ Rescue Line, a class derived from the base Robot class.
 */
 class RobotLine : public Robot {
 	// Changing this parameter will cause major behaviour change. Limit value: 127.
-	const uint8_t TOP_SPEED = 50;
+	const uint8_t TOP_SPEED = 60;
 
 	// Actions' declarations
 	ActionEvacuationZone* actionEvacuationZone;
@@ -48,6 +62,20 @@ class RobotLine : public Robot {
 	ActionLineFollow* actionLineFollow;
 	ActionRCJLine* actionRCJLine;
 	ActionBase* actionWallFollow;
+	ActionStop* actionStop;
+
+	// Generic actions
+	ActionGeneric0* actionGeneric0;
+	ActionGeneric1* actionGeneric1;
+	ActionGeneric2* actionGeneric2;
+	ActionGeneric3* actionGeneric3;
+	ActionGeneric4* actionGeneric4;
+	ActionGeneric5* actionGeneric5;
+	ActionGeneric6* actionGeneric6;
+	ActionGeneric7* actionGeneric7;
+	ActionGeneric8* actionGeneric8;
+	ActionGeneric9* actionGeneric9;
+	ActionGenericMenu* actionGenericMenu;
 
 	MotorGroupDifferential* motorGroup = NULL; // Class that conveys commands to motors.
 
@@ -55,7 +83,7 @@ public:
 	/** Constructor
 	@param name - it is also used for Bluetooth so a Bluetooth client (like a phone) will list the device using this name.
 	*/
-	RobotLine(char name[] = "RCJ Line");
+	RobotLine(char name[] = "RCJ X"); // Maximum 15 characters
 
 	/** Custom test
 	*/
@@ -97,13 +125,40 @@ public:
 	*/
 	void armRightReady();
 
+	/** Barrier interrupted?
+	* return interrupted or not
+	*/
+	bool barrier();
+
 	/** Stores bitmaps in mrm-led8x8a.
 	*/
 	void bitmapsSet();
 
+	/** Dark surface?
+	* return dark or not
+	*/
+	bool dark();
+
 	/** Enter evacuation-zone algorithm.
 	*/
 	void evacuationZone();
+
+	/** Generic actions, use them as templates
+	*/
+	void generic0();
+	void generic1();
+	void generic2();
+	void generic3();
+	void generic4();
+	void generic5();
+	void generic6();
+	void generic7();
+	void generic8();
+	void generic9();
+
+	/** Generic menu
+	*/
+	void genericMenu();
 
 	/** Test - go straight ahead using a defined speed.
 	*/
@@ -112,6 +167,8 @@ public:
 	/** Follow a RCJ line.
 	*/
 	void lineFollow();
+
+	bool markers(uint32_t markerLBeforeMs, uint32_t markerRBeforeMs, uint32_t greenLimitMs);
 
 	/** Avoid an obstacle on line.
 	*/
@@ -198,4 +255,75 @@ class ActionWallFollow : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->wallFollow(); }
 public:
 	ActionWallFollow(RobotLine* robot) : ActionBase(robot, "wal", "Wall follow") {}
+};
+
+
+// ****************** Generic actions
+
+class ActionGeneric0 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric0(RobotLine* robot) : ActionBase(robot, "g0", "Generic 0", 8) {}
+};
+
+class ActionGeneric1 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric1(RobotLine* robot) : ActionBase(robot, "g1", "Generic 1", 8) {}
+};
+
+class ActionGeneric2 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric2(RobotLine* robot) : ActionBase(robot, "g2", "Generic 2", 8) {}
+};
+
+class ActionGeneric3 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric3(RobotLine* robot) : ActionBase(robot, "g3", "Generic 3", 8) {}
+};
+
+class ActionGeneric4 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric4(RobotLine* robot) : ActionBase(robot, "g4", "Generic 4", 8) {}
+};
+
+class ActionGeneric5 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric5(RobotLine* robot) : ActionBase(robot, "g5", "Generic 5", 8) {}
+};
+
+class ActionGeneric6 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric6(RobotLine* robot) : ActionBase(robot, "g6", "Generic 6", 8) {}
+};
+
+class ActionGeneric7 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric7(RobotLine* robot) : ActionBase(robot, "g7", "Generic 7", 8) {}
+};
+
+class ActionGeneric8 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric8(RobotLine* robot) : ActionBase(robot, "g8", "Generic 8", 8) {}
+};
+
+class ActionGeneric9 : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->generic0(); }
+public:
+	ActionGeneric9(RobotLine* robot) : ActionBase(robot, "g9", "Generic 9", 8) {}
+};
+
+/** Menu for generic actions
+*/
+class ActionGenericMenu : public ActionBase {
+	void perform() { ((RobotLine*)_robot)->genericMenu(); }
+public:
+	ActionGenericMenu(Robot* robot) : ActionBase(robot, "gen", "Generic", 1) {}
 };

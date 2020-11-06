@@ -36,8 +36,8 @@ Licence: You can use this code any way you like.
 class Mrm_ir_finder3 : public SensorBoard
 {
 	std::vector<uint16_t[MRM_IR_FINDER3_SENSOR_COUNT]>* readings; // Cumulative readings of all sensors
-	int16_t angle;
-	uint16_t distance;
+	int16_t _angle;
+	uint16_t _distance;
 	bool near;
 	
 public:
@@ -56,6 +56,18 @@ public:
 	@param deviceName - device's name
 	*/
 	void add(char * deviceName = "");
+
+	/** Ball's direction
+	@return - robot's front is 0°, positive angles clockwise, negative anti-clockwise. Back of the robot is 180°.
+	*/
+	int16_t angle() { return _angle; }
+
+	/** Ball's distance
+	@return - this is analog value that represents infrared light intensity, so not directly distance, but the distance can be inferred. When ball is quite close, expect values up to about 3000.
+		At about 1 m is the boundary between 2 zones so the value will drop sharply as long-dinstance sensors engage.
+		When 0 is return, there is no ball in sight.
+	*/
+	uint16_t distance() { return _distance; }
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

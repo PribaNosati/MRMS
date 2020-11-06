@@ -25,6 +25,11 @@ public:
 	*/
 	void anyTest();
 
+	/** Read barrier
+	@return - true if interrupted
+	*/
+	bool barrier();
+
 	/** Store bitmaps in mrm-led8x8a.
 	*/
 	void bitmapsSet();

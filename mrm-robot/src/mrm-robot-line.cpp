@@ -16,7 +16,7 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	// 2nd, 4th, 6th, and 8th parameters are output connectors of the controller (0 - 3, meaning 1 - 4. connector). 2nd one must be connected to LB (Left-Back) motor,
 	// 4th to LF (Left-Front), 6th to RF (Right-Front), and 8th to RB (Right-Back). Therefore, You can connect motors freely, but have to
 	// adjust the parameters here. In this example output (connector) 3 is LB, etc.
-	motorGroup = new MotorGroupDifferential(mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 3);
+	motorGroup = new MotorGroupDifferential(this, mrm_mot4x3_6can, 0, mrm_mot4x3_6can, 2, mrm_mot4x3_6can, 1, mrm_mot4x3_6can, 3);
 
 	// All the actions will be defined here; the objects will be created.
 	actionEvacuationZone = new ActionEvacuationZone(this);
@@ -24,6 +24,20 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	actionObstacleAvoid = new ActionObstacleAvoid(this);
 	actionRCJLine = new ActionRCJLine(this);
 	actionWallFollow = new ActionWallFollow(this);
+	actionStop = new ActionStop(this);
+
+	// Generic actions
+	actionGenericMenu = new ActionGenericMenu(this);
+	actionGeneric0 = new ActionGeneric0(this);
+	actionGeneric1 = new ActionGeneric1(this);
+	actionGeneric2 = new ActionGeneric2(this);
+	actionGeneric3 = new ActionGeneric3(this);
+	actionGeneric4 = new ActionGeneric4(this);
+	actionGeneric5 = new ActionGeneric5(this);
+	actionGeneric6 = new ActionGeneric6(this);
+	actionGeneric7 = new ActionGeneric7(this);
+	actionGeneric8 = new ActionGeneric8(this);
+	actionGeneric9 = new ActionGeneric9(this);
 
 	// The actions that should be displayed in menus must be added to menu-callable actions. You can use action-objects defined
 	// right above, or can create new objects. In the latter case, the inline-created objects will have no pointer and cannot be
@@ -34,34 +48,54 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	actionAdd(actionRCJLine);
 	actionAdd(actionWallFollow);
 
+	// Generic actions
+	actionAdd(actionGenericMenu);
+	actionAdd(actionGeneric0);
+	actionAdd(actionGeneric1);
+	actionAdd(actionGeneric2);
+	actionAdd(actionGeneric3);
+	actionAdd(actionGeneric4);
+	actionAdd(actionGeneric5);
+	actionAdd(actionGeneric6);
+	actionAdd(actionGeneric7);
+	actionAdd(actionGeneric8);
+	actionAdd(actionGeneric9);
 	// Set buttons' actions.
 	mrm_8x8a->actionSet(actionRCJLine, 0); // Button 0 starts RCJ Line.
 	mrm_8x8a->actionSet(actionEvacuationZone, 1); // Button 1 starts robot in evacution zone.
+	mrm_8x8a->actionSet(actionStop, 3);
 	// Put Your buttons' actions here.
 
-	// Depending on your wiring, it may be necessary to spin some motors in the other direction. In this example, all 4 must be changed.
-	for (uint8_t i = 0; i < 4; i++)
-		mrm_mot4x3_6can->directionChange(i);
+	// Depending on your wiring, it may be necessary to spin some motors in the other direction. 
+	mrm_mot4x3_6can->directionChange(0); // Uncomment to change 1st wheel's rotation direction
+	mrm_mot4x3_6can->directionChange(1); // Uncomment to change 2nd wheel's rotation direction
+	//mrm_mot4x3_6can->directionChange(2); // Uncomment to change 3rd wheel's rotation direction
+	//mrm_mot4x3_6can->directionChange(3); // Uncomment to change 4th wheel's rotation direction
+
 }
 
 /** Custom test. The function will be called many times during the test, till You issue "x" menu command.
 */
 void RobotLine::anyTest() {
-	if (actionPreprocessing(true)) {
-		devicesStart();
-		armCatchReady();
-		delayMs(500);
-		armCatch();
-		delayMs(500);
-		armLeftReady();
-		delayMs(500);
-		armLeftPut();
-		delayMs(500);
-		armLeftReady();
-		delayMs(500);
-		armCatchReady();
-	}
+	static bool avoidingExit = false;
 
+	if (actionPreprocessing(true))
+		devicesStart(1);
+
+	if (mrm_lid_can_b->reading(1) < avoidingExit ? 200 : 90) // Wall ahead?
+		motorGroup->go(-50, 50);
+	else {
+		if (mrm_lid_can_b->reading(2) > 400) { // Exit?
+			motorGroup->go(50, 50);
+			avoidingExit = true;
+		}
+		else {
+			int error = (mrm_lid_can_b->reading(2) - 100) * 0.5;
+			error = constrain(error, -50, 50);
+			motorGroup->go(50 + error, 50 - error);
+			avoidingExit = false;
+		}
+	}
 }
 
 /** Arm will go to ball-catch position.
@@ -143,6 +177,13 @@ void RobotLine::armRightReady() {
 	mrm_servo->write(ROTATE_SERVO_RIGHT, 3); // Rotate right.
 }
 
+/** Barrier interrupted?
+* return interrupted or not
+*/
+bool RobotLine::barrier() {
+	return analogRead(35) < 2000; // 2000 is an example. Test to find Your best value
+}
+
 /** Stores bitmaps in mrm-led8x8a.
 */
 void RobotLine::bitmapsSet() {
@@ -209,7 +250,7 @@ void RobotLine::bitmapsSet() {
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL_MARK_RIGHT);
 	delayMs(1);
 
-	// Crossing, both marks.
+	// Full crossing, both marks.
 	green[0] = 0b00000000;
 	green[1] = 0b00000000;
 	green[2] = 0b11111111;
@@ -227,10 +268,10 @@ void RobotLine::bitmapsSet() {
 	red[5] = 0b01100110;
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
-	mrm_8x8a->bitmapCustomStore(red, green, LED_CROSSING_BOTH_MARKS);
+	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_BOTH_MARKS);
 	delayMs(1);
 
-	// Crossing, mark left.
+	// Full crossing, mark left.
 	green[0] = 0b00000000;
 	green[1] = 0b00000000;
 	green[2] = 0b11111111;
@@ -248,10 +289,10 @@ void RobotLine::bitmapsSet() {
 	red[5] = 0b01100000;
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
-	mrm_8x8a->bitmapCustomStore(red, green, LED_CROSSING_MARK_LEFT);
+	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_MARK_LEFT);
 	delayMs(1);
 
-	// Crossing, mark right.
+	// Full crossing, mark right.
 	green[0] = 0b00000000;
 	green[1] = 0b00000000;
 	green[2] = 0b11111111;
@@ -269,10 +310,10 @@ void RobotLine::bitmapsSet() {
 	red[5] = 0b00000110;
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
-	mrm_8x8a->bitmapCustomStore(red, green, LED_CROSSING_MARK_RIGHT);
+	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_MARK_RIGHT);
 	delayMs(1);
 
-	// Crossing, no marks.
+	// Full crossing, no marks.
 	green[0] = 0b00000000;
 	green[1] = 0b00000000;
 	green[2] = 0b11111111;
@@ -283,7 +324,91 @@ void RobotLine::bitmapsSet() {
 	green[7] = 0b00011000;
 	for (uint8_t i = 0; i < 8; i++)
 		red[i] = 0;
-	mrm_8x8a->bitmapCustomStore(red, green, LED_CROSSING_NO_MARK);
+	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_NO_MARK);
+	delayMs(1);
+
+	// Half crossing, mark right.
+	green[0] = 0b00011000;
+	green[1] = 0b00011000;
+	green[2] = 0b00011111;
+	green[3] = 0b00011111;
+	green[4] = 0b00011000;
+	green[5] = 0b00011000;
+	green[6] = 0b00011000;
+	green[7] = 0b00011000;
+
+	red[0] = 0b00000000;
+	red[1] = 0b00000000;
+	red[2] = 0b00000000;
+	red[3] = 0b00000000;
+	red[4] = 0b00000110;
+	red[5] = 0b00000110;
+	red[6] = 0b00000000;
+	red[7] = 0b00000000;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_MARK_RIGHT);
+	delayMs(1);
+
+	// Half crossing, mark left.
+	green[0] = 0b00011000;
+	green[1] = 0b00011000;
+	green[2] = 0b11111000;
+	green[3] = 0b11111000;
+	green[4] = 0b00011000;
+	green[5] = 0b00011000;
+	green[6] = 0b00011000;
+	green[7] = 0b00011000;
+
+	red[0] = 0b00000000;
+	red[1] = 0b00000000;
+	red[2] = 0b00000000;
+	red[3] = 0b00000000;
+	red[4] = 0b01100000;
+	red[5] = 0b01100000;
+	red[6] = 0b00000000;
+	red[7] = 0b00000000;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_MARK_LEFT);
+	delayMs(1);
+
+	// Half crossing right, no mark.
+	green[0] = 0b00011000;
+	green[1] = 0b00011000;
+	green[2] = 0b00011111;
+	green[3] = 0b00011111;
+	green[4] = 0b00011000;
+	green[5] = 0b00011000;
+	green[6] = 0b00011000;
+	green[7] = 0b00011000;
+
+	red[0] = 0b00000000;
+	red[1] = 0b00000000;
+	red[2] = 0b00000000;
+	red[3] = 0b00000000;
+	red[4] = 0b00000000;
+	red[5] = 0b00000000;
+	red[6] = 0b00000000;
+	red[7] = 0b00000000;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_RIGHT_NO_MARK);
+	delayMs(1);
+
+	// Half crossing left, no mark
+	green[0] = 0b00011000;
+	green[1] = 0b00011000;
+	green[2] = 0b11111000;
+	green[3] = 0b11111000;
+	green[4] = 0b00011000;
+	green[5] = 0b00011000;
+	green[6] = 0b00011000;
+	green[7] = 0b00011000;
+
+	red[0] = 0b00000000;
+	red[1] = 0b00000000;
+	red[2] = 0b00000000;
+	red[3] = 0b00000000;
+	red[4] = 0b00000000;
+	red[5] = 0b00000000;
+	red[6] = 0b00000000;
+	red[7] = 0b00000000;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_LEFT_NO_MARK);
 	delayMs(1);
 
 	// Interrupted line.
@@ -403,12 +528,18 @@ void RobotLine::bitmapsSet() {
 	delayMs(10); // Wait a little to be sure that the next sign will be displayed.
 }
 
+/** Dark surface?
+* return dark or not
+*/
+bool RobotLine::dark() {
+	return analogRead(36) < 2000; // 2000 is an example. Test to find Your best value
+}
+
 /** Enter evacuation-zone algorithm
 */
 void RobotLine::evacuationZone() {
 	// This function is not finished. It just catches and drops a ball.
 	if (actionPreprocessing(true)) {
-		delayMs(8000);
 		devicesStart(1);
 		print("Catch ready\n\r");
 		armCatchReady();
@@ -429,6 +560,26 @@ void RobotLine::evacuationZone() {
 		delay(500);
 		armIdle();
 	}
+}
+
+/** Generic actions, use them as templates
+*/
+void RobotLine::generic0() {}
+void RobotLine::generic1() {}
+void RobotLine::generic2() {}
+void RobotLine::generic3() {}
+void RobotLine::generic4() {}
+void RobotLine::generic5() {}
+void RobotLine::generic6() {}
+void RobotLine::generic7() {}
+void RobotLine::generic8() {}
+void RobotLine::generic9() {}
+
+/** Generic menu
+*/
+void RobotLine::genericMenu() {
+	menuLevel = 8;
+	actionEnd();
 }
 
 /** Test - go straight ahead using a defined speed.
@@ -485,111 +636,200 @@ void RobotLine::lineFollow() {
 	bool anyLine = false; // Any transistor senses dark (line).
 	for (int8_t i = 0; i < 9; i++) // 9 transistors.
 		if (mrm_ref_can->dark(i)) {
-			if (i == 0 || i == 1) // Sensor 0 or 1 - curve right.
+			if (i == 0) // Sensor 0 or 1 - curve right.
 				lastCurveRMs = millis();
-			if (i == 7 || i == 8) // 7 or 8 - left.
+			if (i == 8) // 7 or 8 - left.
 				lastCurveLMs = millis();
 			anyLine = true;
 		}
 
-	// Already in crossing?
-	if (enteredCrossingAtMs != 0) { // Yes, already in crossing.
-		// If both left and right far sensors have detected a line lately or they are detecting it right now, it is still in crossing.
-		if (millis() - lastCurveLMs < CROSSING_DURATION_MS && millis() - lastCurveRMs < CROSSING_DURATION_MS || (mrm_ref_can->dark(0) && mrm_ref_can->dark(1) && mrm_ref_can->dark(7) && mrm_ref_can->dark(8)))
-			motorGroup->go(TOP_SPEED / 2, TOP_SPEED / 2);	// Go straight ahead slowly.
-		else{ // Crossing over.
-			enteredCrossingAtMs = 0; // Mark end of crossing.
-			// Depending on detected green marks, decide what to do.
-			if (lastGreenLeftMs > millis() - GREEN_BEFORE_MS) // Left marker detected.
-				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS) { // The right detected, too. Turn backwards.
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_CROSSING_BOTH_MARKS); // Show sign.
-					turn(180); // Turn by 180º.
-				}
-				else { // Only left marker detected. Turn left.
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_CROSSING_MARK_LEFT); // Show sign.
-					turn(-90); // Turn by 90º left.
-				}
-			else // Left marker not detected.
-				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS) { // Only right marker detected. Turn right.
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_CROSSING_MARK_RIGHT); // Show sign.
-					turn(90); // Turn by 90º right.
-				}
-				else // No mark detected. Go straight ahead.
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_CROSSING_NO_MARK); // Show sign.
-		}
-	}
-	// Not in crossing already but maybe just entered it?
-	else if (millis() - lastCurveLMs < CURVE_BEFORE_MS && millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Both edge sensors sense a line - crossing.
-		//print("STOP %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
-		if (enteredCrossingAtMs == 0) // This should be 0.
-			enteredCrossingAtMs = millis(); // Mark crossing start.
-		motorGroup->go(TOP_SPEED / 2, TOP_SPEED / 2); // Go straight ahead slowly to faciliate green marks' detection.
-	}
-	// No crossing. Is there a line detected at all?
-	else if (anyLine)  { // Yes, there is a line.
-		// Center and edge sensors?
-		if ((mrm_ref_can->dark(3) || mrm_ref_can->dark(4) || mrm_ref_can->dark(5)) && (mrm_ref_can->dark(0) || mrm_ref_can->dark(8))) 
-			// Yes, center and edge sensors. It could be a L turning or a crossing. Continue straight ahead as it is not clear yet. Later, if turning, turn after losing the line.
-			motorGroup->go(TOP_SPEED, TOP_SPEED);
-		else {// Some sensors detected a line, but it doesn't look as a very sharp turning or a crossing. Just follow the line. Maximum speed of the faster motor, decrease the other one.
-			float lineCenter = (mrm_ref_can->center() - 5000) / 80.0; // mrm-ref-can returns center of line. After the calculation, the result will be between -50 and 50.
-			// Calculate slower motor's speed. The other one will run at top speed.
-			motorGroup->go(lineCenter < 0 ? TOP_SPEED : TOP_SPEED - lineCenter * 3, lineCenter < 0 ? TOP_SPEED + lineCenter * 3 : TOP_SPEED); 
-			interruptStartedMs = 0; // Remember that no line interrupt happened here.
-			// Display detected green markers. Even when not in crossings, it is useful for debugging. False detections can occur when a sensor is partially over black and
-			// partially over a white surface. Black and white can have any hue and saturation (so, green included). In this split black-white detection, value (in HSV) can also hit
-			// green's value. In that case, a marker will be detected even there is none.
-			if (lastGreenLeftMs > millis() - GREEN_BEFORE_MS)
-				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS)
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_BOTH_MARKS);
-				else
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_MARK_LEFT);
-			else
-				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS)
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_MARK_RIGHT);
-				else
-					mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL);
-		}
-	}
-	else {// No line.
-		// Interrupt started now?
-		if (interruptStartedMs == 0) // Yes
-			interruptStartedMs = millis(); // Mark when the line disappeared.
-		// Was there a sharp left curve lately?
-		else if (millis() - lastCurveLMs < CURVE_BEFORE_MS) { // Yes.
-			//if (lastPrinted != 1)
-			//	print("Left %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
-			//lastPrinted = 1;
-			motorGroup->go(-TOP_SPEED, TOP_SPEED); // Rotate in place to catch the lost line left.
-			lastCurveLMs = millis(); // Make sure that turning will continue.
-			mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_LEFT); // Show sign.
-		}
-		// No lost line left but maybe there was a sharp right curve lately.
-		else if (millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Yes.
-			//if (lastPrinted != 2)
-			//	print("Right %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
-			//lastPrinted = 2;
-			motorGroup->go(TOP_SPEED, -TOP_SPEED); // Rotate in place to catch the lost line right.
-			lastCurveRMs = millis(); // Make sure that turning will continue.
-			mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_RIGHT); // Show sign.
-		}
-		// No sharp curve in the near past. Therefore, a straight line was interrupted.
-		else {							
-			//if (lastPrinted != 3)
-			//	print("Ahead %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
-			//lastPrinted = 3;
-			motorGroup->go(TOP_SPEED, TOP_SPEED);  // Go straight ahead to overcome the gap.
-			mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED); // Show sign.
-			if (millis() - interruptStartedMs > 2000) { // If the interrupt lasted too long, end the run.
-				mrm_8x8a->bitmapCustomStoredDisplay(LED_PAUSE); // Display sign.
-				actionEnd(); // Stop the current action.
-				motorGroup->stop(); // Stop the robot.
-				delayMs(1);
-				mrm_col_can->illumination(0xFF, 0); // Turn off color sensors' illumination.
-				delayMs(110);
+	// Follow line
+	float lineCenter = (mrm_ref_can->center() - 5000) / 80.0; // mrm-ref-can returns center of line. After the calculation, the result will be between -50 and 50.
+	// Calculate slower motor's speed. The other one will run at top speed.
+	motorGroup->go(lineCenter < 0 ? TOP_SPEED : TOP_SPEED - lineCenter * 3, lineCenter < 0 ? TOP_SPEED + lineCenter * 3 : TOP_SPEED); 
+
+	// L turn left or right?
+	if ((mrm_ref_can->dark(0) || mrm_ref_can->dark(8)) && (mrm_ref_can->dark(3) || mrm_ref_can->dark(4) || mrm_ref_can->dark(5))) {
+		if (!markers(lastGreenLeftMs, lastGreenRightMs, GREEN_BEFORE_MS))
+			if (mrm_ref_can->dark(0) && mrm_ref_can->dark(8)) {
+				motorGroup->go(TOP_SPEED, TOP_SPEED);
+				delayMs(20);
 			}
+	}
+
+	// Instead going straight ahead, started to turn?
+	uint8_t phase = 0;
+	for (uint8_t i = 0; i < 9 && phase != 4; i++) {
+		switch (phase) {
+		case 0: // 1 dark sensor
+			if (mrm_ref_can->dark(i))
+				phase = 1;
+			break;
+		case 1: // 2 white sensors
+		case 2:
+			if (!mrm_ref_can->dark(i))
+				phase++;
+			break;
+		case 3: // 1 dark sensor
+			if (mrm_ref_can->dark(i))
+				phase = 4;
+			break;
 		}
 	}
+	if (phase == 4){
+		turn(lastCurveLMs > lastCurveRMs ? 30 : -30);
+		motorGroup->go(TOP_SPEED, TOP_SPEED);
+		delayMs(20);
+	}
+
+	//// Already in full crossing?
+	//if (enteredCrossingAtMs != 0) { // Yes, already in crossing.
+	//	// If either left and right far sensors are detecting the line, it is still in crossing. Allow some time after crossing exit.
+	//	if (mrm_ref_can->dark(0) && mrm_ref_can->dark(1) || mrm_ref_can->dark(7) && mrm_ref_can->dark(8) || 
+	//		(millis() - lastCurveLMs < 50 || millis() - lastCurveRMs < 50) && (mrm_ref_can->dark(3) || mrm_ref_can->dark(4) || mrm_ref_can->dark(5)))
+	//		motorGroup->go(TOP_SPEED / 2, TOP_SPEED / 2);	// Go straight ahead slowly.
+	//	else{ // Crossing over as no edge sensors activated, time for decision what to do
+	//		enteredCrossingAtMs = 0; // Mark end of crossing.
+	//		// Full crossing?
+	//		if (millis() - lastCurveLMs < CROSSING_DURATION_MS && millis() - lastCurveRMs < CROSSING_DURATION_MS) {
+	//			// Depending on detected green marks, decide what to do.
+	//			if (lastGreenLeftMs > millis() - GREEN_BEFORE_MS) // Left marker detected.
+	//				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS) { // The right detected, too. Turn backwards.
+	//					mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_BOTH_MARKS); // Show sign.
+	//					motorGroup->stop();
+	//					print("180: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+	//					delayMs(5000);
+	//					turn(180); // Turn by 180º.
+	//				}
+	//				else { // Only left marker detected. Turn left.
+	//					mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_LEFT); // Show sign.
+	//					motorGroup->stop();
+	//					print("FULL L: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+	//					delayMs(5000);
+	//					turn(-90); // Turn by 90º left.
+	//				}
+	//			else // Left marker not detected.
+	//				if (lastGreenRightMs > millis() - GREEN_BEFORE_MS) { // Only right marker detected. Turn right.
+	//					mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_RIGHT); // Show sign.
+	//					motorGroup->stop();
+	//					print("FULL R: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+	//					delayMs(5000);
+	//					turn(90); // Turn by 90º right.
+	//				}
+	//				else {// No mark detected. Go straight ahead.
+	//					mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_NO_MARK); // Show sign.
+	//					motorGroup->stop();
+	//					print("FULL AHE: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+	//					delayMs(5000);
+	//					motorGroup->go(TOP_SPEED, TOP_SPEED);
+	//				}
+	//		}
+	//	}
+	//}
+	//// Not in full crossing already but maybe just entered it?
+	//else if (millis() - lastCurveLMs < CURVE_BEFORE_MS || millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Both edge sensors sense a line - crossing.
+	//	//print("STOP %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
+	//	if (enteredCrossingAtMs == 0) // This should be 0.
+	//		enteredCrossingAtMs = millis(); // Mark crossing start.
+	//	motorGroup->go(TOP_SPEED / 2, TOP_SPEED / 2); // Go straight ahead slowly to faciliate green marks' detection.
+	//}
+
+	// No crossing. Is there a line detected at all?
+	//else if (anyLine)  { // Yes, there is a line.
+	//	// Center and edge sensors?
+	//	if ((mrm_ref_can->dark(3) || mrm_ref_can->dark(4) || mrm_ref_can->dark(5)) && (mrm_ref_can->dark(0) || mrm_ref_can->dark(8))) 
+	//		// Yes, center and edge sensors. It could be a L turning or a crossing. Continue straight ahead as it is not clear yet. Later, if turning, turn after losing the line.
+	//		motorGroup->go(TOP_SPEED, TOP_SPEED);
+	//	else {// Some sensors detected a line, but it doesn't look as a very sharp turning or a crossing. Just follow the line. Maximum speed of the faster motor, decrease the other one.
+	//		float lineCenter = (mrm_ref_can->center() - 5000) / 80.0; // mrm-ref-can returns center of line. After the calculation, the result will be between -50 and 50.
+	//		// Calculate slower motor's speed. The other one will run at top speed.
+	//		motorGroup->go(lineCenter < 0 ? TOP_SPEED : TOP_SPEED - lineCenter * 3, lineCenter < 0 ? TOP_SPEED + lineCenter * 3 : TOP_SPEED); 
+	//		interruptStartedMs = 0; // Remember that no line interrupt happened here.
+	//		// Display detected green markers. Even when not in crossings, it is useful for debugging. False detections can occur when a sensor is partially over black and
+	//		// partially over a white surface. Black and white can have any hue and saturation (so, green included). In this split black-white detection, value (in HSV) can also hit
+	//		// green's value. In that case, a marker will be detected even there is none.
+	//		if (lastGreenLeftMs > millis() - GREEN_BEFORE_MS)
+	//			if (lastGreenRightMs > millis() - GREEN_BEFORE_MS)
+	//				mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_BOTH_MARKS);
+	//			else
+	//				mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_MARK_LEFT);
+	//		else
+	//			if (lastGreenRightMs > millis() - GREEN_BEFORE_MS)
+	//				mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL_MARK_RIGHT);
+	//			else
+	//				mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL);
+	//	}
+	//}
+	//else {// No line.
+	//	// Interrupt started now?
+	//	if (interruptStartedMs == 0) // Yes
+	//		interruptStartedMs = millis(); // Mark when the line disappeared.
+	//	// Was there a sharp left curve lately?
+	//	else if (millis() - lastCurveLMs < CURVE_BEFORE_MS) { // Yes.
+	//		//if (lastPrinted != 1)
+	//		//	print("Left %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
+	//		//lastPrinted = 1;
+	//		motorGroup->go(-TOP_SPEED, TOP_SPEED); // Rotate in place to catch the lost line left.
+	//		lastCurveLMs = millis(); // Make sure that turning will continue.
+	//		mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_LEFT); // Show sign.
+	//	}
+	//	// No lost line left but maybe there was a sharp right curve lately.
+	//	else if (millis() - lastCurveRMs < CURVE_BEFORE_MS) { // Yes.
+	//		//if (lastPrinted != 2)
+	//		//	print("Right %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
+	//		//lastPrinted = 2;
+	//		motorGroup->go(TOP_SPEED, -TOP_SPEED); // Rotate in place to catch the lost line right.
+	//		lastCurveRMs = millis(); // Make sure that turning will continue.
+	//		mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_RIGHT); // Show sign.
+	//	}
+	//	// No sharp curve in the near past. Therefore, a straight line was interrupted.
+	//	else {							
+	//		//if (lastPrinted != 3)
+	//		//	print("Ahead %i %i.\n\r", millis() - lastCurveLMs, millis() - lastCurveRMs);
+	//		//lastPrinted = 3;
+	//		motorGroup->go(TOP_SPEED, TOP_SPEED);  // Go straight ahead to overcome the gap.
+	//		mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED); // Show sign.
+	//		if (millis() - interruptStartedMs > 2000) { // If the interrupt lasted too long, end the run.
+	//			mrm_8x8a->bitmapCustomStoredDisplay(LED_PAUSE); // Display sign.
+	//			actionEnd(); // Stop the current action.
+	//			motorGroup->stop(); // Stop the robot.
+	//			delayMs(1);
+	//			mrm_col_can->illumination(0xFF, 0); // Turn off color sensors' illumination.
+	//			delayMs(110);
+	//		}
+	//	}
+	//}
+}
+
+bool RobotLine::markers(uint32_t lastGreenLeftMs, uint32_t lastGreenRightMs, uint32_t greenLimitMs) {
+	bool found = true;
+	if (lastGreenLeftMs > millis() - greenLimitMs) // Left marker detected.
+		if (lastGreenRightMs > millis() - greenLimitMs) { // The right detected, too. Turn backwards.
+			mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_BOTH_MARKS); // Show sign.
+			motorGroup->stop();
+			print("180: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+			delayMs(5000);
+			turn(180); // Turn by 180º.
+		}
+		else { // Only left marker detected. Turn left.
+			mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_LEFT); // Show sign.
+			motorGroup->stop();
+			print("FULL L: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+			delayMs(5000);
+			turn(-90); // Turn by 90º left.
+		}
+	else // Left marker not detected.
+		if (lastGreenRightMs > millis() - greenLimitMs) { // Only right marker detected. Turn right.
+			mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_RIGHT); // Show sign.
+			motorGroup->stop();
+			print("FULL R: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+			delayMs(5000);
+			turn(90); // Turn by 90º right.
+		}
+		else {// No mark detected. 
+			found = false;
+		}
+	return found;
 }
 
 /** Avoid an obstacle on line.

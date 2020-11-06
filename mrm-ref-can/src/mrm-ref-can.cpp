@@ -13,6 +13,7 @@ Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(
 	calibrationDataDark = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	dataFresh = new std::vector<uint8_t>(maxNumberOfBoards);
 	measuringModeLimit = 2;
+	print("BBB\n\r");
 	centerOfMeasurements = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 
@@ -84,9 +85,13 @@ bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber) {
 */
 void Mrm_ref_can::calibrate(uint8_t deviceNumber) {
 	if (deviceNumber == 0xFF)
-		for (uint8_t i = 0; i < nextFree; i++)
+		for (uint8_t i = 0; i < nextFree; i++) {
+			if (i != 0)
+				robotContainer->delayMicros(800);
 			calibrate(i);
+		}
 	else if (alive(deviceNumber)){
+		print("Calibrating %s\n\r", name(deviceNumber));
 		canData[0] = COMMAND_REF_CAN_CALIBRATE;
 		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 1, canData);
 	}

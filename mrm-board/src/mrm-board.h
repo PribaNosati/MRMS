@@ -39,6 +39,7 @@
 #define COMMAND_ERROR 0xEE
 #define COMMAND_REPORT_ALIVE 0xFF
 
+#define MIN_MICROS_BETWEEN_COMMANDS 800
 #define MAX_MOTORS_IN_GROUP 4
 
 #ifndef toRad
@@ -48,8 +49,8 @@
 #define toDeg(x) ((x) / PI * 180.0) // Radians to degrees
 #endif
 
-enum BoardId{ID_MRM_8x8A, ID_ANY, ID_MRM_BLDC2X50, ID_MRM_BLDC4x2_5, ID_MRM_COL_CAN, ID_MRM_IR_FINDER_2, ID_MRM_IR_FINDER_CAN, ID_MRM_LID_CAN_B, ID_MRM_LID_CAN_B2, ID_MRM_MOT2X50, ID_MRM_MOT4X3_6CAN, ID_MRM_MOT4X10, 
-	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US, ID_MRM_IR_FINDER3};
+enum BoardId{ID_MRM_8x8A, ID_ANY, ID_MRM_BLDC2X50, ID_MRM_BLDC4x2_5, ID_MRM_COL_CAN, ID_MRM_IR_FINDER_2, ID_MRM_IR_FINDER3, ID_MRM_IR_FINDER_CAN, ID_MRM_LID_CAN_B, ID_MRM_LID_CAN_B2, ID_MRM_MOT2X50, ID_MRM_MOT4X3_6CAN, ID_MRM_MOT4X10,
+	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US};
 
 enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
 
@@ -393,13 +394,14 @@ class MotorGroup {
 protected:
 	MotorBoard* motorBoard[MAX_MOTORS_IN_GROUP] = { NULL, NULL, NULL, NULL }; // Motor board for each wheel. It can the same, but need not be.
 	uint8_t motorNumber[MAX_MOTORS_IN_GROUP];
+	Robot* robotContainer;
 
 	/** Angle between -180 and 180 degrees
 	@return - angle
 	*/
 	float angleNormalized(float angle);
 public:
-	MotorGroup();
+	MotorGroup(Robot* robot);
 
 	/** Stop motors
 	*/
@@ -427,7 +429,7 @@ public:
 	@param motorBoardForRight2 - Controller for one of the right wheels
 	@param motorNumberForRight2 - Controller's output number
 	*/
-	MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
+	MotorGroupDifferential(Robot* robot, MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
 		MotorBoard* motorBoardForLeft2 = NULL, uint8_t motorNumberForLeft2 = 0, MotorBoard* motorBoardForRight2 = NULL, uint8_t motorNumberForRight2 = 0);
 
 	/** Start all motors
@@ -452,7 +454,7 @@ public:
 	@param motorBoardForMinus45Degrees - motor controller for the motor which axle is inclined -45 degrees clockwise from robot's front.
 	@param motorNumberForMinus45Degrees - Controller's output number.
 	*/
-	MotorGroupStar(MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
+	MotorGroupStar(Robot* robot, MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
 		MotorBoard* motorBoardForMinus135Degrees, uint8_t motorNumberForMinus135Degrees, MotorBoard* motorBoardForMinus45Degrees, uint8_t motorNumberForMinus45Degrees);
 
 	/** Control of a robot with axles connected in a star formation, like in a RCJ soccer robot with omni wheels. Motor 0 is at 45 degrees, 1 at 135, 2 at -135, 3 at -45.

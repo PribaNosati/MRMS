@@ -110,7 +110,7 @@ public:
 	/** Calibrate the array
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 	*/
-	void calibrate(uint8_t deviceNumber = 0);
+	void calibrate(uint8_t deviceNumber = 0xFF);
 
 	/** Get local calibration data
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can

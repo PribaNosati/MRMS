@@ -52,9 +52,10 @@ Robot::Robot(char name[15]) {
 	_actionPrevious = _actionCurrent;
 
 	_actionAny = new ActionAny(this);
-	_actionDoNothing = new ActionDoNothing(this);
-	_actionStop = new ActionStop(this);
 	_actionCANBusStress = new ActionCANBusStress(this);
+	_actionDoNothing = new ActionDoNothing(this);
+	_actionMenuMain = new ActionMenuMain(this);
+	_actionStop = new ActionStop(this);
 
 	actionAdd(new Action8x8Test(this));
 	actionAdd(_actionAny);
@@ -94,6 +95,7 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
 	actionAdd(new ActionReflectanceArrayAnalogTest(this));
 	actionAdd(new ActionReflectanceArrayDigitalTest(this));
+	actionAdd(new ActionServoInteractive(this));
 	actionAdd(new ActionServoTest(this));
 	actionAdd(_actionStop);
 	actionAdd(new ActionThermoTest(this));
@@ -117,9 +119,6 @@ Robot::Robot(char name[15]) {
 	mrm_switch = new Mrm_switch(this);
 	mrm_therm_b_can = new Mrm_therm_b_can(this);
 	mrm_us = new Mrm_us(this);
-
-	mrm_switch->actionSet(_actionAny, 0);
-	mrm_switch->actionSet(_actionStop, 1);
 
 	// 8x8 LED
 	mrm_8x8a->add("LED8x8-0");
@@ -755,18 +754,18 @@ void Robot::info() {
 
 /** Tests mrm-ir-finder-can, raw data.
 */
-void Robot::irFinderCanTest() {
+void Robot::irFinder3Test() {
 	if (actionPreprocessing(true))
-		mrm_ir_finder_can->start();
-	mrm_ir_finder_can->test();
+		mrm_ir_finder3->start();
+	mrm_ir_finder3->test();
 }
 
 /** Tests mrm-ir-finder-can, calculated data.
 */
-void Robot::irFinderCanTestCalculated() {
+void Robot::irFinder3TestCalculated() {
 	if (actionPreprocessing(true))
-		mrm_ir_finder_can->continuousReadingCalculatedDataStart();
-	mrm_ir_finder_can->testCalculated();
+		mrm_ir_finder3->continuousReadingCalculatedDataStart();
+	mrm_ir_finder3->testCalculated();
 }
 
 /** Tests mrm-lid-can-b
@@ -852,7 +851,8 @@ void Robot::lidarCalibrate() {
 */
 void Robot::menu() {
 	// Print menu
-	devicesScan(false);
+	if (_devicesScanBeforeMenu)
+		devicesScan(false);
 	print("\r\n");
 
 	bool any = false;
@@ -1087,6 +1087,13 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 			print("Timeout.\n\r");
 		return 0xFFFF;
 	}
+}
+
+/** Moves servo motor manually
+*/
+void Robot::servoInteractive() {
+	mrm_servo->writeInteractive();
+	actionEnd();
 }
 
 /** Stops all motors

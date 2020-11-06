@@ -8,6 +8,14 @@
 #include <mrm-servo.h>
 #include <mrm-robot.h>
 
+/** Constructor
+@param robot - robot
+@param shortcut - up-to-3-letter word
+@param text - menu entry
+@param menuLevel - all the actions with the same menuLevel are displayed. Permitted values are: 0 (in no menu), 1, 2, 4, 8, 16, 32, 64, and 128. 
+	A menu-action changes menuLevel to its own, forcing all the actions with this menuLevel to be displayed. "|" lists action in many menus, for example 1 | 8 | 16.
+@param boardId - menu only for a specific board
+*/
 ActionBase::ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel, BoardId boardsId) {
 	_robot = robot;
 	if (shortcut != 0)
@@ -38,8 +46,8 @@ void ActionFPS::perform() { _robot->fpsPrint(); }
 void ActionGoAhead::perform() { _robot->goAhead(); }
 void ActionI2CTest::perform() { _robot->i2cTest(); }
 void ActionIRFinderTest::perform() { _robot->mrm_ir_finder2->test(); }
-void ActionIRFinderCanTest::perform() { _robot->irFinderCanTest(); }
-void ActionIRFinderCanTestCalculated::perform() { _robot->irFinderCanTestCalculated(); }
+void ActionIRFinderCanTest::perform() { _robot->irFinder3Test(); }
+void ActionIRFinderCanTestCalculated::perform() { _robot->irFinder3TestCalculated(); }
 void ActionIMUTest::perform() { _robot->mrm_imu->test(); }
 void ActionInfo::perform() { _robot->info(); }
 void ActionLidarCalibrate::perform() { _robot->lidarCalibrate(); }
@@ -56,6 +64,7 @@ void ActionReflectanceArrayAnalogTest::perform() { _robot->reflectanceArrayTest(
 void ActionReflectanceArrayDigitalTest::perform() { _robot->reflectanceArrayTest(true); }
 void ActionReflectanceArrayCalibrate::perform() { _robot->mrm_ref_can->calibrate(); }
 void ActionReflectanceArrayCalibrationPrint::perform() { _robot->reflectanceArrayCalibrationPrint(); }
+void ActionServoInteractive::perform() { _robot->servoInteractive(); }
 void ActionServoTest::perform() { _robot->mrm_servo->test(); }
 void ActionStop::perform() { _robot->stopAll(); }
 void ActionThermoTest::perform() { _robot->thermoTest(); }

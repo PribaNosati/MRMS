@@ -16,6 +16,14 @@ public:
 	char _text[20];
 	uint8_t _menuLevel;
 
+	/** Constructor
+	@param robot - robot
+	@param shortcut - up-to-3-letter word
+	@param text - menu entry
+	@param menuLevel - all the actions with the same menuLevel are displayed. Permitted values are: 0 (in no menu), 1, 2, 4, 8, 16, 32, 64, and 128. 
+		A menu-action changes menuLevel to its own, forcing all the actions with this menuLevel to be displayed. "|" lists action in many menus, for example 1 | 8 | 16.
+	@param boardId - menu only for a specific board
+	*/
 	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1, BoardId boardsId = ID_ANY);
 
 	BoardId boardsId() { return _boardsId; }
@@ -66,7 +74,7 @@ public:
 class ActionCANBusStress : public ActionBase {
 	void perform();
 public:
-	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
+	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {}//1 | 2 | 4 | 8 | 16 | 32 | 64 | 128-> in all menus. 0 - in no menu.
 };
 
 
@@ -175,13 +183,13 @@ public:
 class ActionIRFinderCanTest : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1, ID_MRM_IR_FINDER_CAN) {}
+	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1, ID_MRM_IR_FINDER3) {}
 };
 
 class ActionIRFinderCanTestCalculated : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1, ID_MRM_IR_FINDER_CAN) {}
+	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1, ID_MRM_IR_FINDER3) {}
 };
 
 class ActionLidar2mTest : public ActionBase {
@@ -193,7 +201,7 @@ public:
 class ActionLidar4mTest : public ActionBase {
 	void perform();
 public:
-	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1, ID_MRM_LID_CAN_B2){}
+	ActionLidar4mTest(Robot* robot) : ActionBase(robot, "li4", "Test li. 4m", 1, ID_MRM_LID_CAN_B2){}	
 };
 
 class ActionLidarCalibrate : public ActionBase {
@@ -211,7 +219,7 @@ public:
 class ActionMenuMain : public ActionBase {
 	void perform();
 public:
-	ActionMenuMain(Robot* robot) : ActionBase(robot, "x", "Escape", 2 | 4 | 8 | 16) {}//2 | 4 | 8 | 16 -> in all menus. 0 - in no menu.
+	ActionMenuMain(Robot* robot) : ActionBase(robot, "x", "Escape", 2 | 4 | 8 | 16 | 32 | 64 | 128) {}//2 | 4 | 8 | 16 -> in all menus except 1. 0 - in no menu.
 };
 
 class ActionMenuReflectance : public ActionBase {
@@ -278,6 +286,12 @@ class ActionServoTest : public ActionBase {
 	void perform();
 public:
 	ActionServoTest(Robot* robot) : ActionBase(robot, "ser", "Test servo", 1) {}
+};
+
+class ActionServoInteractive : public ActionBase {
+	void perform();
+public:
+	ActionServoInteractive(Robot* robot) : ActionBase(robot, "ses", "Set servo", 1) {}
 };
 
 class ActionThermoTest : public ActionBase {

@@ -53,7 +53,9 @@ float Mrm_imu::heading() {
 float Mrm_imu::pitch() {
 	struct bno055_euler_float_t eulerData;
 	bno055_convert_float_euler_hpr_deg(&eulerData);
-	return eulerData.p;
+	//double d_euler_data_p = BNO055_INIT_VALUE;
+	//return bno055_convert_double_euler_p_deg(&d_euler_data_p);
+	return eulerData.p < 0 ? eulerData.p + 180 : eulerData.p - 180;
 }
 
 /**Roll

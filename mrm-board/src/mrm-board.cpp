@@ -438,7 +438,7 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 			start(i, measuringModeNow, refreshMs);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", _boardsName);
+			print("Alive, start reading: %s, mode: %i\n\r", _boardsName, measuringModeNow);
 #if REQUEST_NOTIFICATION
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
@@ -595,8 +595,11 @@ void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
 /** Stop all motors
 */
 void MotorBoard::stop() {
-	for (uint8_t i = 0; i < nextFree; i++)
+	for (uint8_t i = 0; i < nextFree; i++) {
+		if (i != 0)
+			robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 		speedSet(i, 0);
+	}
 }
 
 /**Test
@@ -681,6 +684,8 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 
 	// Stop all motors
 	for (uint8_t motorNumber = 0; motorNumber < nextFree; motorNumber++) {
+		if (motorNumber != 0)
+			robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 		speedSet(motorNumber, 0);
 
 		if (encodersStarted[motorNumber]) {
@@ -729,7 +734,8 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 
 
 
-MotorGroup::MotorGroup(){
+MotorGroup::MotorGroup(Robot* robot){
+	this->robotContainer = robot;
 }
 
 /** Angle between -180 and 180 degrees
@@ -749,8 +755,11 @@ void MotorGroup::stop() {
 	for (uint8_t i = 0; i < MAX_MOTORS_IN_GROUP; i++)
 		if (motorBoard[i] == NULL)
 			break;
-		else
+		else {
+			if (i != 0)
+				robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 			motorBoard[i]->speedSet(motorNumber[i], 0);
+		}
 }
 
 /** Constructor
@@ -763,8 +772,8 @@ void MotorGroup::stop() {
 @param motorBoardForRight2 - Controller for one of the right wheels
 @param motorNumberForRight2 - Controller's output number
 */
-MotorGroupDifferential::MotorGroupDifferential(MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
-	MotorBoard* motorBoardForLeft2, uint8_t motorNumberForLeft2, MotorBoard * motorBoardForRight2, uint8_t motorNumberForRight2) {
+MotorGroupDifferential::MotorGroupDifferential(Robot* robot, MotorBoard* motorBoardForLeft1, uint8_t motorNumberForLeft1, MotorBoard* motorBoardForRight1, uint8_t motorNumberForRight1,
+	MotorBoard* motorBoardForLeft2, uint8_t motorNumberForLeft2, MotorBoard * motorBoardForRight2, uint8_t motorNumberForRight2) : MotorGroup(robot) {
 	motorBoard[0] = motorBoardForLeft1;
 	motorNumber[0] = motorNumberForLeft1;
 	motorBoard[1] = motorBoardForRight1;
@@ -809,8 +818,10 @@ void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t l
 			for (int i = 1; i < 4; i++)
 				if (abs(speeds[i]) > maxSpeed)
 					maxSpeed = abs(speeds[i]);
-			for (uint8_t i = 0; i < 4; i++)
+			for (uint8_t i = 0; i < 4; i++) {
 				//motorBoard[i]->speedSet(motorNumber[i], speeds[i]);
+				if (i != 0)
+					robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 				if (maxSpeed > speedLimit) {
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)(speeds[i] / maxSpeed * speedLimit));
 					//Serial.print("MAX ");
@@ -819,6 +830,7 @@ void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t l
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)speeds[i]);
 					//Serial.print((String)speeds[i] + " ");
 				}
+			}
 		}
 	}
 }
@@ -833,8 +845,8 @@ void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t l
 @param motorBoardForMinus45Degrees - motor controller for the motor which axle is inclined -45 degrees clockwise from robot's front.
 @param motorNumberForMinus45Degrees - Controller's output number.
 */
-MotorGroupStar::MotorGroupStar(MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
-	MotorBoard* motorBoardForMinus135Degrees, uint8_t motorNumberForMinus135Degrees, MotorBoard* motorBoardForMinus45Degrees, uint8_t motorNumberForMinus45Degrees) {
+MotorGroupStar::MotorGroupStar(Robot* robot, MotorBoard* motorBoardFor45Degrees, uint8_t motorNumberFor45Degrees, MotorBoard* motorBoardFor135Degrees, uint8_t motorNumberFor135Degrees,
+	MotorBoard* motorBoardForMinus135Degrees, uint8_t motorNumberForMinus135Degrees, MotorBoard* motorBoardForMinus45Degrees, uint8_t motorNumberForMinus45Degrees) : MotorGroup(robot) {
 	motorBoard[0] = motorBoardFor45Degrees;
 	motorNumber[0] = motorNumberFor45Degrees;
 	motorBoard[1] = motorBoardFor135Degrees;
@@ -876,7 +888,9 @@ void MotorGroupStar::go(float speed, float angleDegrees, float rotation, uint8_t
 					maxSpeed = abs(speeds[i]);
 
 			//Serial.print("Rot err: " + (String)rotation + " ");
-			for (int i = 0; i < 4; i++)
+			for (int i = 0; i < 4; i++) {
+				if (i != 0)
+					robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 				if (maxSpeed > speedLimit) {
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)(speeds[i] / maxSpeed * speedLimit));
 					//Serial.print("MAX ");
@@ -885,6 +899,7 @@ void MotorGroupStar::go(float speed, float angleDegrees, float rotation, uint8_t
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)speeds[i]);
 					//Serial.print((String)speeds[i] + " ");
 				}
+			}
 			//Serial.println();
 		}
 	}

@@ -97,7 +97,7 @@ void Mrm_servo::test()
 }
 
 /** Move servo
-@param degrees - Servo's target angle, 0 - 180º, counting clockwise
+@param degrees - Servo's target angle, 0 - 180º, or 0 - 360°, depending on model, counting clockwise
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 */
 void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
@@ -112,4 +112,28 @@ void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
 	uint16_t _minDegreesPulseMicroSec;
 	uint16_t _maxDegrees;
 	uint16_t _maxDegreesPulseMicroSec;
+}
+
+/** Position servo according to user input.
+*/
+void Mrm_servo::writeInteractive() {
+	// Select motor
+	print("Enter servo number [0-%i]\n\r", nextFree - 1);
+	uint16_t selectedMotor = robotContainer->serialReadNumber(3000, 500, nextFree - 1 > 9, nextFree - 1, false);
+	if (selectedMotor != 0xFFFF) {
+		print("\n\rTest motor %i\n\r", selectedMotor);
+
+		// Select speed
+		bool fixedSpeed = false;
+		print("Enter angle \n\r");
+		uint16_t degrees = robotContainer->serialReadNumber(2000, 500, false);
+		if (degrees != 0xFFFF) {
+			write(degrees, selectedMotor);
+			print("OK\n\r");
+		}
+		else
+			print("Timeout\n\r");
+	}
+	else
+		print("Timeout\n\r");
 }
