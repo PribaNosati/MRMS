@@ -13,7 +13,6 @@ Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(
 	calibrationDataDark = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	dataFresh = new std::vector<uint8_t>(maxNumberOfBoards);
 	measuringModeLimit = 2;
-	print("BBB\n\r");
 	centerOfMeasurements = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 

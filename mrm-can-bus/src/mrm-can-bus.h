@@ -11,6 +11,7 @@ struct CANBusMessage {
 
 class Mrm_can_bus {
 private:
+	uint32_t lastSentMicros = 0;
 public:
 
 	Mrm_can_bus();
