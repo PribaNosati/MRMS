@@ -47,10 +47,18 @@ Licence: You can use this code any way you like.
 #define COMMAND_LID_CAN_B_CALIBRATE 0x05
 #define COMMAND_LID_CAN_B_RANGING_TYPE 0x42
 
+#define MRM_LID_CAN_INACTIVITY_ALLOWED_MS 10000
+
 
 class Mrm_lid_can_b : public SensorBoard
 {
 	std::vector<uint16_t>* readings; // Analog readings of all sensors
+
+	/** If sensor not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool started(uint8_t deviceNumber);
 	
 public:
 	

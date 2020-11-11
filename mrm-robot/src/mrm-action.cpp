@@ -1,5 +1,6 @@
 #include <mrm-action.h>
 #include <mrm-8x8a.h>
+#include <mrm-col-can.h>
 #include <mrm-imu.h>
 #include <mrm-node.h>
 #include <mrm-ir-finder2.h>
@@ -38,8 +39,8 @@ void ActionColorPatternErase::perform() { _robot->colorPatternErase(); }
 void ActionColorPatternPrint::perform() { _robot->colorPatternPrint(); }
 void ActionColorPatternRecognize::perform() { _robot->colorPatternRecognize(); }
 void ActionColorPatternRecord::perform() { _robot->colorPatternRecord(); }
-void ActionColorTest6Colors::perform() { _robot->colorTest6Colors(); }
-void ActionColorTestHSV::perform() { _robot->colorTestHSV(); }
+void ActionColorTest6Colors::perform() { _robot->mrm_col_can->test(false);}
+void ActionColorTestHSV::perform() { _robot->mrm_col_can->test(true); }
 void ActionDeviceIdChange::perform() { _robot->canIdChange(); }
 void ActionFirmware::perform() { _robot->firmwarePrint(); }
 void ActionFPS::perform() { _robot->fpsPrint(); }
@@ -56,12 +57,13 @@ void ActionLidar4mTest::perform() { _robot->lidar4mTest(); }
 void ActionMenuColor::perform() { _robot->menuColor(); }
 void ActionMenuMain::perform() { _robot->menuMainAndIdle(); }
 void ActionMenuReflectance::perform() { _robot->menuReflectance(); }
+void ActionMenuSystem::perform() { _robot->menuSystem(); }
 void ActionMotorTest::perform() { _robot->motorTest(); }
 void ActionNodeTest::perform() { _robot->nodeTest(); }
 void ActionNodeServoTest::perform() { _robot->mrm_node->servoTest();}
-void ActionOscillatorTest::perform() { _robot->oscillatorTest(); }
-void ActionReflectanceArrayAnalogTest::perform() { _robot->reflectanceArrayTest(false); }
-void ActionReflectanceArrayDigitalTest::perform() { _robot->reflectanceArrayTest(true); }
+//void ActionOscillatorTest::perform() { _robot->oscillatorTest(); }
+void ActionReflectanceArrayAnalogTest::perform() { _robot->mrm_ref_can->test(true); }
+void ActionReflectanceArrayDigitalTest::perform() { _robot->mrm_ref_can->test(false); }
 void ActionReflectanceArrayCalibrate::perform() { _robot->mrm_ref_can->calibrate(); }
 void ActionReflectanceArrayCalibrationPrint::perform() { _robot->reflectanceArrayCalibrationPrint(); }
 void ActionServoInteractive::perform() { _robot->servoInteractive(); }

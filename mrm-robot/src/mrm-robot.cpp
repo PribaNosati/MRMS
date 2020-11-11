@@ -87,10 +87,11 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionMenuColor(this));
 	actionAdd(new ActionMenuMain(this));
 	actionAdd(new ActionMenuReflectance(this));
+	actionAdd(new ActionMenuSystem(this));
 	actionAdd(new ActionMotorTest(this));
 	actionAdd(new ActionNodeTest(this));
 	actionAdd(new ActionNodeServoTest(this));
-	actionAdd(new ActionOscillatorTest(this));
+	//actionAdd(new ActionOscillatorTest(this));
 	actionAdd(new ActionReflectanceArrayCalibrate(this));
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
 	actionAdd(new ActionReflectanceArrayAnalogTest(this));
@@ -434,7 +435,7 @@ bool Robot::boardDisplayAndSelect(uint8_t *selectedBoardIndex, uint8_t* selected
 
 		// Choose device 
 		print("Enter board [1 - %i]: ", *lastBoardAndIndex);
-		uint16_t selectedNumber = serialReadNumber(8000, 500, *lastBoardAndIndex <= 9, *lastBoardAndIndex);
+		uint16_t selectedNumber = serialReadNumber(15000, 500, *lastBoardAndIndex <= 9, *lastBoardAndIndex);
 		print("%i", selectedNumber);
 
 		if (selectedNumber != 0xFFFF)
@@ -509,7 +510,7 @@ void Robot::canIdChange() {
 	if (boardDisplayAndSelect(&selectedBoardIndex, &selectedDeviceIndex, &maxInput, &lastBoardAndDeviceIndex)) {
 		// Enter new id
 		print(". %s\n\rEnter new board id [0..%i]: ", board[selectedBoardIndex]->name(), maxInput);
-		uint8_t newDeviceNumber = serialReadNumber(8000, 500, maxInput <= 9, maxInput);
+		uint8_t newDeviceNumber = serialReadNumber(15000, 500, maxInput <= 9, maxInput);
 
 		if (newDeviceNumber != 0xFF) {
 			// Change
@@ -561,28 +562,6 @@ void Robot::colorPatternRecord() {
 */
 void Robot::colorPatternRecognize() {
 	actionEnd();
-}
-
-/** mrm-color-can test 6 colors
-*/
-void Robot::colorTest6Colors() {
-	if (actionPreprocessing(true)) {
-		mrm_col_can->start();
-		delayMs(1);
-		mrm_col_can->switchTo6Colors();
-	}
-	mrm_col_can->test();
-}
-
-/** mrm-color-can test hue-saturation-value (HSV)
-*/
-void Robot::colorTestHSV() {
-	if (actionPreprocessing(true)) {
-		mrm_col_can->start();
-		delayMs(1);
-		mrm_col_can->switchToHSV();
-	}
-	mrm_col_can->test();
 }
 
 /** The right way to use Arduino function delay
@@ -789,7 +768,7 @@ void Robot::lidar2mTest() {
 				selected = 0xFF;
 			}
 		}
-		mrm_lid_can_b->start(selected);
+		//mrm_lid_can_b->start(selected);
 	}
 	mrm_lid_can_b->test(selected);
 }
@@ -868,7 +847,7 @@ void Robot::menu() {
 					if (board[j]->alive(0xFF) && board[j]->id() == _action[i]->boardsId())
 						anyAlive = true;
 			if (anyAlive) {
-				print("%-3s - %-22s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
+				print("%-3s - %-19s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
 				delayMs(2);
 				any = true;
 				if (column++ == maxColumns)
@@ -910,6 +889,13 @@ void Robot::menuMainAndIdle() {
 */
 void Robot::menuReflectance() {
 	menuLevel = 2;
+	actionEnd();
+}
+
+/** System menu
+*/
+void Robot::menuSystem() {
+	menuLevel = 16;
 	actionEnd();
 }
 
@@ -1011,16 +997,6 @@ void Robot::reflectanceArrayCalibrationPrint() {
 	mrm_ref_can->calibrationDataRequest(0xFF, true);
 	mrm_ref_can->calibrationPrint();
 	actionEnd();
-}
-
-/** Tests mrm-ref-can*
-@digital - digital data. Otherwise analog.
-*/
-void Robot::reflectanceArrayTest(bool digital) {
-	if (actionPreprocessing(true))
-		mrm_ref_can->start(0xFF, digital ? 1 : 0);
-	mrm_ref_can->test();
-	fpsPause();
 }
 
 /** Starts robot's program

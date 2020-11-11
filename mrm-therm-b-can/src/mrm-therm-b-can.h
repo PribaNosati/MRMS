@@ -26,10 +26,18 @@ Licence: You can use this code any way you like.
 #define CAN_ID_THERM_B_CAN7_IN 0x021E
 #define CAN_ID_THERM_B_CAN7_OUT 0x021F
 
+#define MRM_THERM_B_CAN_INACTIVITY_ALLOWED_MS 10000
+
 
 class Mrm_therm_b_can : public SensorBoard
 {
 	std::vector<int16_t>* readings; // Highest temperature
+
+	/** If sensor not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool started(uint8_t deviceNumber);
 	
 public:
 	

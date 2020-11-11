@@ -22,6 +22,7 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	_name = new std::vector<char[10]>(maxNumberOfBoards * devicesOn1Board);
 	fpsLast = new std::vector<uint16_t>(maxNumberOfBoards);
 	lastMessageReceivedMs = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
+	_lastReadingMs = new std::vector<uint32_t>(maxNumberOfBoards);
 	this->devicesOnABoard = devicesOn1Board;
 	this->maximumNumberOfBoards = maxNumberOfBoards;
 	strcpy(this->_boardsName, boardName);
@@ -30,6 +31,9 @@ Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, c
 	_boardType = boardType;
 	_message[28] = '\0';
 	_id = id;
+
+	for (uint8_t deviceNumber = 0; deviceNumber < maxNumberOfBoards; deviceNumber++)
+		(*_lastReadingMs)[deviceNumber] = 0;
 }
 
 /** Add a device.
@@ -438,7 +442,7 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 			start(i, measuringModeNow, refreshMs);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s, mode: %i\n\r", _boardsName, measuringModeNow);
+			//print("Alive, start reading: %s, mode: %i\n\r", _boardsName, measuringModeNow);
 #if REQUEST_NOTIFICATION
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
@@ -460,7 +464,6 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 	}
 }
 
-
 /** Stops periodical CANBus messages that refresh values that can be read by reading()
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
@@ -472,6 +475,7 @@ void Board::stop(uint8_t deviceNumber) {
 		if (alive(deviceNumber)) {
 			canData[0] = COMMAND_SENSORS_MEASURE_STOP;
 			messageSend(canData, 1, deviceNumber);
+			(*_lastReadingMs)[deviceNumber] = 0;
 		}
 	}
 }
@@ -595,11 +599,8 @@ void MotorBoard::speedSet(uint8_t motorNumber, int8_t speed) {
 /** Stop all motors
 */
 void MotorBoard::stop() {
-	for (uint8_t i = 0; i < nextFree; i++) {
-		if (i != 0)
-			robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
+	for (uint8_t i = 0; i < nextFree; i++) 
 		speedSet(i, 0);
-	}
 }
 
 /**Test
@@ -684,8 +685,6 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 
 	// Stop all motors
 	for (uint8_t motorNumber = 0; motorNumber < nextFree; motorNumber++) {
-		if (motorNumber != 0)
-			robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 		speedSet(motorNumber, 0);
 
 		if (encodersStarted[motorNumber]) {
@@ -719,7 +718,7 @@ void SensorBoard::continuousReadingCalculatedDataStart(uint8_t deviceNumber) {
 			continuousReadingCalculatedDataStart(i);
 	else {
 		if (alive(deviceNumber)) {
-			print("Alive, start reading: %s\n\r", name(deviceNumber));
+			//print("Alive, start reading: %s\n\r", name(deviceNumber));
 #if REQUEST_NOTIFICATION // todo
 			notificationRequest(COMMAND_SENSORS_MEASURE_CONTINUOUS_REQUEST_NOTIFICATION, deviceNumber);
 #else
@@ -755,11 +754,8 @@ void MotorGroup::stop() {
 	for (uint8_t i = 0; i < MAX_MOTORS_IN_GROUP; i++)
 		if (motorBoard[i] == NULL)
 			break;
-		else {
-			if (i != 0)
-				robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
+		else 
 			motorBoard[i]->speedSet(motorNumber[i], 0);
-		}
 }
 
 /** Constructor
@@ -820,8 +816,6 @@ void MotorGroupDifferential::go(int16_t leftSpeed, int16_t rightSpeed, int16_t l
 					maxSpeed = abs(speeds[i]);
 			for (uint8_t i = 0; i < 4; i++) {
 				//motorBoard[i]->speedSet(motorNumber[i], speeds[i]);
-				if (i != 0)
-					robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 				if (maxSpeed > speedLimit) {
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)(speeds[i] / maxSpeed * speedLimit));
 					//Serial.print("MAX ");
@@ -889,8 +883,6 @@ void MotorGroupStar::go(float speed, float angleDegrees, float rotation, uint8_t
 
 			//Serial.print("Rot err: " + (String)rotation + " ");
 			for (int i = 0; i < 4; i++) {
-				if (i != 0)
-					robotContainer->delayMicros(MIN_MICROS_BETWEEN_COMMANDS);
 				if (maxSpeed > speedLimit) {
 					motorBoard[i]->speedSet(motorNumber[i], (int8_t)(speeds[i] / maxSpeed * speedLimit));
 					//Serial.print("MAX ");

@@ -41,7 +41,7 @@ Licence: You can use this code any way you like.
 #define CAN_COL_PATTERN_ERASE 0x59
 
 #define MRM_COL_CAN_COLORS 6
-
+#define MRM_COL_CAN_INACTIVITY_ALLOWED_MS 10000
 #define MRM_COL_CAN_PATTERN_COUNT 16
 
 class Mrm_col_can : public SensorBoard
@@ -54,6 +54,18 @@ class Mrm_col_can : public SensorBoard
 	std::vector<uint16_t[MRM_COL_CAN_COLORS]>* readings; // Analog readings of all sensors
 	std::vector<uint8_t>* _saturation;
 	std::vector<uint8_t>* _value;
+
+	/** If 6-colors mode not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool colorsStarted(uint8_t deviceNumber);
+
+	/** If HSV not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool hsvStarted(uint8_t deviceNumber);
 	
 public:
 
@@ -74,37 +86,37 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - color intensity
 	*/
-	uint16_t colorBlue(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][0]; }
+	uint16_t colorBlue(uint8_t deviceNumber);
 
 	/** Green
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 
 	@return - color intensity
 	*/
-	uint16_t colorGreen(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][1]; }
+	uint16_t colorGreen(uint8_t deviceNumber);
 
 	/** Orange
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - color intensity
 	*/
-	uint16_t colorOrange(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][2]; }
+	uint16_t colorOrange(uint8_t deviceNumber);
 
 	/** Red
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - color intensity
 	*/
-	uint16_t colorRed(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][3]; }
+	uint16_t colorRed(uint8_t deviceNumber);
 
 	/** Violet
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 
 	@return - color intensity
 	*/
-	uint16_t colorViolet(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][4]; }
+	uint16_t colorViolet(uint8_t deviceNumber);
 
 	/** Yellow
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 
 	@return - color intensity
 	*/
-	uint16_t colorYellow(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? 0 : (*readings)[deviceNumber][5]; }
+	uint16_t colorYellow(uint8_t deviceNumber);
 
 	/** Set gain
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
@@ -120,7 +132,7 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - Hue
 	*/
-	uint8_t hue(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? (*_hue)[deviceNumber] : 0; }
+	uint8_t hue(uint8_t deviceNumber);
 
 	/** Set illumination intensity
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
@@ -154,14 +166,14 @@ public:
 	@param includeValue - if true, HSV compared. If not, HS.
 	@raturn - patternNumber
 	*/
-	uint8_t patternRecognizedBy6Colors(uint8_t deviceNumber) { return (*_patternBy6Colors)[deviceNumber]; }
+	uint8_t patternRecognizedBy6Colors(uint8_t deviceNumber);
 
 	/** Choose a pattern closest to the current HSV values
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@param includeValue - if true, HSV compared. If not, HS.
 	@raturn - patternNumber
 	*/
-	uint8_t patternRecognizedByHSV(uint8_t deviceNumber) { return (*_patternByHSV)[deviceNumber]; }
+	uint8_t patternRecognizedByHSV(uint8_t deviceNumber);
 
 	/** Record a HSV pattern
 	@param patternNumber - 0 - PATTERN_COUNT-1
@@ -184,7 +196,7 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - saturation
 	*/
-	uint8_t saturation(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? (*_saturation)[deviceNumber] : 0; }
+	uint8_t saturation(uint8_t deviceNumber);
 
 	/** Print all readings in a line
 	*/
@@ -201,14 +213,15 @@ public:
 	void switchTo6Colors(uint8_t deviceNumber = 0xFF);
 
 	/**Test
+	@param hsv - if not, then 6 colors
 	*/
-	void test();
+	void test(bool hsvSelect);
 
 	/** Value
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - value
 	*/
-	uint8_t value(uint8_t deviceNumber) { return (*_hsv)[deviceNumber] ? (*_value)[deviceNumber] : 0; }
+	uint8_t value(uint8_t deviceNumber);
 
 };
 

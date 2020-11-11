@@ -33,12 +33,27 @@ Licence: You can use this code any way you like.
 #define COMMAND_IR_FINDER3_SENDING_SENSORS_8_TO_12 0x05
 #define COMMAND_IR_FINDER3_SENDING_ANGLE_AND_DISTANCE 0x09
 
+#define MRM_IR_FINDER3_INACTIVITY_ALLOWED_MS 10000
+
 class Mrm_ir_finder3 : public SensorBoard
 {
 	std::vector<uint16_t[MRM_IR_FINDER3_SENSOR_COUNT]>* readings; // Cumulative readings of all sensors
-	int16_t _angle;
-	uint16_t _distance;
+	std::vector<int16_t>* _angle;
+	std::vector<bool>* _calculated; // If not, then for every sensor.
+	std::vector<uint16_t>* _distance;
 	bool near;
+
+	/** If calculated mode not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool calculatedStarted(uint8_t deviceNumber);
+
+	/** If single mode not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool singleStarted(uint8_t deviceNumber);
 	
 public:
 	
@@ -58,16 +73,18 @@ public:
 	void add(char * deviceName = "");
 
 	/** Ball's direction
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - robot's front is 0°, positive angles clockwise, negative anti-clockwise. Back of the robot is 180°.
 	*/
-	int16_t angle() { return _angle; }
+	int16_t angle(uint8_t deviceNumber = 0);
 
 	/** Ball's distance
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - this is analog value that represents infrared light intensity, so not directly distance, but the distance can be inferred. When ball is quite close, expect values up to about 3000.
 		At about 1 m is the boundary between 2 zones so the value will drop sharply as long-dinstance sensors engage.
 		When 0 is return, there is no ball in sight.
 	*/
-	uint16_t distance() { return _distance; }
+	uint16_t distance(uint8_t deviceNumber = 0);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

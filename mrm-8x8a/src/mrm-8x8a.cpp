@@ -23,11 +23,11 @@ Mrm_8x8a::~Mrm_8x8a()
 
 
 ActionBase* Mrm_8x8a::actionCheck() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) { // AAA 
 		for (uint8_t switchNumber = 0; switchNumber < MRM_8x8A_SWITCHES_COUNT; switchNumber++)
-			if ((*lastOn)[deviceNumber][switchNumber] == false && (*on)[deviceNumber][switchNumber] == true && (*offOnAction)[deviceNumber][switchNumber] != NULL)
+			if ((*lastOn)[deviceNumber][switchNumber] == false && switchRead(switchNumber, deviceNumber) && (*offOnAction)[deviceNumber][switchNumber] != NULL)
 				return (*offOnAction)[deviceNumber][switchNumber];
-			else if ((*lastOn)[deviceNumber][switchNumber] == true && (*on)[deviceNumber][switchNumber] == false)
+			else if ((*lastOn)[deviceNumber][switchNumber] == true && !switchRead(switchNumber, deviceNumber))
 				((*lastOn)[deviceNumber][switchNumber]) = false;
 	}
 	return NULL;
@@ -188,16 +188,17 @@ bool Mrm_8x8a::messageDecode(uint32_t canId, uint8_t data[8]) {
 				case COMMAND_8X8_SWITCH_ON:
 				case COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION: {
 					uint8_t switchNumber = data[1] >> 1;
-						if (switchNumber > 4) {
-							strcpy(errorMessage, "No 8x8a switch");
-								return false;
-						}
+					if (switchNumber > 4) {
+						strcpy(errorMessage, "No 8x8a switch");
+						return false;
+					}
 					(*on)[deviceNumber][switchNumber] = data[1] & 1;
-						if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
-							canData[0] = COMMAND_NOTIFICATION;
-							canData[1] = switchNumber; //todo - deviceNumber not taken into account
-							robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
-						}
+					if (data[0] == COMMAND_8X8_SWITCH_ON_REQUEST_NOTIFICATION) {
+						canData[0] = COMMAND_NOTIFICATION;
+						canData[1] = switchNumber; //todo - deviceNumber not taken into account
+						robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
+					}
+					(*_lastReadingMs)[deviceNumber] = millis();
 				}
 					break;
 				case COMMAND_8x8_TEST_CAN_BUS:
@@ -278,6 +279,32 @@ void Mrm_8x8a::rotationSet(enum LED8x8Rotation rotation, uint8_t deviceNumber) {
 	robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 2, canData);
 }
 
+/** If sensor not started, start it and wait for 1. message
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - started or not
+*/
+bool Mrm_8x8a::started(uint8_t deviceNumber) {
+	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_8X8A_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
+		//print("Start mrm-8x8a%i \n\r", deviceNumber); 
+		for (uint8_t i = 0; i < 8; i++) { // 8 tries
+			start(deviceNumber, 0);
+			// Wait for 1. message.
+			uint32_t startMs = millis();
+			while (millis() - startMs < 50) {
+				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
+					//print("8x8 confirmed\n\r"); 
+					return true;
+				}
+				robotContainer->delayMs(1);
+			}
+		}
+		strcpy(errorMessage, "mrm-8x8a dead.\n\r");
+		return false;
+	}
+	else
+		return true;
+}
+
 /** Read switch
 @param switchNumber
 @deviceNumber - Displays's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -289,7 +316,10 @@ bool Mrm_8x8a::switchRead(uint8_t switchNumber, uint8_t deviceNumber) {
 		strcpy(errorMessage, "Switch doesn't exist");
 		return false;
 	}
-	return (*on)[deviceNumber][switchNumber];
+	if (started(deviceNumber))
+		return (*on)[deviceNumber][switchNumber];
+	else
+		return false;
 }
 
 
@@ -305,7 +335,6 @@ void Mrm_8x8a::test()
 	static uint8_t bitmapId = MRM_8x8A_START_BITMAP_1;
 
 	if (robotContainer->actionPreprocessing(true)) {
-		print("STORE\n\r");
 		uint8_t red[8] = { 0b00000000, 0b01100110, 0b11111111, 0b11111111, 0b11111111, 0b01111110, 0b00111100, 0b00011000 };
 		uint8_t green[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000 };
 		bitmapCustomStore(red, green, 7);
@@ -322,7 +351,7 @@ void Mrm_8x8a::test()
 					print("| ");
 				print("Map 0x%02x, sw:", bitmapId);
 				for (uint8_t i = 0; i < MRM_8x8A_SWITCHES_COUNT; i++)
-					print("%i ", (*on)[deviceNumber][i]);
+					print("%i ", switchRead(i, deviceNumber));
 			}
 		}
 		bitmapId++;

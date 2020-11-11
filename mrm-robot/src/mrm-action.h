@@ -13,15 +13,15 @@ protected:
 
 public:
 	char _shortcut[4];
-	char _text[20];
+	char _text[19];
 	uint8_t _menuLevel;
 
 	/** Constructor
 	@param robot - robot
 	@param shortcut - up-to-3-letter word
 	@param text - menu entry
-	@param menuLevel - all the actions with the same menuLevel are displayed. Permitted values are: 0 (in no menu), 1, 2, 4, 8, 16, 32, 64, and 128. 
-		A menu-action changes menuLevel to its own, forcing all the actions with this menuLevel to be displayed. "|" lists action in many menus, for example 1 | 8 | 16.
+	@param menuLevel - all the actions with the same menuLevel are displayed. Permitted values are: 0 (in no menu), 1, 2, 4, 16, 16, 32, 64, and 128. 
+		A menu-action changes menuLevel to its own, forcing all the actions with this menuLevel to be displayed. "|" lists action in many menus, for example 1 | 16 | 16.
 	@param boardId - menu only for a specific board
 	*/
 	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1, BoardId boardsId = ID_ANY);
@@ -56,7 +56,7 @@ public:
 class ActionBluetoothTest : public ActionBase {
 	void perform();
 public:
-	ActionBluetoothTest(Robot* robot) : ActionBase(robot, "blt", "Test Bluetooth", 1) {}
+	ActionBluetoothTest(Robot* robot) : ActionBase(robot, "blt", "Test Bluetooth", 16) {}
 };
 
 class ActionCANBusScan : public ActionBase {
@@ -68,13 +68,13 @@ public:
 class ActionCANBusSniff : public ActionBase {
 	void perform();
 public:
-	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff bus toggle", 1) {}
+	ActionCANBusSniff(Robot* robot) : ActionBase(robot, "sni", "Sniff bus toggle", 16) {}
 };
 
 class ActionCANBusStress : public ActionBase {
 	void perform();
 public:
-	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 1) {}//1 | 2 | 4 | 8 | 16 | 32 | 64 | 128-> in all menus. 0 - in no menu.
+	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 16) {}//1 | 2 | 4 | 8 | 16 | 32 | 64 | 128-> in all menus. 0 - in no menu.
 };
 
 
@@ -141,13 +141,13 @@ public:
 class ActionFirmware : public ActionBase {
 	void perform();
 public:
-	ActionFirmware(Robot* robot) : ActionBase(robot, "fir", "Firmware", 1) {}
+	ActionFirmware(Robot* robot) : ActionBase(robot, "fir", "Firmware", 16) {}
 };
 
 class ActionFPS : public ActionBase {
 	void perform();
 public:
-	ActionFPS(Robot* robot) : ActionBase(robot, "fps", "FPS", 1) {}
+	ActionFPS(Robot* robot) : ActionBase(robot, "fps", "FPS", 16) {}
 };
 
 class ActionGoAhead : public ActionBase {
@@ -159,7 +159,7 @@ public:
 class ActionI2CTest : public ActionBase {
 	void perform();
 public:
-	ActionI2CTest(Robot* robot) : ActionBase(robot, "i2c", "Test I2C", 1) {}
+	ActionI2CTest(Robot* robot) : ActionBase(robot, "i2c", "Test I2C", 16) {}
 };
 
 class ActionIMUTest : public ActionBase {
@@ -183,13 +183,13 @@ public:
 class ActionIRFinderCanTest : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball CAN sing.", 1, ID_MRM_IR_FINDER3) {}
+	ActionIRFinderCanTest(Robot* robot) : ActionBase(robot, "irs", "Test ball every", 1, ID_MRM_IR_FINDER3) {}
 };
 
 class ActionIRFinderCanTestCalculated : public ActionBase {
 	void perform();
 public:
-	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball CAN calc.", 1, ID_MRM_IR_FINDER3) {}
+	ActionIRFinderCanTestCalculated(Robot* robot) : ActionBase(robot, "irc", "Test ball calcul.", 1, ID_MRM_IR_FINDER3) {}
 };
 
 class ActionLidar2mTest : public ActionBase {
@@ -213,7 +213,7 @@ public:
 class ActionMenuColor : public ActionBase {
 	void perform();
 public:
-	ActionMenuColor(Robot* robot) : ActionBase(robot, "col", "Color", 1, ID_MRM_COL_CAN) {}
+	ActionMenuColor(Robot* robot) : ActionBase(robot, "col", "Color (menu)", 1, ID_MRM_COL_CAN) {}
 };
 
 class ActionMenuMain : public ActionBase {
@@ -225,7 +225,13 @@ public:
 class ActionMenuReflectance : public ActionBase {
 	void perform();
 public:
-	ActionMenuReflectance(Robot* robot) : ActionBase(robot, "ref", "Reflectance", 1, ID_MRM_REF_CAN) {}
+	ActionMenuReflectance(Robot* robot) : ActionBase(robot, "ref", "Reflectance (menu)", 1, ID_MRM_REF_CAN) {}
+};
+
+class ActionMenuSystem : public ActionBase {
+	void perform();
+public:
+	ActionMenuSystem(Robot* robot) : ActionBase(robot, "sys", "System (menu)", 1) {}
 };
 
 class ActionMotorTest : public ActionBase {
@@ -246,11 +252,11 @@ public:
 	ActionNodeServoTest(Robot* robot) : ActionBase(robot, "nos", "Test node servo", 1, ID_MRM_NODE) {}
 };
 
-class ActionOscillatorTest : public ActionBase {
-	void perform();
-public:
-	ActionOscillatorTest(Robot* robot) : ActionBase(robot, "osc", "Oscillator test", 1, ID_ANY) {}
-};
+//class ActionOscillatorTest : public ActionBase {
+//	void perform();
+//public:
+//	ActionOscillatorTest(Robot* robot) : ActionBase(robot, "osc", "Oscillator test", 1, ID_ANY) {}
+//};
 
 class ActionStop : public ActionBase {
 	void perform();

@@ -119,6 +119,7 @@ bool Mrm_lid_can_b::messageDecode(uint32_t canId, uint8_t data[8]){
 				case COMMAND_SENSORS_MEASURE_SENDING: {
 					uint16_t mm = (data[2] << 8) | data[1];
 					(*readings)[deviceNumber] = mm;
+					(*_lastReadingMs)[deviceNumber] = millis();
 				}
 				break;
 				default:
@@ -159,7 +160,10 @@ uint16_t Mrm_lid_can_b::reading(uint8_t deviceNumber){
 		return 0;
 	}
 	alive(deviceNumber, true);
-	return (*readings)[deviceNumber];
+	if (started(deviceNumber))
+		return (*readings)[deviceNumber];
+	else
+		return 0;
 }
 
 /** Print all readings in a line
@@ -168,8 +172,35 @@ void Mrm_lid_can_b::readingsPrint() {
 	print("Lid2m:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %4i", (*readings)[deviceNumber]);
+			print(" %4i", reading(deviceNumber));
 }
+
+/** If sensor not started, start it and wait for 1. message
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - started or not
+*/
+bool Mrm_lid_can_b::started(uint8_t deviceNumber) {
+	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_LID_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
+		//print("Start mrm-lid-can-b%i \n\r", deviceNumber); 
+		for (uint8_t i = 0; i < 8; i++) { // 8 tries
+			start(deviceNumber, 0);
+			// Wait for 1. message.
+			uint32_t startMs = millis();
+			while (millis() - startMs < 50) {
+				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
+					//print("Lidar confirmed\n\r");
+					return true;
+				}
+				robotContainer->delayMs(1);
+			}
+		}
+		strcpy(errorMessage, "mrm-lid-can-b dead.\n\r");
+		return false;
+	}
+	else
+		return true;
+}
+
 
 /**Test
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all devices.
@@ -185,7 +216,7 @@ void Mrm_lid_can_b::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 			if (alive(i) && (deviceNumber == 0xFF || i == deviceNumber)) {
 				if (pass++)
 					print(" ");
-				print("%4i ", (*readings)[i]);
+				print("%4i ", reading(i));
 			}
 		}
 		lastMs = millis();

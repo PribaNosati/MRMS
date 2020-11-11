@@ -540,7 +540,7 @@ void RobotMaze::wallFollow(Direction wallDirection) {
 	speedR += toTheMax;
 
 	//directionDisplay(wallDirection);
-	//print(" AAA Wall follow CW:%i, CCW:%i, L: %i, R:%i\n\r", distance(wallDirection, false), distance(wallDirection, true), speedL, speedR);
+	//print(" Wall follow CW:%i, CCW:%i, L: %i, R:%i\n\r", distance(wallDirection, false), distance(wallDirection, true), speedL, speedR);
 	motorGroup->go(speedL, speedR); // Engage motors.
 
 	// Correct stored direction. It is constantly adjusted when following a wall. It is mandatory because magnetic field can change much, even in one tile.

@@ -79,25 +79,9 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 /** Custom test. The function will be called many times during the test, till You issue "x" menu command.
 */
 void RobotLine::anyTest() {
-	static bool avoidingExit = false;
 
-	if (actionPreprocessing(true))
-		devicesStart(1);
-
-	if (mrm_lid_can_b->reading(1) < avoidingExit ? 200 : 90) // Wall ahead?
-		motorGroup->go(-50, 50);
-	else {
-		if (mrm_lid_can_b->reading(2) > 400) { // Exit?
-			motorGroup->go(50, 50);
-			avoidingExit = true;
-		}
-		else {
-			int error = (mrm_lid_can_b->reading(2) - 100) * 0.5;
-			error = constrain(error, -50, 50);
-			motorGroup->go(50 + error, 50 - error);
-			avoidingExit = false;
-		}
-	}
+	print("%i\n\r", (int)mrm_8x8a->switchRead(0, 0));
+	delayMs(100);
 }
 
 /** Arm will go to ball-catch position.
@@ -194,13 +178,13 @@ void RobotLine::bitmapsSet() {
 	// The 2 arrays will hold red and green pixels. Both red an green pixel on - orange color.
 	uint8_t red[8];
 	uint8_t green[8];
-	for (uint8_t i = 0; i < 8; i++)
-		red[i] = 0, green[i] = 0;
 
 	/* 1 will turn the pixel on, 0 off. 0bxxxxxxxx is a binary format of the number. Start with "0b" and list all the bits, starting from
 	the most significant one (MSB). Do that for each byte of the green and red arrays.*/
 
 	// Evacuation zone
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	green[0] = 0b11111111;
 	green[1] = 0b10000001;
 	green[2] = 0b10000001;
@@ -210,7 +194,6 @@ void RobotLine::bitmapsSet() {
 	green[6] = 0b11100001;
 	green[7] = 0b11111111;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_EVACUATION_ZONE);
-	delayMs(1);
 
 	// Full line, no marks
 	for (uint8_t i = 0; i < 8; i++)
@@ -218,7 +201,6 @@ void RobotLine::bitmapsSet() {
 	for (uint8_t i = 0; i < 8; i++)
 		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL);
-	delayMs(1);
 
 	// Full line, both marks
 	for (uint8_t i = 0; i < 8; i++)
@@ -234,7 +216,7 @@ void RobotLine::bitmapsSet() {
 	/* Store this bitmap in mrm-8x8a. The 3rd parameter is bitmap's address. If You want to define new bitmaps, expand LedSign enum with
 	Your names, and use the new values for Your bitmaps. This parameter can be a plain number, but enum keeps thing tidy.*/
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL_BOTH_MARKS);
-	delayMs(1); // Wait a little in order not to queue too many CAN Buss messages at once.
+	//delayMs(1); // Wait a little in order not to queue too many CAN Buss messages at once.
 
 	// Full line, left mark.
 	for (uint8_t i = 0; i < 8; i++)
@@ -248,7 +230,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL_MARK_LEFT);
-	delayMs(1);
 
 	// Full line, right mark.
 	for (uint8_t i = 0; i < 8; i++)
@@ -262,7 +243,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL_MARK_RIGHT);
-	delayMs(1);
 
 	// Full crossing, both marks.
 	green[0] = 0b00000000;
@@ -283,7 +263,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_BOTH_MARKS);
-	delayMs(1);
 
 	// Full crossing, mark left.
 	green[0] = 0b00000000;
@@ -304,7 +283,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_MARK_LEFT);
-	delayMs(1);
 
 	// Full crossing, mark right.
 	green[0] = 0b00000000;
@@ -325,19 +303,19 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_MARK_RIGHT);
-	delayMs(1);
 
 	// Full crossing, no marks.
-	green[0] = 0b00000000;
-	green[1] = 0b00000000;
+	green[0] = 0b00011000;
+	green[1] = 0b00011000;
 	green[2] = 0b11111111;
 	green[3] = 0b11111111;
 	green[4] = 0b00011000;
 	green[5] = 0b00011000;
 	green[6] = 0b00011000;
 	green[7] = 0b00011000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_FULL_CROSSING_NO_MARK);
-	delayMs(1);
 
 	// Half crossing, mark right.
 	green[0] = 0b00011000;
@@ -358,7 +336,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_MARK_RIGHT);
-	delayMs(1);
 
 	// Half crossing, mark left.
 	green[0] = 0b00011000;
@@ -379,7 +356,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_MARK_LEFT);
-	delayMs(1);
 
 	// Half crossing right, no mark.
 	green[0] = 0b00011000;
@@ -400,7 +376,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_RIGHT_NO_MARK);
-	delayMs(1);
 
 	// Half crossing left, no mark
 	green[0] = 0b00011000;
@@ -421,7 +396,6 @@ void RobotLine::bitmapsSet() {
 	red[6] = 0b00000000;
 	red[7] = 0b00000000;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_HALF_CROSSING_LEFT_NO_MARK);
-	delayMs(1);
 
 	// Interrupted line.
 	green[0] = 0b00011000;
@@ -432,8 +406,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b00000000;
 	green[6] = 0b00011000;
 	green[7] = 0b00011000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_INTERRUPTED);
-	delayMs(1);
 
 	// Curve left.
 	green[0] = 0b00000000;
@@ -444,8 +419,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b00011000;
 	green[6] = 0b00011000;
 	green[7] = 0b00011000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_CURVE_LEFT);
-	delayMs(1);
 
 	// Curve right.
 	green[0] = 0b00000000;
@@ -456,8 +432,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b00011000;
 	green[6] = 0b00011000;
 	green[7] = 0b00011000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_CURVE_RIGHT);
-	delayMs(1);
 
 	// Obstacle.
 	green[0] = 0b00011000;
@@ -468,8 +445,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b01111110;
 	green[6] = 0b00011000;
 	green[7] = 0b00011000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_OBSTACLE);
-	delayMs(1);
 
 	// Around obstacle left.
 	green[0] = 0b00000000;
@@ -480,8 +458,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b11111000;
 	green[6] = 0b01110000;
 	green[7] = 0b01110000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_OBSTACLE_AROUND_LEFT);
-	delayMs(1);
 
 	// Around obstacle right.
 	green[0] = 0b00000000;
@@ -492,8 +471,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b00011111;
 	green[6] = 0b00001110;
 	green[7] = 0b00001110;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_OBSTACLE_AROUND_RIGHT);
-	delayMs(1);
 
 	// Pause.
 	green[0] = 0b11100111;
@@ -504,8 +484,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b11100111;
 	green[6] = 0b11100111;
 	green[7] = 0b11100111;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_PAUSE);
-	delayMs(1);
 
 	// Play.
 	green[0] = 0b0110000;
@@ -516,8 +497,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b0111100;
 	green[6] = 0b0111000;
 	green[7] = 0b0110000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_PLAY);
-	delayMs(1);
 
 	// T-crossing approached by left side.
 	green[0] = 0b0100000;
@@ -528,8 +510,9 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b0100000;
 	green[6] = 0b0100000;
 	green[7] = 0b0100000;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_T_CROSSING_BY_L);
-	delayMs(1);
 
 	// T-crossing approached by right side.
 	green[0] = 0b0000100;
@@ -540,12 +523,46 @@ void RobotLine::bitmapsSet() {
 	green[5] = 0b0000100;
 	green[6] = 0b0000100;
 	green[7] = 0b0000100;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_T_CROSSING_BY_R);
-	delayMs(1);
 
 	// Define Your bitmaps here.
 
-	delayMs(10); // Wait a little to be sure that the next sign will be displayed.
+}
+
+/** Go through a curve
+*/
+void RobotLine::curve() {
+	bool left = mrm_ref_can->dark(LAST_TRANSISTOR); // Otherwise right
+	mrm_8x8a->bitmapCustomStoredDisplay(left ? LED_CURVE_LEFT : LED_CURVE_RIGHT); 
+
+	// If a marker found, rotate and do not continue executing the rest of the function.
+	if (markers())
+		return;
+
+	// Go a little ahead to check if it is T-crossing approached by side. Also, take a better position for turning.
+	motorGroup->go(TOP_SPEED, TOP_SPEED);
+	uint32_t startMs = millis();
+	while (millis() - startMs < 200) {
+		if (mrm_ref_can->dark(left ? 0 : LAST_TRANSISTOR))// Opposite sensor - full crossing
+			return; // Exit curve handling as crossing is found.
+		noLoopWithoutThis();
+	}
+	print("AAA1\n\r ");
+	// Rotate
+	if (!mrm_ref_can->any(true)) { // L curve, not T approached by side. Because, if T approached by side, center transistors would still sense black.
+		print("AAA2\n\r ");
+		motorGroup->go(left ? -TOP_SPEED : TOP_SPEED, left ? TOP_SPEED : -TOP_SPEED); // Start rotating.
+		startMs = millis();
+		while (millis() - startMs < 1300) { // Rotate untill center line found, unless timeout expires.
+			if (mrm_ref_can->dark(LAST_TRANSISTOR / 2)) { // Line in center?
+				delayMs(150); // Align better
+				return;
+			}
+			noLoopWithoutThis();
+		}
+	}
 }
 
 /** Dark surface?
@@ -558,6 +575,7 @@ bool RobotLine::dark() {
 /** Enter evacuation-zone algorithm
 */
 void RobotLine::evacuationZone() {
+	motorGroup->stop();
 	actionEnd();
 	//// This function is not finished. It just catches and drops a ball.
 	//if (actionPreprocessing(true)) {
@@ -615,7 +633,6 @@ void RobotLine::goAhead() {
 */
 void RobotLine::lineFollow() {
 	static uint32_t lastLineFoundMs = millis(); // Used to measure gap in line.
-	static bool lastEdgeSensorL; // Used to sense T-crossing approached by side.
 
 	// Obstacle?
 	if (mrm_lid_can_b->reading(1) < 50 && mrm_lid_can_b->reading(1) != 0) { // Front sensor (1).
@@ -631,24 +648,18 @@ void RobotLine::lineFollow() {
 
 	// Line found?
 	if (mrm_ref_can->any(true)) {
-		if (mrm_ref_can->dark(0) && mrm_ref_can->dark(4) && mrm_ref_can->dark(8)) { // Both edge sensors and middle sensor? Crossing. Check markers.
+		if (mrm_ref_can->dark(0) && mrm_ref_can->dark(LAST_TRANSISTOR / 2) && mrm_ref_can->dark(LAST_TRANSISTOR)) { // Both edge sensors and middle sensor? Crossing. Check markers.
 			// Green markers?
-			markers();
+			if (!markers()) {// No mark detected. Go straight ahead.
+				mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_NO_MARK); // Show sign.
+				print("FULL AHE: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+				delayMs(5000);
+				motorGroup->go(TOP_SPEED, TOP_SPEED);
+				delayMs(300); // Make sure to cross the crossing.
+			}
 		}
-		if (mrm_ref_can->dark(0) && !mrm_ref_can->dark(4) && mrm_ref_can->dark(8)) { // Both edge sensors bot not middle sensor? T -> crossing approached by side. Return to previous direction.
-			motorGroup->go(lastEdgeSensorL ? TOP_SPEED : -TOP_SPEED, lastEdgeSensorL ? -TOP_SPEED : TOP_SPEED);
-			mrm_8x8a->bitmapCustomStoredDisplay(lastEdgeSensorL ? LED_T_CROSSING_BY_R : LED_T_CROSSING_BY_L);
-			delayMs(200);
-		}
-		if (mrm_ref_can->dark(8)) { // Left edge sensor? Rotate left.
-			motorGroup->go(-80, 80);
-			mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_LEFT);
-			lastEdgeSensorL = true;
-		}
-		else if (mrm_ref_can->dark(0)) { // Right edge sensor? Rotate right.
-			motorGroup->go(80, -80);
-			mrm_8x8a->bitmapCustomStoredDisplay(LED_CURVE_RIGHT);
-			lastEdgeSensorL = false;
+		else if (mrm_ref_can->dark(0) || mrm_ref_can->dark(LAST_TRANSISTOR)) { // Edge sensor? If so, sharp bending.
+			curve();
 		}
 		else {
 			// Follow line
@@ -659,49 +670,53 @@ void RobotLine::lineFollow() {
 		}
 		lastLineFoundMs = millis(); // Mark last time line detected.
 	}
-	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
-		actionSet(actionEvacuationZone);
-		mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
+	else {
+		motorGroup->stop();
+		actionEnd();
 	}
-	else { // No line found for s short time -> gap in line, continue straight ahead.
-		motorGroup->go(50, 50);
-		mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
-	}
+	//else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
+	//	actionSet(actionEvacuationZone);
+	//	mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
+	//	motorGroup->stop();
+	//}
+	//else { // No line found for s short time -> gap in line, continue straight ahead.
+	//	motorGroup->go(50, 50);
+	//	mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
+	//}
 }
 
-void RobotLine::markers() {
-	bool greenLeft = mrm_col_can->patternRecognizedBy6Colors(0) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
-	bool greenRight = mrm_col_can->patternRecognizedBy6Colors(1) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
+/** Check markers and turn if any found
+@return - true if marker found, false otherwise
+*/
+bool RobotLine::markers() {
+	motorGroup->stop(); // Stop and wait to be sure the color sensor read new values.
+	delayMs(200);
+	//bool greenLeft = mrm_col_can->patternRecognizedBy6Colors(0) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
+	//bool greenRight = mrm_col_can->patternRecognizedBy6Colors(1) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
+	bool greenLeft = mrm_col_can->value(0) < 80 && mrm_col_can->hue(0) > 45 && mrm_col_can->hue(0) < 70;
+	bool greenRight = mrm_col_can->value(1) < 80 && mrm_col_can->hue(1) > 45 && mrm_col_can->hue(1) < 70;
+	print("%i %i, values: %i %i, hues: %i %i\n\r", greenLeft, greenRight, (int)mrm_col_can->value(0), (int)mrm_col_can->value(1), (int)mrm_col_can->hue(0), (int)mrm_col_can->hue(1));
+	delayMs(5000);
 
+	bool found = true;
 	if (greenLeft && greenRight) { // Both markers detected. Turn backward.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_BOTH_MARKS); // Show sign.
-		motorGroup->stop();
-		//print("180: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
-		delayMs(5000);
+		print("180: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
 		turn(180); // Turn by 180º.
 	}
 	else if (greenLeft && !greenRight) { // Only left marker. Turn left.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_LEFT); // Show sign.
-		motorGroup->stop();
-		//print("FULL L: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
-		delayMs(5000);
+		print("FULL L: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
 		turn(-90); // Turn by 90º left.
 	}
 	else if (!greenLeft && greenRight) { //Only right marker. Turn right.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_RIGHT); // Show sign.
-		motorGroup->stop();
-		//print("FULL R: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
-		delayMs(5000);
+		print("FULL R: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
 		turn(90); // Turn by 90º right.
 	}
-	else {// No mark detected. Go straight ahead.
-		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_NO_MARK); // Show sign.
-		motorGroup->stop();
-		//print("FULL AHE: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
-		delayMs(5000);
-		motorGroup->go(TOP_SPEED, TOP_SPEED);
-		delayMs(200); // Make sure to cross the crossing.
-	}
+	else
+		found = false;
+	return found;
 }
 
 /** Avoid an obstacle on line.
@@ -770,7 +785,7 @@ void RobotLine::rcjLine() {
 	devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values (parameter 1 determines this action).
 	mrm_col_can->illumination(0xFF, 1); // Turn mrm-col-can's surface illumination on.
 	armIdle(); // Arm will go to its idle (up) position.
-	delayMs(20); // Wait so that the next sign will definitely show.
+	//delayMs(20); // Wait so that the next sign will definitely show.
 	actionSet(actionLineFollow); // The next action is line following.
 }
 

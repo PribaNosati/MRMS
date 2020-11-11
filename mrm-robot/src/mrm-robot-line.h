@@ -24,6 +24,8 @@
 // BLOCK_SERVO blocks balls
 #define BLOCK_SERVO_BOTH 150
 
+#define LAST_TRANSISTOR 8
+
 // mrm-8x8a display bitmaps.
 enum ledSign {LED_EVACUATION_ZONE, LED_FULL_CROSSING_BOTH_MARKS, LED_FULL_CROSSING_MARK_LEFT, LED_FULL_CROSSING_MARK_RIGHT, LED_FULL_CROSSING_NO_MARK,
 	LED_HALF_CROSSING_MARK_LEFT, LED_HALF_CROSSING_MARK_RIGHT, LED_HALF_CROSSING_LEFT_NO_MARK, LED_HALF_CROSSING_RIGHT_NO_MARK,
@@ -55,7 +57,7 @@ class ActionGenericMenu;
 class RobotLine : public Robot {
 	uint16_t BIGGEST_GAP_IN_LINE_MS = 1500;
 	// Changing this parameter will cause major behaviour change. Limit value: 127.
-	const uint8_t TOP_SPEED = 60;
+	const uint8_t TOP_SPEED = 80;
 
 	// Actions' declarations
 	ActionEvacuationZone* actionEvacuationZone;
@@ -135,6 +137,10 @@ public:
 	*/
 	void bitmapsSet();
 
+	/** Go through a curve
+	*/
+	void curve();
+
 	/** Dark surface?
 	* return dark or not
 	*/
@@ -169,7 +175,10 @@ public:
 	*/
 	void lineFollow();
 
-	void markers();
+	/** Check markers and turn if any found
+	@return - true if marker found, false otherwise
+	*/
+	bool markers();
 
 	/** Avoid an obstacle on line.
 	*/
@@ -326,5 +335,5 @@ public:
 class ActionGenericMenu : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->genericMenu(); }
 public:
-	ActionGenericMenu(Robot* robot) : ActionBase(robot, "gen", "Generic", 1) {}
+	ActionGenericMenu(Robot* robot) : ActionBase(robot, "gen", "Generic (menu)", 1) {}
 };

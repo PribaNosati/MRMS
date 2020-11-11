@@ -39,7 +39,6 @@
 #define COMMAND_ERROR 0xEE
 #define COMMAND_REPORT_ALIVE 0xFF
 
-#define MIN_MICROS_BETWEEN_COMMANDS 800
 #define MAX_MOTORS_IN_GROUP 4
 
 #ifndef toRad
@@ -74,6 +73,7 @@ protected:
 	std::vector<uint32_t>* idIn;  // Inbound message id
 	std::vector<uint32_t>* idOut; // Outbound message id
 	std::vector<uint32_t>* lastMessageReceivedMs;
+	std::vector<uint32_t>* _lastReadingMs;
 	uint8_t maximumNumberOfBoards;
 	uint8_t measuringMode = 0;
 	uint8_t measuringModeLimit = 0;
@@ -89,16 +89,6 @@ protected:
 	@return - command found
 	*/
 	bool messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceNumber = 0);
-
-	///** Print to all serial ports
-	//@param fmt - C format string
-	//@param ... - variable arguments
-	//*/
-	//void print(const char* fmt, ...);
-
-	///** Print to all serial ports, pointer to list
-	//*/
-	//void vprint(const char* fmt, va_list argp);
 
 public:
 	

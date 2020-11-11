@@ -51,6 +51,8 @@ Licence: You can use this code any way you like.
 #define MRM_8x8A_SWITCHES_COUNT 4
 #define MRM_8X8A_TEXT_LENGTH 44
 
+#define MRM_8X8A_INACTIVITY_ALLOWED_MS 30000
+
 enum LED8x8Rotation { LED_8X8_BY_0_DEGREES, LED_8X8_BY_90_DEGREES, LED_8X8_BY_270_DEGREES };
 enum LED8x8Type{LED_8X8_CUSTOM, LED_8X8_STORED, LED_8X8_STORED_CUSTOM };
 
@@ -61,6 +63,12 @@ class Mrm_8x8a : public SensorBoard
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* lastOn;
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* on;
 	std::vector<ActionBase *[MRM_8x8A_SWITCHES_COUNT]>* offOnAction;
+
+	/** If sensor not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool started(uint8_t deviceNumber);
 	
 public:
 	

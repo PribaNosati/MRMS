@@ -45,8 +45,12 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_SENDING_SENSORS_CENTER 0x0E
 #define COMMAND_REPORT_ALIVE_QUEUELESS 0x0F // todo
 
+#define MRM_REF_CAN_INACTIVITY_ALLOWED_MS 10000
+
 class Mrm_ref_can : public SensorBoard
 {
+	enum mode { ANALOG_VALUES, DIGITAL_AND_BRIGHT_CENTER, DIGITAL_AND_DARK_CENTER };
+
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataDark; // 
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataBright;
 	std::vector<uint8_t>* dataFresh; // All the data refreshed, bitwise stored. 
@@ -56,9 +60,16 @@ class Mrm_ref_can : public SensorBoard
 									// bit 3: calibration data for transistors 1 - 3, 
 									// bit 4: 4 - 6, 
 									// bit 5: 7 - 9
+	std::vector<uint8_t>* _mode;
 	bool readingDigitalAndCenter = true; // Reading only center and transistors as bits. Otherwise reading all transistors as analog values.
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* _reading; // Analog or digital readings of all sensors, depending on measuring mode.
 	std::vector<uint16_t>* centerOfMeasurements; // Center of the dark sensors.
+
+	/** If analog mode not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool analogStarted(uint8_t deviceNumber);
 
 	/** Calibration data fresh?
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -83,6 +94,14 @@ class Mrm_ref_can : public SensorBoard
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
 	*/
 	void dataFreshReadingsSet(bool setToFresh, uint8_t deviceNumber = 0);
+
+	/** If digital mode with dark center not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param darkCenter - Center of dark. If not, center of bright.
+	@param startIfNot - If not already started, start now.
+	@return - started or not
+	*/
+	bool digitalStarted(uint8_t deviceNumber, bool darkCenter, bool startIfNot = true);
 	
 public:
 
@@ -132,17 +151,19 @@ public:
 
 	/** Center of measurements, like center of the line
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+	@param ofDark - center of dark. Otherwise center of bright.
 	@return - 0 - nothing found. 1000 - 9000 for mrm-ref-can, 1000 - 8000 for ref-can8, 1000 - 6000 for mrm-ref-can6, and 1000 - 4000 for mrm-ref-can4. 
 		1000 means center exactly under first sensor (the one closer to the biggest pin group).
 	*/
-	uint16_t center(uint8_t deviceNumber = 0) { return (*centerOfMeasurements)[deviceNumber]; }
+	uint16_t center(uint8_t deviceNumber = 0, bool ofDark = true);
 
 	/** Dark?
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param fromAnalog - from analog local values. If not, sensor-supplied center data.
 	@return - yes or no.
 	*/
-	bool dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
+	bool dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0, bool fromAnalog = false);
 	
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
@@ -150,20 +171,23 @@ public:
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
 	
-	/** Readings, can be analog or digital, depending on measuring mode
+	/** Readings, can be analog or digital, depending on last parameter
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param analog - read analog value. If not, digital.
 	@return - analog value
 	*/
-	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0, bool analog = false);
 
 	/** Print all readings in a line
+	@param analog - if not, digital values.
 	*/
-	void readingsPrint();
+	void readingsPrint(bool analog);
 
 	/**Test
+	@param analog - if not, digital values.
 	*/
-	void test();
+	void test(bool analog);
 
 };
 

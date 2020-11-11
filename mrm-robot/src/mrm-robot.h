@@ -224,15 +224,6 @@ public:
 	*/
 	void colorPatternRecord();
 
-	/** mrm-color-can test 6 colors
-	*/
-	void colorTest6Colors();
-
-	/** mrm-color-can test hue-saturation-value (HSV)
-	*/
-	void colorTestHSV();
-
-
 	/** The right way to use Arduino function delay
 	@param pauseMs - pause in ms. One run even if pauseMs == 0, so that delayMs(0) receives all messages.
 	*/
@@ -322,6 +313,10 @@ public:
 	*/
 	void menuReflectance();
 
+	/** System menu
+	*/
+	void menuSystem();
+
 	/** Print CAN Bus message
 	@param msg - message
 	@param oubound - if not, inbound
@@ -351,11 +346,6 @@ public:
 	/** Prints mrm-ref-can* calibration data
 	*/
 	void reflectanceArrayCalibrationPrint();
-
-	/** Tests mrm-ref-can*
-	@digital - digital data. Otherwise analog.
-	*/
-	void reflectanceArrayTest(bool digital = true);
 
 	/** Starts robot's program
 	*/

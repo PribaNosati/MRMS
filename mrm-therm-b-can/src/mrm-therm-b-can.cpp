@@ -74,6 +74,7 @@ bool Mrm_therm_b_can::messageDecode(uint32_t canId, uint8_t data[8]){
 				case COMMAND_SENSORS_MEASURE_SENDING: {
 					int16_t temp = (data[2] << 8) | data[1];
 					(*readings)[deviceNumber] = temp;
+					(*_lastReadingMs)[deviceNumber] = millis();
 				}
 				break;
 				default:
@@ -99,7 +100,10 @@ int16_t Mrm_therm_b_can::reading(uint8_t deviceNumber){
 		return 0;
 	}
 	else
-		return (*readings)[deviceNumber];
+		if (started(deviceNumber))
+			return (*readings)[deviceNumber];
+		else
+			return 0;
 }
 
 /** Print all readings in a line
@@ -108,7 +112,34 @@ void Mrm_therm_b_can::readingsPrint() {
 	print("Therm:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %i", (*readings)[deviceNumber]);
+			print(" %i", reading(deviceNumber));
+}
+
+
+/** If sensor not started, start it and wait for 1. message
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - started or not
+*/
+bool Mrm_therm_b_can::started(uint8_t deviceNumber) {
+	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_THERM_B_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
+		print("Start mrm-therm-b-can-b2%i \n\r", deviceNumber); //AAA
+		for (uint8_t i = 0; i < 8; i++) { // 8 tries
+			start(deviceNumber, 0);
+			// Wait for 1. message.
+			uint32_t startMs = millis();
+			while (millis() - startMs < 50) {
+				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
+					print("Thermo confirmed\n\r");  //AAA
+					return true;
+				}
+				robotContainer->delayMs(1);
+			}
+		}
+		strcpy(errorMessage, "mrm-lid-can-b2 dead.\n\r");
+		return false;
+	}
+	else
+		return true;
 }
 
 /**Test
@@ -123,7 +154,7 @@ void Mrm_therm_b_can::test()
 			if (alive(deviceNumber)) {
 				if (pass++)
 					print(" ");
-				print("%i ", (*readings)[deviceNumber]);
+				print("%i ", reading(deviceNumber));
 			}
 		}
 		lastMs = millis();

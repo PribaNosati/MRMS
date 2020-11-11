@@ -12,6 +12,7 @@ Mrm_ref_can::Mrm_ref_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(
 	calibrationDataBright = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	calibrationDataDark = new std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>(maxNumberOfBoards);
 	dataFresh = new std::vector<uint8_t>(maxNumberOfBoards);
+	_mode = new std::vector<uint8_t>(maxNumberOfBoards);
 	measuringModeLimit = 2;
 	centerOfMeasurements = new std::vector<uint16_t>(maxNumberOfBoards);
 }
@@ -67,14 +68,51 @@ void Mrm_ref_can::add(char * deviceName)
 	SensorBoard::add(deviceName, canIn, canOut);
 }
 
+/** If analog mode not started, start it and wait for 1. message
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - started or not
+*/
+bool Mrm_ref_can::analogStarted(uint8_t deviceNumber) {
+	if ((*_mode)[deviceNumber] != ANALOG_VALUES || millis() - (*_lastReadingMs)[deviceNumber] > MRM_REF_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
+		//print("Start analog \n\r"); // AAA
+		(*_lastReadingMs)[deviceNumber] = 0;
+		for (uint8_t i = 0; i < 8; i++) { // 8 tries
+			start(deviceNumber, 0); // As analog
+			// Wait for 1. message.
+			uint32_t startMs = millis();
+			while (millis() - startMs < 50) {
+				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
+					//print("Analog confirmed\n\r"); // AAA
+					(*_mode)[deviceNumber] = ANALOG_VALUES;
+					return true;
+				}
+				robotContainer->delayMs(1);
+			}
+		}
+		strcpy(errorMessage, "mrm-ref-can dead.\n\r");
+		return false;
+	}
+	else
+		return true;
+}
+
 /** Any dark or bright
 @param dark - any dark? Otherwise, any bright?
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 */
 bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber) {
-	if (readingDigitalAndCenter)
-		for (uint8_t i = 0; i < 8; i++)
-			if ((*_reading)[deviceNumber][i] == 1)
+	// If DIGITAL_AND_BRIGHT_CENTER started, bright will be 1. If DIGITAL_AND_DARK_CENTER started, dark will be 1. Therefore, complication:
+	if (!digitalStarted(deviceNumber, false, false) && !digitalStarted(deviceNumber, true, false))
+		if (!digitalStarted(deviceNumber, dark))
+			return false;
+
+	for (uint8_t i = 0; i < 8; i++)
+		if ((*_mode)[deviceNumber] == DIGITAL_AND_DARK_CENTER) {
+			if ((*_reading)[deviceNumber][i] == dark ? 1 : 0)
+				return true;
+		}
+		else
+			if ((*_reading)[deviceNumber][i] == dark ? 0 : 1)
 				return true;
 	return false;
 }
@@ -90,9 +128,23 @@ void Mrm_ref_can::calibrate(uint8_t deviceNumber) {
 			calibrate(i);
 		}
 	else if (alive(deviceNumber)){
-		print("Calibrating %s\n\r", name(deviceNumber));
+		aliveSet(false, deviceNumber);
+		print("Calibrating %s...", name(deviceNumber));
 		canData[0] = COMMAND_REF_CAN_CALIBRATE;
 		robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], 1, canData);
+		uint32_t startMs = millis();
+		bool ok = false;
+		while (millis() - startMs < 10000) {
+			robotContainer->noLoopWithoutThis();
+			if (alive(deviceNumber)) {
+				ok = true;
+				break;
+			}
+		}
+		if (ok)
+			print("OK\n\r");
+		else
+			print("timeout\n\r");
 	}
 	robotContainer->actionEnd();
 }
@@ -154,17 +206,42 @@ void Mrm_ref_can::calibrationPrint() {
 		}
 }
 
+/** Center of measurements, like center of the line
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
+@param ofDark - center of dark. Otherwise center of bright.
+@return - 0 - nothing found. 1000 - 9000 for mrm-ref-can, 1000 - 8000 for ref-can8, 1000 - 6000 for mrm-ref-can6, and 1000 - 4000 for mrm-ref-can4.
+	1000 means center exactly under first sensor (the one closer to the biggest pin group).
+*/
+uint16_t Mrm_ref_can::center(uint8_t deviceNumber, bool ofDark) { 
+	if (digitalStarted(deviceNumber, ofDark))
+		return (*centerOfMeasurements)[deviceNumber];
+	else
+		return false;
+}
+
 /** Dark?
 @param receiverNumberInSensor - single IR transistor in mrm-ref-can
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param fromAnalog - from analog local values. If not, sensor-supplied center data.
 @return - yes or no.
 */
-bool Mrm_ref_can::dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber) {
+bool Mrm_ref_can::dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber, bool fromAnalog) {
 	alive(deviceNumber, true);
-	if (measuringMode == 0) // Analog readings
-		return (*_reading)[deviceNumber][receiverNumberInSensor] < ((*calibrationDataDark)[deviceNumber][receiverNumberInSensor] + (*calibrationDataBright)[deviceNumber][receiverNumberInSensor]) / 2;
-	else // Digital readings
-		return (*_reading)[deviceNumber][receiverNumberInSensor];
+	if (fromAnalog) {// Analog readings
+		if (analogStarted(deviceNumber))
+			return (*_reading)[deviceNumber][receiverNumberInSensor] < ((*calibrationDataDark)[deviceNumber][receiverNumberInSensor] + (*calibrationDataBright)[deviceNumber][receiverNumberInSensor]) / 2;
+		else
+			return false;
+	}
+	else { // Digital readings
+		if (!digitalStarted(deviceNumber, false, false) && !digitalStarted(deviceNumber, true, false))
+			if (!digitalStarted(deviceNumber, true))
+				return false;
+		if ((*_mode)[deviceNumber] == DIGITAL_AND_DARK_CENTER) 
+			return (*_reading)[deviceNumber][receiverNumberInSensor] == 1;
+		else
+			return (*_reading)[deviceNumber][receiverNumberInSensor] == 0;
+	}
 }
 
 
@@ -196,6 +273,38 @@ void Mrm_ref_can::dataFreshReadingsSet(bool setToFresh, uint8_t deviceNumber) {
 			(*dataFresh)[deviceNumber] |= 0b11100000;
 		else
 			(*dataFresh)[deviceNumber] &= 0b00011111;
+}
+
+/** If digital mode with dark center not started, start it and wait for 1. message
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param darkCenter - Center of dark. If not, center of bright.
+@param startIfNot - If not already started, start now.
+@return - started or not
+*/
+bool Mrm_ref_can::digitalStarted(uint8_t deviceNumber, bool darkCenter, bool startIfNot) {
+	if ((*_mode)[deviceNumber] != DIGITAL_AND_DARK_CENTER || millis() - (*_lastReadingMs)[deviceNumber] > MRM_REF_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
+		if (startIfNot) {
+			//print("Digital started, dark: %i \n\r", darkCenter); // AAA
+			(*_lastReadingMs)[deviceNumber] = 0;
+			for (uint8_t i = 0; i < 8; i++) { // 8 tries
+				start(deviceNumber, darkCenter ? 1 : 2); // As digital with dark or bright center
+				// Wait for 1. message.
+				uint32_t startMs = millis();
+				while (millis() - startMs < 50) {
+					if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
+						//print("Digital confirmed\n\r"); // AAA
+						(*_mode)[deviceNumber] = darkCenter ? DIGITAL_AND_DARK_CENTER : DIGITAL_AND_BRIGHT_CENTER;
+						return true;
+					}
+					robotContainer->delayMs(1);
+				}
+			}
+			strcpy(errorMessage, "mrm-ref-can dead.\n\r");
+		}
+		return false;
+	}
+	else
+		return true;
 }
 
 /** Read CAN Bus message into local variables
@@ -254,6 +363,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					startIndex = 6;
 					anyReading = true;
 					(*dataFresh)[deviceNumber] |= 0b00100000;
+					(*_lastReadingMs)[deviceNumber] = millis();
 					break;
 				case COMMAND_REF_CAN_SENDING_SENSORS_CENTER:
 					(*centerOfMeasurements)[deviceNumber] = (uint16_t)((data[2] << 8) | data[1]);
@@ -269,6 +379,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					(*_reading)[deviceNumber][8] = data[4];
 
 					(*dataFresh)[deviceNumber] |= 0b11100000;
+					(*_lastReadingMs)[deviceNumber] = millis();
 					break;
 				default:
 					print("Unknown command. ");
@@ -295,34 +406,48 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 	return false;
 }
 
-/** Readings, can be analog or digital, depending on measuring mode
+/** Readings, can be analog or digital, depending on last parameter
 @param receiverNumberInSensor - single IR transistor in mrm-ref-can
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param analog - read analog value. If not, digital.
 @return - analog value
 */
-uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
+uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber, bool analog){
 	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT) {
 		strcpy(errorMessage, "mrm-ref-can doesn't exist");
 		return 0;
 	}
 	alive(deviceNumber, true);
-	return (*_reading)[deviceNumber][receiverNumberInSensor];
+	if (analog) {
+		if (analogStarted(deviceNumber))
+			return (*_reading)[deviceNumber][receiverNumberInSensor];
+		else
+			return 0;
+	}
+	else { // digital
+		if (!digitalStarted(deviceNumber, false, false) && !digitalStarted(deviceNumber, true, false))
+			if (!digitalStarted(deviceNumber, true))
+				return false;
+		return (*_reading)[deviceNumber][receiverNumberInSensor];
+	}
 }
 
 /** Print all readings in a line
+@param analog - if not, digital values.
 */
-void Mrm_ref_can::readingsPrint() {
+void Mrm_ref_can::readingsPrint(bool analog) {
 	print("Refl:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 			if (alive(deviceNumber))
-				print(" %3i", (*_reading)[deviceNumber][irNo]);
+				print(analog ? "%3i " : "%i", reading(irNo, deviceNumber, analog));
 	}
 }
 
 /**Test
+@param analog - if not, digital values.
 */
-void Mrm_ref_can::test()
+void Mrm_ref_can::test(bool analog)
 {
 	static uint32_t lastMs = 0;
 
@@ -333,7 +458,10 @@ void Mrm_ref_can::test()
 				if (pass++)
 					print("| ");
 				for (uint8_t i = 0; i < MRM_REF_CAN_SENSOR_COUNT; i++)
-					print("%i ", (*_reading)[deviceNumber][i]);
+					print(analog ? "%3i " : "%i", reading(i, deviceNumber, analog));
+				if (!analog)
+					print(" c:%i", center(deviceNumber, (*_mode)[deviceNumber] == DIGITAL_AND_DARK_CENTER));
+
 			}
 		}
 		lastMs = millis();
