@@ -79,9 +79,10 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 /** Custom test. The function will be called many times during the test, till You issue "x" menu command.
 */
 void RobotLine::anyTest() {
-
-	print("%i\n\r", (int)mrm_8x8a->switchRead(0, 0));
-	delayMs(100);
+	if (setup())
+		print("Setup");
+	if (mrm_8x8a->switchRead(0, 0))
+		end();
 }
 
 /** Arm will go to ball-catch position.
@@ -782,7 +783,6 @@ void RobotLine::rcjLine() {
 	mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES); // Rotate the mrm-8x8a by 90º so that it can be read properly when standing behind the robot.
 	bitmapsSet(); // Upload all the predefined bitmaps into the mrm-8x8a.
 	mrm_8x8a->bitmapCustomStoredDisplay(LED_PLAY); // Show "play" sign.
-	devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values (parameter 1 determines this action).
 	mrm_col_can->illumination(0xFF, 1); // Turn mrm-col-can's surface illumination on.
 	armIdle(); // Arm will go to its idle (up) position.
 	//delayMs(20); // Wait so that the next sign will definitely show.

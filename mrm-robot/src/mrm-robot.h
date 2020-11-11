@@ -160,12 +160,7 @@ public:
 	@param andFinish - finish initialization
 	@return - it is.
 	*/
-	bool actionPreprocessing(bool andFinish) { 
-		bool itIs = _actionCurrent->preprocessing(); 
-		if (andFinish)
-			_actionCurrent->preprocessingEnd();
-		return itIs; 
-	}
+	bool actionPreprocessing(bool andFinish = true);
 
 	/** Finish action's intialization phase
 	*/
@@ -191,6 +186,11 @@ public:
 	/** Test Bluetooth
 	*/
 	void bluetoothTest();
+	
+	/** End current action
+	*/
+	void end() { actionEnd(); }
+
 
 	/** Display all the incomming and outcomming CAN Bus messages
 	*/
@@ -364,6 +364,14 @@ public:
 	/** Moves servo motor manually
 	*/
 	void servoInteractive();
+
+	/** Shorthand for actionPreprocessing(). Checks if this is first run.
+	@param andFinish - finish initialization
+	@return - first run or not.
+	*/
+	bool setup(bool andFinish = true) {
+		return actionPreprocessing(andFinish);
+	}
 
 	/** Checks if sniffing is active
 	@return - active or not

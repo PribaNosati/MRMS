@@ -271,6 +271,17 @@ void Robot::actionAdd(ActionBase* action) {
 	_action[_actionNextFree++] = action;
 }
 
+/** Is this current action's initialization
+@param andFinish - finish initialization
+@return - it is.
+*/
+bool Robot::actionPreprocessing(bool andFinish) {
+	bool itIs = _actionCurrent->preprocessing();
+	if (andFinish)
+		_actionCurrent->preprocessingEnd();
+	return itIs;
+}
+
 /** Actually perform the action
 */
 void Robot::actionProcess() {
