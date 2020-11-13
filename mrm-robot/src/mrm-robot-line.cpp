@@ -76,15 +76,6 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 
 }
 
-/** Custom test. The function will be called many times during the test, till You issue "x" menu command.
-*/
-void RobotLine::anyTest() {
-	if (setup())
-		print("Setup");
-	if (mrm_8x8a->switchRead(0, 0))
-		end();
-}
-
 /** Arm will go to ball-catch position.
 */
 void RobotLine::armCatch() {
@@ -671,19 +662,28 @@ void RobotLine::lineFollow() {
 		}
 		lastLineFoundMs = millis(); // Mark last time line detected.
 	}
-	else {
-		motorGroup->stop();
-		actionEnd();
-	}
-	//else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
-	//	actionSet(actionEvacuationZone);
-	//	mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
+	//else {
 	//	motorGroup->stop();
+	//	actionEnd();
 	//}
-	//else { // No line found for s short time -> gap in line, continue straight ahead.
-	//	motorGroup->go(50, 50);
-	//	mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
-	//}
+	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
+		actionSet(actionEvacuationZone);
+		mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
+		motorGroup->stop();
+	}
+	else { // No line found for s short time -> gap in line, continue straight ahead.
+		motorGroup->go(50, 50);
+		mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
+	}
+}
+
+/** Custom test. The function will be called many times during the test, till You issue "x" menu command.
+*/
+void RobotLine::loop() {
+	if (setup())
+		print("Setup");
+	if (mrm_8x8a->switchRead(0, 0))
+		end();
 }
 
 /** Check markers and turn if any found

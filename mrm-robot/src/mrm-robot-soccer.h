@@ -21,10 +21,6 @@ public:
 	*/
 	RobotSoccer(char name[] = "RCJ Soccer");
 
-	/** Custom test
-	*/
-	void anyTest();
-
 	/** Read barrier
 	@return - true if interrupted
 	*/
@@ -45,6 +41,10 @@ public:
 	/** No ball detected - return to Your goal.
 	*/
 	void idle();
+
+	/** Custom test
+	*/
+	void loop();
 
 	/** Starts robot.
 	*/

@@ -22,17 +22,17 @@ public:
 	*/
 	RobotMin(char name[] = "RCJ Min");
 
-	/** Custom test
-	*/
-	void anyTest();
-
 	/** Stores custom bitmaps in mrm-led8x8a.
-*/
+	*/
 	void bitmapsSet() {}
 
 	/** Test - go straight ahead using a defined speed.
-*/
+	*/
 	void goAhead(){}
+
+	/** Custom test
+	*/
+	void loop();
 };
 
 

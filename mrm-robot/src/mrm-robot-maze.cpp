@@ -49,20 +49,6 @@ RobotMaze::RobotMaze(char name[]) : Robot(name) {
 	bitmapsSet();
 }
 
-/** Custom test. The function will be called many times during the test, till You issue "x" menu-command.
-*/
-void RobotMaze::anyTest() {
-	if (actionPreprocessing(true)) { // This part will execute only in the firs run.
-		devicesStart(); // Start all the devices, for example instruct sensors to start sending data.
-		directionCurrent = Direction::LEFT;
-		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES);
-	}
-
-	directionDisplay(wallClosest());
-	print("\n\r");
-	delay(200);
-}
-
 /** Store custom bitmaps in mrm-led8x8a.
 */
 void RobotMaze::bitmapsSet() {
@@ -228,6 +214,20 @@ void RobotMaze::imuFollow() {
 	float errorCW = imuLastValid - mrm_imu->heading(); // Calculate rotational error in clockwise direction.
 	int16_t slowerMotor = TOP_SPEED - errorCW * IMU_FOLLOW_STRENGTH; // Calculate slower motor's speed in order to adjust heading proportionally to error.
 	motorGroup->go(errorCW > 0 ? slowerMotor : TOP_SPEED, errorCW < 0 ? TOP_SPEED : slowerMotor); // Drive the robot.
+}
+
+/** Custom test. The function will be called many times during the test, till You issue "x" menu-command.
+*/
+void RobotMaze::loop() {
+	if (actionPreprocessing(true)) { // This part will execute only in the firs run.
+		devicesStart(); // Start all the devices, for example instruct sensors to start sending data.
+		directionCurrent = Direction::LEFT;
+		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES);
+	}
+
+	directionDisplay(wallClosest());
+	print("\n\r");
+	delay(200);
 }
 
 /** Maps walls detected and other external readings in variables.

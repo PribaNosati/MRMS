@@ -28,7 +28,6 @@ ActionBase::ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t me
 }
 
 void Action8x8Test::perform() { _robot->mrm_8x8a->test(); }
-void ActionAny::perform() { _robot->anyTest(); }
 void ActionBluetoothTest::perform() { _robot->bluetoothTest(); }
 void ActionCANBusScan::perform() { _robot->devicesScan(true); }
 void ActionCANBusSniff::perform() { _robot->canBusSniffToggle(); }
@@ -54,6 +53,7 @@ void ActionInfo::perform() { _robot->info(); }
 void ActionLidarCalibrate::perform() { _robot->lidarCalibrate(); }
 void ActionLidar2mTest::perform() { _robot->lidar2mTest(); }
 void ActionLidar4mTest::perform() { _robot->lidar4mTest(); }
+void ActionLoop::perform() { _robot->loop(); }
 void ActionMenuColor::perform() { _robot->menuColor(); }
 void ActionMenuMain::perform() { _robot->menuMainAndIdle(); }
 void ActionMenuReflectance::perform() { _robot->menuReflectance(); }

@@ -40,12 +40,12 @@ protected:
 	uint8_t _actionNextFree = 0;
 
 	// Robot's actions that can be callect directly, not just by iterating _action collection
-	ActionBase* _actionAny;
 	ActionBase* _actionCANBusStress;
 	ActionBase* _actionCurrent;
 	ActionBase* _actionDoNothing;
-	ActionBase* _actionPrevious;
+	ActionBase* _actionLoop;
 	ActionBase* _actionMenuMain;
+	ActionBase* _actionPrevious;
 	ActionBase* _actionStop;
 
 	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
@@ -171,10 +171,6 @@ public:
 	*/
 	void add(Board* aBoard);
 
-	/** User test, defined in derived classes.
-	*/
-	virtual void anyTest() = 0;
-
 	/** Store bitmaps in mrm-led8x8a.
 	*/
 	virtual void bitmapsSet() = 0;
@@ -296,6 +292,10 @@ public:
 	/** Calibrates lidars
 	*/
 	void lidarCalibrate();
+
+	/** User test, defined in derived classes.
+	*/
+	virtual void loop() = 0;
 
 	/** Displays menu
 	*/

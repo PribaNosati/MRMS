@@ -47,12 +47,6 @@ public:
 	Action8x8Test(Robot* robot) : ActionBase(robot, "led", "Test 8x8", 1, ID_MRM_8x8A) {}
 };
 
-class ActionAny : public ActionBase {
-	void perform();
-public:
-	ActionAny(Robot* robot) : ActionBase(robot, "any", "Any test", 1) {}
-};
-
 class ActionBluetoothTest : public ActionBase {
 	void perform();
 public:
@@ -208,6 +202,12 @@ class ActionLidarCalibrate : public ActionBase {
 	void perform();
 public:
 	ActionLidarCalibrate(Robot* robot) : ActionBase(robot, "lic", "Cal. lidar", 1) {}
+};
+
+class ActionLoop : public ActionBase {
+	void perform();
+public:
+	ActionLoop(Robot* robot) : ActionBase(robot, "loo", "Loop test", 1) {}
 };
 
 class ActionMenuColor : public ActionBase {

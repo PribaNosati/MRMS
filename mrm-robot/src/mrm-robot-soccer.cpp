@@ -27,26 +27,6 @@ RobotSoccer::RobotSoccer(char name[]) : Robot(name) {
 	mrm_mot4x3_6can->directionChange(3); // Uncomment to change 4th wheel's rotation direction
 }
 
-/** Custom test.
-*/
-void RobotSoccer::anyTest() {
-	static int initialDirection;
-	if (actionPreprocessing(true)) {
-		devicesStart(1);
-		initialDirection = mrm_imu->heading();
-	}
-
-	int rotationalError = mrm_imu->heading() - initialDirection;
-
-	int positionError = 0;
-	if (mrm_lid_can_b2->reading(1) > 80)
-		positionError = 91 - mrm_lid_can_b2->reading(1);
-	else if (mrm_lid_can_b2->reading(3) > 80)
-		positionError = mrm_lid_can_b2->reading(1) - 91;
-
-	motorGroup->go(abs(positionError), positionError < 0 ? -90 : 90, rotationalError);
-}
-
 /** Read barrier
 @return - true if interrupted
 */
@@ -94,6 +74,26 @@ void RobotSoccer::idle() {
 		motorGroup->goToEliminateErrors(errorL > errorR ? errorL : errorR, 150 - mrm_lid_can_b2->reading(2), headingToMaintain - mrm_imu->heading(), pidXY, pidRotation, true);
 		//delay(500);
 	}
+}
+
+/** Custom test.
+*/
+void RobotSoccer::loop() {
+	static int initialDirection;
+	if (actionPreprocessing(true)) {
+		devicesStart(1);
+		initialDirection = mrm_imu->heading();
+	}
+
+	int rotationalError = mrm_imu->heading() - initialDirection;
+
+	int positionError = 0;
+	if (mrm_lid_can_b2->reading(1) > 80)
+		positionError = 91 - mrm_lid_can_b2->reading(1);
+	else if (mrm_lid_can_b2->reading(3) > 80)
+		positionError = mrm_lid_can_b2->reading(1) - 91;
+
+	motorGroup->go(abs(positionError), positionError < 0 ? -90 : 90, rotationalError);
 }
 
 /** Starts robot

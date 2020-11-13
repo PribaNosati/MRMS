@@ -47,7 +47,7 @@ RobotMin::RobotMin(char name[]) : Robot(name) {
 
 /** Custom test. The function will be called many times during the test, till You issue "x" menu-command.
 */
-void RobotMin::anyTest() {
+void RobotMin::loop() {
 
 	static int16_t speed = 0;
 	static bool up = true;

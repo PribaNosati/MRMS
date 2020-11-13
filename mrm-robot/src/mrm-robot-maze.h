@@ -100,10 +100,6 @@ public:
 	*/
 	RobotMaze(char name[] = "RCJ Maze");
 
-	/** Custom test
-	*/
-	void anyTest();
-
 	/** Stores custom bitmaps in mrm-led8x8a.
 	*/
 	void bitmapsSet();
@@ -133,6 +129,10 @@ public:
 	/** Drives the robot ahead, maintaing a given compass bearing.
 	*/
 	void imuFollow();
+
+	/** Custom test
+	*/
+	void loop();
 
 	/** Maps walls detected and other external readings in variables.
 	*/

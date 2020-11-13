@@ -88,10 +88,6 @@ public:
 	*/
 	RobotLine(char name[] = "RCJ Line 1"); // Maximum 15 characters
 
-	/** Custom test
-	*/
-	void anyTest();
-
 	/** Arm will go to ball-catch position.
 	*/
 	void armCatch();
@@ -174,6 +170,10 @@ public:
 	/** Follow a RCJ line.
 	*/
 	void lineFollow();
+
+	/** Custom test
+	*/
+	void loop();
 
 	/** Check markers and turn if any found
 	@return - true if marker found, false otherwise

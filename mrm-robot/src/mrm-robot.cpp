@@ -51,14 +51,13 @@ Robot::Robot(char name[15]) {
 	_actionCurrent = NULL;
 	_actionPrevious = _actionCurrent;
 
-	_actionAny = new ActionAny(this);
 	_actionCANBusStress = new ActionCANBusStress(this);
 	_actionDoNothing = new ActionDoNothing(this);
+	_actionLoop = new ActionLoop(this);
 	_actionMenuMain = new ActionMenuMain(this);
 	_actionStop = new ActionStop(this);
 
 	actionAdd(new Action8x8Test(this));
-	actionAdd(_actionAny);
 	actionAdd(new ActionBluetoothTest(this));
 	actionAdd(new ActionCANBusScan(this));
 	actionAdd(new ActionCANBusSniff(this));
@@ -84,6 +83,7 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionLidar2mTest(this));
 	actionAdd(new ActionLidar4mTest(this));
 	actionAdd(new ActionLidarCalibrate(this));
+	actionAdd(_actionLoop);
 	actionAdd(new ActionMenuColor(this));
 	actionAdd(new ActionMenuMain(this));
 	actionAdd(new ActionMenuReflectance(this));
