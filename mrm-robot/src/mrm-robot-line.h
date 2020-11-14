@@ -40,22 +40,22 @@ class ActionObstacleAvoid;
 class ActionLineFollow;
 class ActionRCJLine;
 
-class ActionGeneric0;
-class ActionGeneric1;
-class ActionGeneric2;
-class ActionGeneric3;
-class ActionGeneric4;
-class ActionGeneric5;
-class ActionGeneric6;
-class ActionGeneric7;
-class ActionGeneric8;
-class ActionGeneric9;
-class ActionGenericMenu;
+class ActionLoop0;
+class ActionLoop1;
+class ActionLoop2;
+class ActionLoop3;
+class ActionLoop4;
+class ActionLoop5;
+class ActionLoop6;
+class ActionLoop7;
+class ActionLoop8;
+class ActionLoop9;
+class ActionLoopMenu;
 
 /** Robot for RCJ Rescue Line, a class derived from the base Robot class.
 */
 class RobotLine : public Robot {
-	uint16_t BIGGEST_GAP_IN_LINE_MS = 1500;
+	uint16_t BIGGEST_GAP_IN_LINE_MS = 2500;
 	// Changing this parameter will cause major behaviour change. Limit value: 127.
 	const uint8_t TOP_SPEED = 80;
 
@@ -68,17 +68,17 @@ class RobotLine : public Robot {
 	ActionStop* actionStop;
 
 	// Generic actions
-	ActionGeneric0* actionGeneric0;
-	ActionGeneric1* actionGeneric1;
-	ActionGeneric2* actionGeneric2;
-	ActionGeneric3* actionGeneric3;
-	ActionGeneric4* actionGeneric4;
-	ActionGeneric5* actionGeneric5;
-	ActionGeneric6* actionGeneric6;
-	ActionGeneric7* actionGeneric7;
-	ActionGeneric8* actionGeneric8;
-	ActionGeneric9* actionGeneric9;
-	ActionGenericMenu* actionGenericMenu;
+	ActionLoop0* actionGeneric0;
+	ActionLoop1* actionGeneric1;
+	ActionLoop2* actionGeneric2;
+	ActionLoop3* actionGeneric3;
+	ActionLoop4* actionGeneric4;
+	ActionLoop5* actionGeneric5;
+	ActionLoop6* actionGeneric6;
+	ActionLoop7* actionGeneric7;
+	ActionLoop8* actionGeneric8;
+	ActionLoop9* actionGeneric9;
+	ActionLoopMenu* actionGenericMenu;
 
 	MotorGroupDifferential* motorGroup = NULL; // Class that conveys commands to motors.
 
@@ -270,70 +270,70 @@ public:
 
 // ****************** Generic actions
 
-class ActionGeneric0 : public ActionBase {
+class ActionLoop0 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric0(RobotLine* robot) : ActionBase(robot, "g0", "Generic 0", 8) {}
+	ActionLoop0(RobotLine* robot) : ActionBase(robot, "g0", "Generic 0", 8) {}
 };
 
-class ActionGeneric1 : public ActionBase {
+class ActionLoop1 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric1(RobotLine* robot) : ActionBase(robot, "g1", "Generic 1", 8) {}
+	ActionLoop1(RobotLine* robot) : ActionBase(robot, "g1", "Generic 1", 8) {}
 };
 
-class ActionGeneric2 : public ActionBase {
+class ActionLoop2 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric2(RobotLine* robot) : ActionBase(robot, "g2", "Generic 2", 8) {}
+	ActionLoop2(RobotLine* robot) : ActionBase(robot, "g2", "Generic 2", 8) {}
 };
 
-class ActionGeneric3 : public ActionBase {
+class ActionLoop3 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric3(RobotLine* robot) : ActionBase(robot, "g3", "Generic 3", 8) {}
+	ActionLoop3(RobotLine* robot) : ActionBase(robot, "g3", "Generic 3", 8) {}
 };
 
-class ActionGeneric4 : public ActionBase {
+class ActionLoop4 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric4(RobotLine* robot) : ActionBase(robot, "g4", "Generic 4", 8) {}
+	ActionLoop4(RobotLine* robot) : ActionBase(robot, "g4", "Generic 4", 8) {}
 };
 
-class ActionGeneric5 : public ActionBase {
+class ActionLoop5 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric5(RobotLine* robot) : ActionBase(robot, "g5", "Generic 5", 8) {}
+	ActionLoop5(RobotLine* robot) : ActionBase(robot, "g5", "Generic 5", 8) {}
 };
 
-class ActionGeneric6 : public ActionBase {
+class ActionLoop6 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric6(RobotLine* robot) : ActionBase(robot, "g6", "Generic 6", 8) {}
+	ActionLoop6(RobotLine* robot) : ActionBase(robot, "g6", "Generic 6", 8) {}
 };
 
-class ActionGeneric7 : public ActionBase {
+class ActionLoop7 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric7(RobotLine* robot) : ActionBase(robot, "g7", "Generic 7", 8) {}
+	ActionLoop7(RobotLine* robot) : ActionBase(robot, "g7", "Generic 7", 8) {}
 };
 
-class ActionGeneric8 : public ActionBase {
+class ActionLoop8 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric8(RobotLine* robot) : ActionBase(robot, "g8", "Generic 8", 8) {}
+	ActionLoop8(RobotLine* robot) : ActionBase(robot, "g8", "Generic 8", 8) {}
 };
 
-class ActionGeneric9 : public ActionBase {
+class ActionLoop9 : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->generic0(); }
 public:
-	ActionGeneric9(RobotLine* robot) : ActionBase(robot, "g9", "Generic 9", 8) {}
+	ActionLoop9(RobotLine* robot) : ActionBase(robot, "g9", "Generic 9", 8) {}
 };
 
 /** Menu for generic actions
 */
-class ActionGenericMenu : public ActionBase {
+class ActionLoopMenu : public ActionBase {
 	void perform() { ((RobotLine*)_robot)->genericMenu(); }
 public:
-	ActionGenericMenu(Robot* robot) : ActionBase(robot, "gen", "Generic (menu)", 1) {}
+	ActionLoopMenu(Robot* robot) : ActionBase(robot, "gen", "Generic (menu)", 1) {}
 };

@@ -27,17 +27,17 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	actionStop = new ActionStop(this);
 
 	// Generic actions
-	actionGenericMenu = new ActionGenericMenu(this);
-	actionGeneric0 = new ActionGeneric0(this);
-	actionGeneric1 = new ActionGeneric1(this);
-	actionGeneric2 = new ActionGeneric2(this);
-	actionGeneric3 = new ActionGeneric3(this);
-	actionGeneric4 = new ActionGeneric4(this);
-	actionGeneric5 = new ActionGeneric5(this);
-	actionGeneric6 = new ActionGeneric6(this);
-	actionGeneric7 = new ActionGeneric7(this);
-	actionGeneric8 = new ActionGeneric8(this);
-	actionGeneric9 = new ActionGeneric9(this);
+	actionGenericMenu = new ActionLoopMenu(this);
+	actionGeneric0 = new ActionLoop0(this);
+	actionGeneric1 = new ActionLoop1(this);
+	actionGeneric2 = new ActionLoop2(this);
+	actionGeneric3 = new ActionLoop3(this);
+	actionGeneric4 = new ActionLoop4(this);
+	actionGeneric5 = new ActionLoop5(this);
+	actionGeneric6 = new ActionLoop6(this);
+	actionGeneric7 = new ActionLoop7(this);
+	actionGeneric8 = new ActionLoop8(this);
+	actionGeneric9 = new ActionLoop9(this);
 
 	// The actions that should be displayed in menus must be added to menu-callable actions. You can use action-objects defined
 	// right above, or can create new objects. In the latter case, the inline-created objects will have no pointer and cannot be
@@ -208,7 +208,6 @@ void RobotLine::bitmapsSet() {
 	/* Store this bitmap in mrm-8x8a. The 3rd parameter is bitmap's address. If You want to define new bitmaps, expand LedSign enum with
 	Your names, and use the new values for Your bitmaps. This parameter can be a plain number, but enum keeps thing tidy.*/
 	mrm_8x8a->bitmapCustomStore(red, green, LED_LINE_FULL_BOTH_MARKS);
-	//delayMs(1); // Wait a little in order not to queue too many CAN Buss messages at once.
 
 	// Full line, left mark.
 	for (uint8_t i = 0; i < 8; i++)
@@ -645,7 +644,7 @@ void RobotLine::lineFollow() {
 			if (!markers()) {// No mark detected. Go straight ahead.
 				mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_NO_MARK); // Show sign.
 				print("FULL AHE: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
-				delayMs(5000);
+				//delayMs(1000);
 				motorGroup->go(TOP_SPEED, TOP_SPEED);
 				delayMs(300); // Make sure to cross the crossing.
 			}
@@ -662,17 +661,13 @@ void RobotLine::lineFollow() {
 		}
 		lastLineFoundMs = millis(); // Mark last time line detected.
 	}
-	//else {
-	//	motorGroup->stop();
-	//	actionEnd();
-	//}
 	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
 		actionSet(actionEvacuationZone);
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
 		motorGroup->stop();
 	}
 	else { // No line found for s short time -> gap in line, continue straight ahead.
-		motorGroup->go(50, 50);
+		motorGroup->go(TOP_SPEED, TOP_SPEED);
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
 	}
 }
@@ -694,10 +689,10 @@ bool RobotLine::markers() {
 	delayMs(200);
 	//bool greenLeft = mrm_col_can->patternRecognizedBy6Colors(0) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
 	//bool greenRight = mrm_col_can->patternRecognizedBy6Colors(1) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
-	bool greenLeft = mrm_col_can->value(0) < 80 && mrm_col_can->hue(0) > 45 && mrm_col_can->hue(0) < 70;
-	bool greenRight = mrm_col_can->value(1) < 80 && mrm_col_can->hue(1) > 45 && mrm_col_can->hue(1) < 70;
+	bool greenLeft = mrm_col_can->value(0) < 70 && mrm_col_can->hue(0) > 60 && mrm_col_can->hue(0) < 70;
+	bool greenRight = mrm_col_can->value(1) < 70 && mrm_col_can->hue(1) > 60 && mrm_col_can->hue(1) < 70;
 	print("%i %i, values: %i %i, hues: %i %i\n\r", greenLeft, greenRight, (int)mrm_col_can->value(0), (int)mrm_col_can->value(1), (int)mrm_col_can->hue(0), (int)mrm_col_can->hue(1));
-	delayMs(5000);
+	//delayMs(1000);
 
 	bool found = true;
 	if (greenLeft && greenRight) { // Both markers detected. Turn backward.
@@ -785,7 +780,6 @@ void RobotLine::rcjLine() {
 	mrm_8x8a->bitmapCustomStoredDisplay(LED_PLAY); // Show "play" sign.
 	mrm_col_can->illumination(0xFF, 1); // Turn mrm-col-can's surface illumination on.
 	armIdle(); // Arm will go to its idle (up) position.
-	//delayMs(20); // Wait so that the next sign will definitely show.
 	actionSet(actionLineFollow); // The next action is line following.
 }
 
