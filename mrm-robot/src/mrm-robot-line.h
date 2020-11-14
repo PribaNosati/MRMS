@@ -24,8 +24,6 @@
 // BLOCK_SERVO blocks balls
 #define BLOCK_SERVO_BOTH 150
 
-#define LAST_TRANSISTOR 8
-
 // mrm-8x8a display bitmaps.
 enum ledSign {LED_EVACUATION_ZONE, LED_FULL_CROSSING_BOTH_MARKS, LED_FULL_CROSSING_MARK_LEFT, LED_FULL_CROSSING_MARK_RIGHT, LED_FULL_CROSSING_NO_MARK,
 	LED_HALF_CROSSING_MARK_LEFT, LED_HALF_CROSSING_MARK_RIGHT, LED_HALF_CROSSING_LEFT_NO_MARK, LED_HALF_CROSSING_RIGHT_NO_MARK,
@@ -57,7 +55,9 @@ class ActionLoopMenu;
 class RobotLine : public Robot {
 	uint16_t BIGGEST_GAP_IN_LINE_MS = 2500;
 	// Changing this parameter will cause major behaviour change. Limit value: 127.
-	const uint8_t TOP_SPEED = 80;
+	const uint8_t TOP_SPEED = 60; // 7.4V 80	
+	const uint16_t AHEAD_IN_CROSSING = 200; // 7.4V : 300
+	const uint8_t LAST_TRANSISTOR = 7; // mrm-ref-can: 8, mrm-ref-can8: 7
 
 	// Actions' declarations
 	ActionEvacuationZone* actionEvacuationZone;
@@ -68,17 +68,17 @@ class RobotLine : public Robot {
 	ActionStop* actionStop;
 
 	// Generic actions
-	ActionLoop0* actionGeneric0;
-	ActionLoop1* actionGeneric1;
-	ActionLoop2* actionGeneric2;
-	ActionLoop3* actionGeneric3;
-	ActionLoop4* actionGeneric4;
-	ActionLoop5* actionGeneric5;
-	ActionLoop6* actionGeneric6;
-	ActionLoop7* actionGeneric7;
-	ActionLoop8* actionGeneric8;
-	ActionLoop9* actionGeneric9;
-	ActionLoopMenu* actionGenericMenu;
+	ActionLoop0* actionLoop0;
+	ActionLoop1* actionLoop1;
+	ActionLoop2* actionLoop2;
+	ActionLoop3* actionLoop3;
+	ActionLoop4* actionLoop4;
+	ActionLoop5* actionLoop5;
+	ActionLoop6* actionLoop6;
+	ActionLoop7* actionLoop7;
+	ActionLoop8* actionLoop8;
+	ActionLoop9* actionLoop9;
+	ActionLoopMenu* actionLoopMenu;
 
 	MotorGroupDifferential* motorGroup = NULL; // Class that conveys commands to motors.
 
@@ -148,20 +148,20 @@ public:
 
 	/** Generic actions, use them as templates
 	*/
-	void generic0();
-	void generic1();
-	void generic2();
-	void generic3();
-	void generic4();
-	void generic5();
-	void generic6();
-	void generic7();
-	void generic8();
-	void generic9();
+	void loop0();
+	void loop1();
+	void loop2();
+	void loop3();
+	void loop4();
+	void loop5();
+	void loop6();
+	void loop7();
+	void loop8();
+	void loop9();
 
 	/** Generic menu
 	*/
-	void genericMenu();
+	void loopMenu();
 
 	/** Test - go straight ahead using a defined speed.
 	*/
@@ -191,6 +191,12 @@ public:
 	/** Starts the RCJ Line run after this action selected.
 	*/
 	void rcjLine();
+
+	/** Prints line and color sensors. Used for debugging.
+	@param newLine - new line
+	@param delayMsAfterPrint - delay after print
+	*/
+	void surfacePrint(bool newLine = false, uint16_t delayMsAfterPrint = 0);
 
 	/** Turns the robot clockwise using compass.
 	@param byDegreesClockwise - turn by defined number of degrees.
@@ -271,69 +277,69 @@ public:
 // ****************** Generic actions
 
 class ActionLoop0 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop0(); }
 public:
-	ActionLoop0(RobotLine* robot) : ActionBase(robot, "g0", "Generic 0", 8) {}
+	ActionLoop0(RobotLine* robot) : ActionBase(robot, "lo0", "Loop 0", 8) {}
 };
 
 class ActionLoop1 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop1(); }
 public:
-	ActionLoop1(RobotLine* robot) : ActionBase(robot, "g1", "Generic 1", 8) {}
+	ActionLoop1(RobotLine* robot) : ActionBase(robot, "lo1", "Loop 1", 8) {}
 };
 
 class ActionLoop2 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop2(); }
 public:
-	ActionLoop2(RobotLine* robot) : ActionBase(robot, "g2", "Generic 2", 8) {}
+	ActionLoop2(RobotLine* robot) : ActionBase(robot, "lo2", "Loop 2", 8) {}
 };
 
 class ActionLoop3 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop3(); }
 public:
-	ActionLoop3(RobotLine* robot) : ActionBase(robot, "g3", "Generic 3", 8) {}
+	ActionLoop3(RobotLine* robot) : ActionBase(robot, "lo3", "Loop 3", 8) {}
 };
 
 class ActionLoop4 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop4(); }
 public:
-	ActionLoop4(RobotLine* robot) : ActionBase(robot, "g4", "Generic 4", 8) {}
+	ActionLoop4(RobotLine* robot) : ActionBase(robot, "lo4", "Loop 4", 8) {}
 };
 
 class ActionLoop5 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop5(); }
 public:
-	ActionLoop5(RobotLine* robot) : ActionBase(robot, "g5", "Generic 5", 8) {}
+	ActionLoop5(RobotLine* robot) : ActionBase(robot, "lo5", "Loop 5", 8) {}
 };
 
 class ActionLoop6 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop6(); }
 public:
-	ActionLoop6(RobotLine* robot) : ActionBase(robot, "g6", "Generic 6", 8) {}
+	ActionLoop6(RobotLine* robot) : ActionBase(robot, "lo6", "Loop 6", 8) {}
 };
 
 class ActionLoop7 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop7(); }
 public:
-	ActionLoop7(RobotLine* robot) : ActionBase(robot, "g7", "Generic 7", 8) {}
+	ActionLoop7(RobotLine* robot) : ActionBase(robot, "lo7", "Loop 7", 8) {}
 };
 
 class ActionLoop8 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop8(); }
 public:
-	ActionLoop8(RobotLine* robot) : ActionBase(robot, "g8", "Generic 8", 8) {}
+	ActionLoop8(RobotLine* robot) : ActionBase(robot, "lo8", "Loop 8", 8) {}
 };
 
 class ActionLoop9 : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->generic0(); }
+	void perform() { ((RobotLine*)_robot)->loop9(); }
 public:
-	ActionLoop9(RobotLine* robot) : ActionBase(robot, "g9", "Generic 9", 8) {}
+	ActionLoop9(RobotLine* robot) : ActionBase(robot, "lo9", "Loop 9", 8) {}
 };
 
 /** Menu for generic actions
 */
 class ActionLoopMenu : public ActionBase {
-	void perform() { ((RobotLine*)_robot)->genericMenu(); }
+	void perform() { ((RobotLine*)_robot)->loopMenu(); }
 public:
-	ActionLoopMenu(Robot* robot) : ActionBase(robot, "gen", "Generic (menu)", 1) {}
+	ActionLoopMenu(Robot* robot) : ActionBase(robot, "lme", "Loop (menu)", 1) {}
 };

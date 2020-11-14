@@ -99,14 +99,16 @@ bool Mrm_ref_can::analogStarted(uint8_t deviceNumber) {
 /** Any dark or bright
 @param dark - any dark? Otherwise, any bright?
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@param firstTransistor - start checking from this transistor
+@param lastTransistor - do not check after this one
 */
-bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber) {
+bool Mrm_ref_can::any(bool dark, uint8_t deviceNumber, uint8_t fistTransistor, uint8_t lastTransistor) {
 	// If DIGITAL_AND_BRIGHT_CENTER started, bright will be 1. If DIGITAL_AND_DARK_CENTER started, dark will be 1. Therefore, complication:
 	if (!digitalStarted(deviceNumber, false, false) && !digitalStarted(deviceNumber, true, false))
 		if (!digitalStarted(deviceNumber, dark))
 			return false;
 
-	for (uint8_t i = 0; i < 8; i++)
+	for (uint8_t i = fistTransistor; i < min(lastTransistor, (uint8_t)8); i++)
 		if ((*_mode)[deviceNumber] == DIGITAL_AND_DARK_CENTER) {
 			if ((*_reading)[deviceNumber][i] == dark ? 1 : 0)
 				return true;

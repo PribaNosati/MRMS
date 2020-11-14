@@ -123,8 +123,10 @@ public:
 	/** Any dark or bright
 	@param dark - any dark? Otherwise, any bright?
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param firstTransistor - start checking from this transistor
+@param lastTransistor - do not check after this one
 	*/
-	bool any(bool dark = true, uint8_t deviceNumber = 0);
+	bool any(bool dark = true, uint8_t deviceNumber = 0, uint8_t fistTransistor = 0, uint8_t lastTransistor = 0xFF);
 
 	/** Calibrate the array
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.

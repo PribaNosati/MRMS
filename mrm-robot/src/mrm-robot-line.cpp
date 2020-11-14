@@ -27,17 +27,17 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	actionStop = new ActionStop(this);
 
 	// Generic actions
-	actionGenericMenu = new ActionLoopMenu(this);
-	actionGeneric0 = new ActionLoop0(this);
-	actionGeneric1 = new ActionLoop1(this);
-	actionGeneric2 = new ActionLoop2(this);
-	actionGeneric3 = new ActionLoop3(this);
-	actionGeneric4 = new ActionLoop4(this);
-	actionGeneric5 = new ActionLoop5(this);
-	actionGeneric6 = new ActionLoop6(this);
-	actionGeneric7 = new ActionLoop7(this);
-	actionGeneric8 = new ActionLoop8(this);
-	actionGeneric9 = new ActionLoop9(this);
+	actionLoopMenu = new ActionLoopMenu(this);
+	actionLoop0 = new ActionLoop0(this);
+	actionLoop1 = new ActionLoop1(this);
+	actionLoop2 = new ActionLoop2(this);
+	actionLoop3 = new ActionLoop3(this);
+	actionLoop4 = new ActionLoop4(this);
+	actionLoop5 = new ActionLoop5(this);
+	actionLoop6 = new ActionLoop6(this);
+	actionLoop7 = new ActionLoop7(this);
+	actionLoop8 = new ActionLoop8(this);
+	actionLoop9 = new ActionLoop9(this);
 
 	// The actions that should be displayed in menus must be added to menu-callable actions. You can use action-objects defined
 	// right above, or can create new objects. In the latter case, the inline-created objects will have no pointer and cannot be
@@ -49,17 +49,17 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	actionAdd(actionWallFollow);
 
 	// Generic actions
-	actionAdd(actionGenericMenu);
-	actionAdd(actionGeneric0);
-	actionAdd(actionGeneric1);
-	actionAdd(actionGeneric2);
-	actionAdd(actionGeneric3);
-	actionAdd(actionGeneric4);
-	actionAdd(actionGeneric5);
-	actionAdd(actionGeneric6);
-	actionAdd(actionGeneric7);
-	actionAdd(actionGeneric8);
-	actionAdd(actionGeneric9);
+	actionAdd(actionLoopMenu);
+	actionAdd(actionLoop0);
+	actionAdd(actionLoop1);
+	actionAdd(actionLoop2);
+	actionAdd(actionLoop3);
+	actionAdd(actionLoop4);
+	actionAdd(actionLoop5);
+	actionAdd(actionLoop6);
+	actionAdd(actionLoop7);
+	actionAdd(actionLoop8);
+	actionAdd(actionLoop9);
 
 	// Set buttons' actions.
 	mrm_8x8a->actionSet(actionRCJLine, 0); // Button 0 starts RCJ Line.
@@ -71,8 +71,8 @@ RobotLine::RobotLine(char name[]) : Robot(name) {
 	// Depending on your wiring, it may be necessary to spin some motors in the other direction. 
 	mrm_mot4x3_6can->directionChange(0); // Uncomment to change 1st wheel's rotation direction
 	mrm_mot4x3_6can->directionChange(1); // Uncomment to change 2nd wheel's rotation direction
-	mrm_mot4x3_6can->directionChange(2); // Uncomment to change 3rd wheel's rotation direction
-	mrm_mot4x3_6can->directionChange(3); // Uncomment to change 4th wheel's rotation direction
+	//mrm_mot4x3_6can->directionChange(2); // Uncomment to change 3rd wheel's rotation direction
+	//mrm_mot4x3_6can->directionChange(3); // Uncomment to change 4th wheel's rotation direction
 
 }
 
@@ -529,21 +529,24 @@ void RobotLine::curve() {
 	mrm_8x8a->bitmapCustomStoredDisplay(left ? LED_CURVE_LEFT : LED_CURVE_RIGHT); 
 
 	// If a marker found, rotate and do not continue executing the rest of the function.
-	if (markers())
+	if (markers() && (mrm_ref_can->dark(3) || mrm_ref_can->dark(4) || (LAST_TRANSISTOR == 8 && mrm_ref_can->dark(5)))) // Center line needed, too.
 		return;
 
 	// Go a little ahead to check if it is T-crossing approached by side. Also, take a better position for turning.
 	motorGroup->go(TOP_SPEED, TOP_SPEED);
 	uint32_t startMs = millis();
-	while (millis() - startMs < 200) {
+	while (millis() - startMs < AHEAD_IN_CROSSING * 0.65) {
 		if (mrm_ref_can->dark(left ? 0 : LAST_TRANSISTOR))// Opposite sensor - full crossing
 			return; // Exit curve handling as crossing is found.
 		noLoopWithoutThis();
 	}
-	print("AAA1\n\r ");
+
 	// Rotate
-	if (!mrm_ref_can->any(true)) { // L curve, not T approached by side. Because, if T approached by side, center transistors would still sense black.
-		print("AAA2\n\r ");
+	delayMs(30);
+	if (!mrm_ref_can->any(true, 0, 2, 5)) { // L curve, not T approached by side. Because, if T approached by side, center transistors would still sense black.
+		motorGroup->stop();
+		print("CURVE\n\r"); // AAA
+		delayMs(2000);
 		motorGroup->go(left ? -TOP_SPEED : TOP_SPEED, left ? TOP_SPEED : -TOP_SPEED); // Start rotating.
 		startMs = millis();
 		while (millis() - startMs < 1300) { // Rotate untill center line found, unless timeout expires.
@@ -553,6 +556,11 @@ void RobotLine::curve() {
 			}
 			noLoopWithoutThis();
 		}
+	}
+	else {
+		motorGroup->stop();
+		print("HALF CROSS\n\r"); //AAA
+		delayMs(2000);
 	}
 }
 
@@ -594,20 +602,20 @@ void RobotLine::evacuationZone() {
 
 /** Generic actions, use them as templates
 */
-void RobotLine::generic0() {}
-void RobotLine::generic1() {}
-void RobotLine::generic2() {}
-void RobotLine::generic3() {}
-void RobotLine::generic4() {}
-void RobotLine::generic5() {}
-void RobotLine::generic6() {}
-void RobotLine::generic7() {}
-void RobotLine::generic8() {}
-void RobotLine::generic9() {}
+void RobotLine::loop0() {}
+void RobotLine::loop1() {}
+void RobotLine::loop2() {}
+void RobotLine::loop3() {}
+void RobotLine::loop4() {}
+void RobotLine::loop5() {}
+void RobotLine::loop6() {}
+void RobotLine::loop7() {}
+void RobotLine::loop8() {}
+void RobotLine::loop9() {}
 
 /** Generic menu
 */
-void RobotLine::genericMenu() {
+void RobotLine::loopMenu() {
 	menuLevel = 8;
 	actionEnd();
 }
@@ -639,34 +647,37 @@ void RobotLine::lineFollow() {
 
 	// Line found?
 	if (mrm_ref_can->any(true)) {
-		if (mrm_ref_can->dark(0) && mrm_ref_can->dark(LAST_TRANSISTOR / 2) && mrm_ref_can->dark(LAST_TRANSISTOR)) { // Both edge sensors and middle sensor? Crossing. Check markers.
+		// Both edge sensors and middle sensor? Crossing. Check markers.
+		if (mrm_ref_can->dark(0) && mrm_ref_can->dark(LAST_TRANSISTOR / 2) && mrm_ref_can->dark(LAST_TRANSISTOR)) {
 			// Green markers?
 			if (!markers()) {// No mark detected. Go straight ahead.
 				mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_NO_MARK); // Show sign.
-				print("FULL AHE: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
 				//delayMs(1000);
 				motorGroup->go(TOP_SPEED, TOP_SPEED);
-				delayMs(300); // Make sure to cross the crossing.
+				delayMs(AHEAD_IN_CROSSING); // Make sure to cross the crossing.
 			}
 		}
-		else if (mrm_ref_can->dark(0) || mrm_ref_can->dark(LAST_TRANSISTOR)) { // Edge sensor? If so, sharp bending.
+		// Edge sensor? If so, sharp bending.
+		else if (mrm_ref_can->dark(0) || mrm_ref_can->dark(LAST_TRANSISTOR)) {
 			curve();
 		}
 		else {
 			// Follow line
 			float lineCenter = (mrm_ref_can->center() - 5000) / 80.0; // mrm-ref-can returns center of line. After the calculation, the result will be between -50 and 50.
 			// Calculate slower motor's speed. The other one will run at top speed.
-			motorGroup->go(lineCenter < 0 ? TOP_SPEED : TOP_SPEED - lineCenter * 3, lineCenter < 0 ? TOP_SPEED + lineCenter * 3 : TOP_SPEED);
+			motorGroup->go(lineCenter < 0 ? TOP_SPEED : TOP_SPEED - lineCenter * 4, lineCenter < 0 ? TOP_SPEED + lineCenter * 4 : TOP_SPEED);
 			mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_FULL);
 		}
 		lastLineFoundMs = millis(); // Mark last time line detected.
 	}
-	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) { // No line found for a long time -> evacuation area.
+	// No line found for a long time -> evacuation area.
+	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) {
 		actionSet(actionEvacuationZone);
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
 		motorGroup->stop();
 	}
-	else { // No line found for s short time -> gap in line, continue straight ahead.
+	// No line found for s short time -> gap in line, continue straight ahead.
+	else {
 		motorGroup->go(TOP_SPEED, TOP_SPEED);
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_LINE_INTERRUPTED);
 	}
@@ -691,27 +702,39 @@ bool RobotLine::markers() {
 	//bool greenRight = mrm_col_can->patternRecognizedBy6Colors(1) == 2; // This function returns laerned pattern's number, for sensor 0 (left). Learned pattern 2 is green.
 	bool greenLeft = mrm_col_can->value(0) < 70 && mrm_col_can->hue(0) > 60 && mrm_col_can->hue(0) < 70;
 	bool greenRight = mrm_col_can->value(1) < 70 && mrm_col_can->hue(1) > 60 && mrm_col_can->hue(1) < 70;
-	print("%i %i, values: %i %i, hues: %i %i\n\r", greenLeft, greenRight, (int)mrm_col_can->value(0), (int)mrm_col_can->value(1), (int)mrm_col_can->hue(0), (int)mrm_col_can->hue(1));
-	//delayMs(1000);
+
+	bool fullLineL = !mrm_ref_can->any(false, 0, 4, 7);
+	bool fullLineR = !mrm_ref_can->any(false, 0, 0, 3);
+
+	if (!fullLineL)
+		greenLeft = false;
+	if (!fullLineR)
+		greenRight = false;
 
 	bool found = true;
 	if (greenLeft && greenRight) { // Both markers detected. Turn backward.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_BOTH_MARKS); // Show sign.
-		print("180: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+		print("MARK ");
+		surfacePrint(false, 3000);
+		print(" MARK\n\r");
 		turn(180); // Turn by 180º.
 	}
 	else if (greenLeft && !greenRight) { // Only left marker. Turn left.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_LEFT); // Show sign.
-		print("FULL L: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+		print("MARK ");
+		surfacePrint(true, 3000);
 		turn(-90); // Turn by 90º left.
 	}
 	else if (!greenLeft && greenRight) { //Only right marker. Turn right.
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_FULL_CROSSING_MARK_RIGHT); // Show sign.
-		print("FULL R: %i %i \n\r", mrm_ref_can->dark(4), mrm_ref_can->dark(5));
+		surfacePrint(false, 3000);
+		print(" MARK\n\r");
 		turn(90); // Turn by 90º right.
 	}
-	else
+	else {
 		found = false;
+		surfacePrint(true, 3000);
+	}
 	return found;
 }
 
@@ -781,6 +804,21 @@ void RobotLine::rcjLine() {
 	mrm_col_can->illumination(0xFF, 1); // Turn mrm-col-can's surface illumination on.
 	armIdle(); // Arm will go to its idle (up) position.
 	actionSet(actionLineFollow); // The next action is line following.
+}
+
+/** Prints line and color sensors. Used for debugging.
+@param newLine - new line
+@param delayMsAfterPrint - delay after print
+*/
+void RobotLine::surfacePrint(bool newLine, uint16_t delayMsAfterPrint) {
+	print("%i/%i/%i ", mrm_col_can->hue(0), mrm_col_can->saturation(0), mrm_col_can->value(0));
+	for (uint8_t i = 0; i <= LAST_TRANSISTOR; i++)
+		print("%i", mrm_ref_can->dark(i));
+	print(" %i/%i/%i ", mrm_col_can->hue(1), mrm_col_can->saturation(1), mrm_col_can->value(1));
+	if (newLine)
+		print("\n\r");
+	if (delayMsAfterPrint != 0)
+		delayMs(delayMsAfterPrint);
 }
 
 /** Turns the robot clockwise using compass.
