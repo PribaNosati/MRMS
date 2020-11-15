@@ -220,7 +220,6 @@ void RobotMaze::imuFollow() {
 */
 void RobotMaze::loop() {
 	if (setup()) { // This part will execute only in the firs run.
-		devicesStart(); // Start all the devices, for example instruct sensors to start sending data.
 		directionCurrent = Direction::LEFT;
 		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES);
 	}
@@ -457,7 +456,6 @@ void RobotMaze::rescueMaze() {
 	mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES); 
 	bitmapsSet(); // Upload custom bitmaps into mrm-8x8a.
 	mrm_8x8a->bitmapCustomStoredDisplay(LedSign::MAZE_LED_PLAY); // Display play sign.
-	devicesStart(1); // Commands all sensors to start sending measurements.
 	Tile::first = new Tile(0, 0, NOWHERE); // Set the first tile and start the chain. Tile::first will point to its head, enabling iterating.
 	tileCurrent = Tile::first; // Current tile is the first tile.
 	/* This direction determines how the maze will look to a human user. For the robot it has no immportance. If it is UP, and we stand behind robot's
@@ -637,7 +635,6 @@ void RobotMaze::wallsDisplay() {
 */
 void RobotMaze::wallsTest() {
 	if (setup()) { // First run of the action.
-		devicesStart(); // Start the sensors.
 		directionCurrent = Direction::UP; // We should be standing behind the robot. Otherwise, change this value.
 		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES); // Rotate the display as it is mounted rotated by 90 degrees.
 	}

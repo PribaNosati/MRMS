@@ -81,7 +81,6 @@ void RobotSoccer::idle() {
 void RobotSoccer::loop() {
 	static int initialDirection;
 	if (setup()) {
-		devicesStart(1);
 		initialDirection = mrm_imu->heading();
 	}
 
@@ -104,6 +103,5 @@ void RobotSoccer::play() {
 		return;
 	}
 	headingToMaintain = mrm_imu->heading();
-	devicesStart();
 	actionSet(actionIdle);
 }

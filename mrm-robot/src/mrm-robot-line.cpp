@@ -518,6 +518,32 @@ void RobotLine::bitmapsSet() {
 		red[i] = 0;
 	mrm_8x8a->bitmapCustomStore(red, green, LED_T_CROSSING_BY_R);
 
+	// Wall on the left side
+	green[0] = 0b1000100;
+	green[1] = 0b1001110;
+	green[2] = 0b1010101;
+	green[3] = 0b1000100;
+	green[4] = 0b1000000;
+	green[5] = 0b1011111;
+	green[6] = 0b1010001;
+	green[7] = 0b1011111;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_T_CROSSING_BY_R);
+
+	// Wall on the right side
+	green[0] = 0b0010001;
+	green[1] = 0b0111001;
+	green[2] = 0b1010101;
+	green[3] = 0b0010001;
+	green[4] = 0b0000001;
+	green[5] = 0b1111101;
+	green[6] = 0b1000101;
+	green[7] = 0b1111101;
+	for (uint8_t i = 0; i < 8; i++)
+		red[i] = 0;
+	mrm_8x8a->bitmapCustomStore(red, green, LED_T_CROSSING_BY_R);
+
 	// Define Your bitmaps here.
 
 }
@@ -580,7 +606,6 @@ void RobotLine::evacuationZone() {
 	end();
 	//// This function is not finished. It just catches and drops a ball.
 	//if (setup()) {
-	//	devicesStart(1);
 	//	print("Catch ready\n\r");
 	//	armCatchReady();
 	//	delayMs(500);
@@ -846,10 +871,8 @@ void RobotLine::wallFollow() {
 	static uint32_t ms = 0; // Static variable - its value will be retained between this function's calls, just like a globa variable, but it has local scope.
 	// This function will be executed many times during the wall-following action, but only the first time the action (ActionWallFollow) is executed will
 	// "setup()" be true, thus executing the next instructions.
-	if (setup()) { 
+	if (setup())
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_PLAY); // Show a sign. Actually, this sign is not defined yet, so it shows play-sign instead.
-		devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
-	}
 
 	// Debugging information.
 	if (millis() - ms > 100)

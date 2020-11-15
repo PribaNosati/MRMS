@@ -53,7 +53,6 @@ void RobotMin::loop() {
 	static bool up = true;
 	static bool even = true;
 	if (setup()) { // This part will execute only in the firs run.
-		devicesStart(); // Start all the devices, for example instruct sensors to start sending data.
 		pinMode(27, OUTPUT);
 		pinMode(26, INPUT);
 		delay(500);
