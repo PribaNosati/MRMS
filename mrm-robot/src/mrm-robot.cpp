@@ -508,7 +508,7 @@ void Robot::canBusSniffToggle() {
 		print("Sniff on\n\r");
 	else
 		print("Sniff off\n\r");
-	actionEnd();
+	end();
 }
 
 /** Change device's id
@@ -531,48 +531,48 @@ void Robot::canIdChange() {
 		}
 	}
 
-	actionEnd();
+	end();
 }
 
 /** mrm-color-can illumination off
 */
 void Robot::colorIlluminationOff() {
 	mrm_col_can->illumination(0xFF, 0);
-	actionEnd();
+	end();
 }
 
 /** mrm-color-can illumination on
 */
 void Robot::colorIlluminationOn() {
 	mrm_col_can->illumination(0xFF, 1);
-	actionEnd();
+	end();
 }
 
 /** Erase HSV patterns
 */
 void Robot::colorPatternErase() {
 	mrm_col_can->patternErase();
-	actionEnd();
+	end();
 }
 
 /** Print HSV patterns
 */
 void Robot::colorPatternPrint() {
 	mrm_col_can->patternPrint();
-	actionEnd();
+	end();
 }
 
 /** Record HSV color patterns
 */
 void Robot::colorPatternRecord() {
 	mrm_col_can->patternsRecord();
-	actionEnd();
+	end();
 }
 
 /** Recognize HSV color pattern
 */
 void Robot::colorPatternRecognize() {
-	actionEnd();
+	end();
 }
 
 /** The right way to use Arduino function delay
@@ -607,7 +607,7 @@ uint8_t Robot::devicesScan(bool verbose) {
 		count += board[i]->devicesScan(verbose);
 	if (verbose)
 		print("%i devices.\n\r", count);
-	actionEnd();
+	end();
 	return count;
 }
 
@@ -634,7 +634,7 @@ void Robot::errors() {
 		print("Error! %s\n\r", errorMessage);
 		strcpy(errorMessage, "");
 		stopAll(); // Stop all motors
-		actionEnd();
+		end();
 	}
 }
 
@@ -646,7 +646,7 @@ void Robot::firmwarePrint() {
 		uint32_t startMs = millis();
 		delayMs(1);
 	}
-	actionEnd();
+	end();
 }
 
 /** Returns FPS (frames per second).
@@ -684,7 +684,7 @@ void Robot::fpsPrint() {
 		board[i]->fpsDisplay();
 	}
 	fpsReset();
-	actionEnd();
+	end();
 }
 
 /** Resets FPS data
@@ -729,7 +729,7 @@ void Robot::i2cTest() {
 	if (!any)
 		print("Nothing found.\n\n\r");
 
-	actionEnd();
+	end();
 }
 
 /** Request information
@@ -739,13 +739,13 @@ void Robot::info() {
 		board[i]->info();
 		delay(1);
 	}
-	actionEnd();
+	end();
 }
 
 /** Tests mrm-ir-finder-can, raw data.
 */
 void Robot::irFinder3Test() {
-	if (actionPreprocessing(true))
+	if (setup())
 		mrm_ir_finder3->start();
 	mrm_ir_finder3->test();
 }
@@ -753,7 +753,7 @@ void Robot::irFinder3Test() {
 /** Tests mrm-ir-finder-can, calculated data.
 */
 void Robot::irFinder3TestCalculated() {
-	if (actionPreprocessing(true))
+	if (setup())
 		mrm_ir_finder3->continuousReadingCalculatedDataStart();
 	mrm_ir_finder3->testCalculated();
 }
@@ -762,7 +762,7 @@ void Robot::irFinder3TestCalculated() {
 */
 void Robot::lidar2mTest() {
 	static uint16_t selected;
-	if (actionPreprocessing(true)) {
+	if (setup()) {
 		// Select lidar
 		uint8_t count = mrm_lid_can_b->deadOrAliveCount();
 		print("%s - enter lidar number [0-%i] or wait for all\n\r", mrm_lid_can_b->name(), count - 1);
@@ -787,7 +787,7 @@ void Robot::lidar2mTest() {
 /** Tests mrm-lid-can-b2
 */
 void Robot::lidar4mTest() {
-	if (actionPreprocessing(true))
+	if (setup())
 		mrm_lid_can_b2->start();
 	mrm_lid_can_b2->test();
 }
@@ -834,7 +834,7 @@ void Robot::lidarCalibrate() {
 		}
 	}
 
-	actionEnd();
+	end();
 }
 
 /** Displays menu
@@ -886,7 +886,7 @@ void Robot::menu() {
 */
 void Robot::menuColor() {
 	menuLevel = 4;
-	actionEnd();
+	end();
 }
 
 /** Displays menu and stops motors
@@ -900,14 +900,14 @@ void Robot::menuMainAndIdle() {
 */
 void Robot::menuReflectance() {
 	menuLevel = 2;
-	actionEnd();
+	end();
 }
 
 /** System menu
 */
 void Robot::menuSystem() {
 	menuLevel = 16;
-	actionEnd();
+	end();
 }
 
 /** Print CAN Bus message
@@ -966,13 +966,13 @@ void Robot::motorTest() {
 	for (uint8_t i = 0; i < _boardNextFree; i++) 
 		if (board[i]->boardType() == MOTOR_BOARD && board[i]->count() > 0)
 			board[i]->test();
-	actionEnd();
+	end();
 }
 
 /** Tests mrm-node
 */
 void Robot::nodeTest() {
-	if (actionPreprocessing(true))
+	if (setup())
 		mrm_node->start();
 	mrm_node->test();
 }
@@ -990,7 +990,7 @@ void Robot::noLoopWithoutThis() {
 /** Production test
 */
 void Robot::oscillatorTest() {
-	if (actionPreprocessing(true)) {
+	if (setup()) {
 		uint8_t selectedBoardIndex;
 		uint8_t selectedDeviceIndex;
 		uint8_t maxInput;
@@ -1007,7 +1007,7 @@ void Robot::oscillatorTest() {
 void Robot::reflectanceArrayCalibrationPrint() {
 	mrm_ref_can->calibrationDataRequest(0xFF, true);
 	mrm_ref_can->calibrationPrint();
-	actionEnd();
+	end();
 }
 
 /** Starts robot's program
@@ -1080,7 +1080,7 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 */
 void Robot::servoInteractive() {
 	mrm_servo->writeInteractive();
-	actionEnd();
+	end();
 }
 
 /** Stops all motors
@@ -1090,7 +1090,7 @@ void Robot::stopAll() {
 	for (uint8_t i = 0; i < _boardNextFree; i++)
 		if (board[i]->boardType() == MOTOR_BOARD && board[i]->count() > 0)
 			((MotorBoard*)board[i])->stop();
-	actionEnd();
+	end();
 }
 
 /** CAN Bus stress test
@@ -1107,7 +1107,7 @@ bool Robot::stressTest() {
 	static uint32_t errors[BOARDS_LIMIT];
 	static uint16_t mask[BOARDS_LIMIT]; // 16 bits - no more than 16 devices per board!
 
-	if (actionPreprocessing(true)) {
+	if (setup()) {
 		print("Before test.\n\r");
 		pass = 0;
 		devicesStop();
@@ -1180,7 +1180,7 @@ bool Robot::stressTest() {
 			print("No errors.");
 		}
 		print("\n\r");
-		actionEnd();
+		end();
 		return true;
 	}
 	else
@@ -1190,7 +1190,7 @@ bool Robot::stressTest() {
 /** Tests mrm-therm-b-can
 */
 void Robot::thermoTest() {
-	if (actionPreprocessing(true))
+	if (setup())
 		mrm_therm_b_can->start();
 	mrm_therm_b_can->test();
 }

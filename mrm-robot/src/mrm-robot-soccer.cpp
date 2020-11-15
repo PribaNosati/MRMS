@@ -57,13 +57,13 @@ void RobotSoccer::catchBall() {
 void RobotSoccer::goAhead() {
 	const uint8_t speed = 40;
 	motorGroup->go(speed);
-	actionEnd();
+	end();
 }
 
 /** No ball detected - return to Your goal.
 */
 void RobotSoccer::idle() {
-	if (actionPreprocessing(true))
+	if (setup())
 		headingToMaintain = mrm_imu->heading();
 	if (mrm_ir_finder2->anyIRSource() && false)
 		actionSet(actionCatch);
@@ -80,7 +80,7 @@ void RobotSoccer::idle() {
 */
 void RobotSoccer::loop() {
 	static int initialDirection;
-	if (actionPreprocessing(true)) {
+	if (setup()) {
 		devicesStart(1);
 		initialDirection = mrm_imu->heading();
 	}

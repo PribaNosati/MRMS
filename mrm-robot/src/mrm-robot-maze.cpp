@@ -164,7 +164,7 @@ void RobotMaze::decide(){
 	}
 	if (actionMove->direction == Direction::NOWHERE) // No direction found, so go back using breadcrumbs.
 		if (tileCurrent->breadcrumb == Direction::NOWHERE) {//We are on the first tile and there is no way back - end of run.
-			actionEnd(); // This command will cancel actions and the robot will return to the default idle loop, after displaying menu.
+			end(); // This command will cancel actions and the robot will return to the default idle loop, after displaying menu.
 			mrm_8x8a->bitmapCustomStoredDisplay(LedSign::MAZE_LED_PAUSE); // Display pause sign.
 			print("END\n\r");
 		}
@@ -179,7 +179,7 @@ void RobotMaze::decide(){
 	// If the robot should stop after a certain number of steps (for example for debugging), do it here.
 	if (stepCount++ >= MAZE_MAX_STEPS) {
 		motorGroup->stop();
-		actionEnd(); // This command will cancel actions and the robot will return in the default idle loop, after displaying menu.
+		end(); // This command will cancel actions and the robot will return in the default idle loop, after displaying menu.
 	}
 }
 
@@ -219,7 +219,7 @@ void RobotMaze::imuFollow() {
 /** Custom test. The function will be called many times during the test, till You issue "x" menu-command.
 */
 void RobotMaze::loop() {
-	if (actionPreprocessing(true)) { // This part will execute only in the firs run.
+	if (setup()) { // This part will execute only in the firs run.
 		devicesStart(); // Start all the devices, for example instruct sensors to start sending data.
 		directionCurrent = Direction::LEFT;
 		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES);
@@ -396,7 +396,7 @@ void RobotMaze::moveTurn() {
 	if (millis() - actionMoveTurn->startMs > 5000) {
 		motorGroup->stop();
 		print("Turn timeout %i->%i\n\r", actionMoveTurn->startMs, millis());
-		actionEnd(); // End of program.
+		end(); // End of program.
 	}
 }
 
@@ -406,10 +406,10 @@ void RobotMaze::moveTurn() {
 void RobotMaze::omniWheelsTest() {
 	static uint8_t nextMove;
 	static uint32_t lastMs;
-	if (actionPreprocessing(true)) {
+	if (setup()) {
 		if (motorGroup == NULL) {
 			print("Differential motor group needed.");
-			actionEnd();
+			end();
 			return;
 		}
 		nextMove = 0;
@@ -636,7 +636,7 @@ void RobotMaze::wallsDisplay() {
 /** Test, checking and displaying walls.
 */
 void RobotMaze::wallsTest() {
-	if (actionPreprocessing(true)) { // First run of the action.
+	if (setup()) { // First run of the action.
 		devicesStart(); // Start the sensors.
 		directionCurrent = Direction::UP; // We should be standing behind the robot. Otherwise, change this value.
 		mrm_8x8a->rotationSet(LED_8X8_BY_90_DEGREES); // Rotate the display as it is mounted rotated by 90 degrees.

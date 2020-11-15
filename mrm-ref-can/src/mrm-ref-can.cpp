@@ -148,7 +148,7 @@ void Mrm_ref_can::calibrate(uint8_t deviceNumber) {
 		else
 			print("timeout\n\r");
 	}
-	robotContainer->actionEnd();
+	robotContainer->end();
 }
 
 /** Get local calibration data

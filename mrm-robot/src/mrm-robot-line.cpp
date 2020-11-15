@@ -541,9 +541,9 @@ void RobotLine::curve() {
 		noLoopWithoutThis();
 	}
 
-	// Rotate
-	delayMs(30);
-	if (!mrm_ref_can->any(true, 0, 2, 5)) { // L curve, not T approached by side. Because, if T approached by side, center transistors would still sense black.
+	// L curve, not T approached by side. Because, if T approached by side, center transistors would still sense black.
+	if (!mrm_ref_can->any(true, 0, 2, 5)) {
+		// Rotate
 		motorGroup->stop();
 		print("CURVE\n\r"); // AAA
 		delayMs(2000);
@@ -557,9 +557,10 @@ void RobotLine::curve() {
 			noLoopWithoutThis();
 		}
 	}
+	// T-crossing approached by side, go ahead.
 	else {
 		motorGroup->stop();
-		print("HALF CROSS\n\r"); //AAA
+		print("HALF CROSSING\n\r"); //AAA
 		delayMs(2000);
 	}
 }
@@ -574,10 +575,11 @@ bool RobotLine::dark() {
 /** Enter evacuation-zone algorithm
 */
 void RobotLine::evacuationZone() {
+	mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
 	motorGroup->stop();
-	actionEnd();
+	end();
 	//// This function is not finished. It just catches and drops a ball.
-	//if (actionPreprocessing(true)) {
+	//if (setup()) {
 	//	devicesStart(1);
 	//	print("Catch ready\n\r");
 	//	armCatchReady();
@@ -617,7 +619,7 @@ void RobotLine::loop9() {}
 */
 void RobotLine::loopMenu() {
 	menuLevel = 8;
-	actionEnd();
+	end();
 }
 
 /** Test - go straight ahead using a defined speed.
@@ -625,7 +627,7 @@ void RobotLine::loopMenu() {
 void RobotLine::goAhead() {
 	const uint8_t speed = 40;
 	motorGroup->go(speed, speed);
-	actionEnd(); // This command will cancel actions and the robot will return in the default idle loop, after displaying menu.
+	end(); // This command will cancel actions and the robot will return in the default idle loop, after displaying menu.
 }
 
 /** Follow a RCJ line.
@@ -671,11 +673,8 @@ void RobotLine::lineFollow() {
 		lastLineFoundMs = millis(); // Mark last time line detected.
 	}
 	// No line found for a long time -> evacuation area.
-	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS) {
+	else if (millis() - lastLineFoundMs > BIGGEST_GAP_IN_LINE_MS)
 		actionSet(actionEvacuationZone);
-		mrm_8x8a->bitmapCustomStoredDisplay(LED_EVACUATION_ZONE);
-		motorGroup->stop();
-	}
 	// No line found for s short time -> gap in line, continue straight ahead.
 	else {
 		motorGroup->go(TOP_SPEED, TOP_SPEED);
@@ -746,8 +745,8 @@ void RobotLine::obstacleAvoid() {
 	static uint32_t startMs = 0;
 
 	// This function will be executed many times during obstacle avoiding action, but only the first time the action (ActionObstacleAvoid) is executed will
-	// "actionPreprocessing(true)" be true, thus executing the next instruction (showing a sign).
-	if (actionPreprocessing(true))
+	// "setup()" be true, thus executing the next instruction (showing a sign).
+	if (setup())
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_OBSTACLE); // Show a sign.
 
 	/* Obstacle evasive maneuver is an action big enough to justify its own ActionBase derived object, ActionObstacleAvoid, which is being executed right now. 
@@ -846,8 +845,8 @@ void RobotLine::turn(int16_t byDegreesClockwise) {
 void RobotLine::wallFollow() {
 	static uint32_t ms = 0; // Static variable - its value will be retained between this function's calls, just like a globa variable, but it has local scope.
 	// This function will be executed many times during the wall-following action, but only the first time the action (ActionWallFollow) is executed will
-	// "actionPreprocessing(true)" be true, thus executing the next instructions.
-	if (actionPreprocessing(true)) { 
+	// "setup()" be true, thus executing the next instructions.
+	if (setup()) { 
 		mrm_8x8a->bitmapCustomStoredDisplay(LED_PLAY); // Show a sign. Actually, this sign is not defined yet, so it shows play-sign instead.
 		devicesStart(1); // Commands all sensors to start sending measurements. mrm-ref-can will be sending digital values.
 	}

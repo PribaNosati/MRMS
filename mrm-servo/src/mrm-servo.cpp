@@ -93,7 +93,7 @@ void Mrm_servo::test()
 	}
 
 	print("\n\rTest over.\n\r");
-	robotContainer->actionEnd();
+	robotContainer->end();
 }
 
 /** Move servo
