@@ -211,8 +211,7 @@ void Mrm_ref_can::calibrationPrint() {
 /** Center of measurements, like center of the line
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 @param ofDark - center of dark. Otherwise center of bright.
-@return - 0 - nothing found. 1000 - 9000 for mrm-ref-can, 1000 - 8000 for ref-can8, 1000 - 6000 for mrm-ref-can6, and 1000 - 4000 for mrm-ref-can4.
-	1000 means center exactly under first sensor (the one closer to the biggest pin group).
+@return - 1000 - 9000. 1000 means center exactly under first phototransistor (denoted with "1" on the printed circuit board), 5000 is center transistor.
 */
 uint16_t Mrm_ref_can::center(uint8_t deviceNumber, bool ofDark) { 
 	if (digitalStarted(deviceNumber, ofDark))
@@ -408,41 +407,31 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 	return false;
 }
 
-/** Readings, can be analog or digital, depending on last parameter
+/** Analog readings
 @param receiverNumberInSensor - single IR transistor in mrm-ref-can
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@param analog - read analog value. If not, digital.
 @return - analog value
 */
-uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber, bool analog){
+uint16_t Mrm_ref_can::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
 	if (deviceNumber >= nextFree || receiverNumberInSensor > MRM_REF_CAN_SENSOR_COUNT) {
 		strcpy(errorMessage, "mrm-ref-can doesn't exist");
 		return 0;
 	}
 	alive(deviceNumber, true);
-	if (analog) {
-		if (analogStarted(deviceNumber))
-			return (*_reading)[deviceNumber][receiverNumberInSensor];
-		else
-			return 0;
-	}
-	else { // digital
-		if (!digitalStarted(deviceNumber, false, false) && !digitalStarted(deviceNumber, true, false))
-			if (!digitalStarted(deviceNumber, true))
-				return false;
+	if (analogStarted(deviceNumber))
 		return (*_reading)[deviceNumber][receiverNumberInSensor];
-	}
+	else
+		return 0;
 }
 
-/** Print all readings in a line
-@param analog - if not, digital values.
+/** Print all analog readings in a line
 */
-void Mrm_ref_can::readingsPrint(bool analog) {
+void Mrm_ref_can::readingsPrint() {
 	print("Refl:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 		for (uint8_t irNo = 0; irNo < MRM_REF_CAN_SENSOR_COUNT; irNo++)
 			if (alive(deviceNumber))
-				print(analog ? "%3i " : "%i", reading(irNo, deviceNumber, analog));
+				print("%3i ", reading(irNo, deviceNumber));
 	}
 }
 
@@ -460,7 +449,7 @@ void Mrm_ref_can::test(bool analog)
 				if (pass++)
 					print("| ");
 				for (uint8_t i = 0; i < MRM_REF_CAN_SENSOR_COUNT; i++)
-					print(analog ? "%3i " : "%i", reading(i, deviceNumber, analog));
+					print(analog ? "%3i " : "%i", analog ? reading(i, deviceNumber) : dark(i, deviceNumber));
 				if (!analog)
 					print(" c:%i", center(deviceNumber, (*_mode)[deviceNumber] == DIGITAL_AND_DARK_CENTER));
 

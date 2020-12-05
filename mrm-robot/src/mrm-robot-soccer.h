@@ -21,6 +21,16 @@ public:
 	*/
 	RobotSoccer(char name[] = "RCJ Soccer");
 
+	/** Rear distance to wall
+	@return - in mm
+	*/
+	uint16_t back();
+
+	/** Ball's direction
+	@return - robot's front is 0°, positive angles clockwise, negative anti-clockwise. Back of the robot is 180°.
+	*/
+	int16_t ballAngle();
+
 	/** Read barrier
 	@return - true if interrupted
 	*/
@@ -30,17 +40,62 @@ public:
 	*/
 	void bitmapsSet();
 
+	/** Line sensor - brightness of the surface
+	@param transistorNumber - starts from 0 and end value depends on sensor. Usually 7 (for mrm-ref-can8) or 8 (for mrm-ref-can9).
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - brightness as an analog value.
+	*/
+	uint16_t brightness(uint8_t transistorNumber, uint8_t deviceNumber);
+
+	/** Reads push button switch
+	@number - 0 to 3, push button's ordinal number
+	@return - true if pressed
+	*/
+	bool button(uint8_t number);
+
 	/** Go around the ball and approach it.
 	*/
 	void catchBall();
+
+	/** Front distance to wall
+	@return - in mm
+	*/
+	uint16_t front();
+
+	/** Control of a robot with axles connected in a star formation, like in a RCJ soccer robot with omni wheels. Motor 0 is at 45 degrees, 1 at 135, 2 at -135, 3 at -45.
+	@param speed - 0 to 100.
+	@param angleDegrees - Movement direction in a robot's coordinate system, in degrees. 0 degree is the front of the robot and positive angles are to the right.
+	Values between -180 and 180.
+	@param rotation - Rotation speed (around the vertical axis), -100 to 100. Positive numbers turn the robot to the right. It makes sense to use smaller
+	numbers because a value 100 turns on all the motors at maximal speed.
+	@param speedLimit - Speed limit, 0 to 127. For example, 80 will limit all the speeds to 80/127%. 0 will turn the motors off.
+	*/
+	void go(float speed, float angleDegrees, float rotation, uint8_t speedLimit);
 
 	/** Test - go straight ahead.
 	*/
 	void goAhead();
 
+	/**Compass
+	@return - North is 0º, clockwise are positive angles, values 0 - 360.
+	*/
+	float heading();
+
 	/** No ball detected - return to Your goal.
 	*/
 	void idle();
+
+	/** Front distance to wall
+	@return - in mm
+	*/
+	uint16_t left();
+
+	/** Line sensor
+	@param transistorNumber - starts from 0 and end value depends on sensor. Usually 7 (for mrm-ref-can8) or 8 (for mrm-ref-can9).
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - true if white line found
+	*/
+	bool line(uint8_t transistorNumber, uint8_t deviceNumber);
 
 	/** Custom test
 	*/
@@ -49,6 +104,26 @@ public:
 	/** Starts robot.
 	*/
 	void play();
+
+	/**Pitch
+	@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0º.
+	*/
+	float pitch();
+
+	/** Right distance to wall
+	@return - in mm
+	*/
+	uint16_t right();
+
+	/** Roll
+	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0º.
+	*/
+	float roll();
+
+	/** Display fixed sign stored in sensor
+	@image - sign's number
+	*/
+	void sign(uint8_t number);
 };
 
 /** Actions serve a few purposes.

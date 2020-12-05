@@ -124,7 +124,7 @@ public:
 	@param dark - any dark? Otherwise, any bright?
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@param firstTransistor - start checking from this transistor
-@param lastTransistor - do not check after this one
+	@param lastTransistor - do not check after this one
 	*/
 	bool any(bool dark = true, uint8_t deviceNumber = 0, uint8_t fistTransistor = 0, uint8_t lastTransistor = 0xFF);
 
@@ -154,8 +154,7 @@ public:
 	/** Center of measurements, like center of the line
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - calibrate all sensors.
 	@param ofDark - center of dark. Otherwise center of bright.
-	@return - 0 - nothing found. 1000 - 9000 for mrm-ref-can, 1000 - 8000 for ref-can8, 1000 - 6000 for mrm-ref-can6, and 1000 - 4000 for mrm-ref-can4. 
-		1000 means center exactly under first sensor (the one closer to the biggest pin group).
+	@return - 1000 - 9000. 1000 means center exactly under first phototransistor (denoted with "1" on the printed circuit board), 5000 is center transistor.
 	*/
 	uint16_t center(uint8_t deviceNumber = 0, bool ofDark = true);
 
@@ -173,18 +172,16 @@ public:
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
 	
-	/** Readings, can be analog or digital, depending on last parameter
+	/** Analog readings
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@param analog - read analog value. If not, digital.
 	@return - analog value
 	*/
-	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0, bool analog = false);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
 	/** Print all readings in a line
-	@param analog - if not, digital values.
 	*/
-	void readingsPrint(bool analog);
+	void readingsPrint();
 
 	/**Test
 	@param analog - if not, digital values.

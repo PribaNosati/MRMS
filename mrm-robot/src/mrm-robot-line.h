@@ -5,13 +5,13 @@
 // Change these values to get optimal robot's behaviour.
 
 // CATCH_SERVO drives jaws that catch ball.
-#define CATCH_SERVO_CLOSE 250 // Closed position, ball caught.
-#define CATCH_SERVO_OPEN_FULL 70 // Open position, ready to catch a ball.
+#define CATCH_SERVO_CLOSE 260 // Closed position, ball caught.
+#define CATCH_SERVO_OPEN_FULL 50 // Open position, ready to catch a ball.
 #define CATCH_SERVO_OPEN_MIN 150 // Open just to drop the ball
 
 // LIFT_SERVO lifts catch servo and the rest of mechanism.
 #define LIFT_SERVO_BACK 70 // Top (idle) position.
-#define LIFT_SERVO_DOWN 130 // Lowest position, catching a ball.
+#define LIFT_SERVO_DOWN 150 // Lowest position, catching a ball.
 #define LIFT_SERVO_PUT_BACK 50
 #define LIFT_SERVO_PUT_FRONT 80 // Middle position, for caught ball dropping.
 #define LIFT_SERVO_UP 10 // Top (idle) position.
@@ -24,12 +24,17 @@
 // BLOCK_SERVO blocks balls
 #define BLOCK_SERVO_BOTH 150
 
+#define LIDAR_COUNT 6 // 3 or 6, depending on model. If only 3 lidars built in, 6-mode cannot be used.
+
+#define WALL_DIFFERENCE_ALLOWED_MM 50 // If difference bigger, no wall.
+#define MAXIMUM_WALL_MM 300 // If distance bigger than this value, do not follow wall.
+
 // mrm-8x8a display bitmaps.
 enum ledSign {LED_EVACUATION_ZONE, LED_FULL_CROSSING_BOTH_MARKS, LED_FULL_CROSSING_MARK_LEFT, LED_FULL_CROSSING_MARK_RIGHT, LED_FULL_CROSSING_NO_MARK,
 	LED_HALF_CROSSING_MARK_LEFT, LED_HALF_CROSSING_MARK_RIGHT, LED_HALF_CROSSING_LEFT_NO_MARK, LED_HALF_CROSSING_RIGHT_NO_MARK,
-	LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, 
-	LED_LINE_INTERRUPTED, LED_CURVE_LEFT, LED_CURVE_RIGHT, LED_OBSTACLE, LED_OBSTACLE_AROUND_LEFT, LED_OBSTACLE_AROUND_RIGHT, LED_PAUSE, LED_PLAY, LED_T_CROSSING_BY_L, LED_T_CROSSING_BY_R, LED_WALL_L,
-	LED_WALL_R};
+	LED_LINE_FULL, LED_LINE_FULL_BOTH_MARKS, LED_LINE_FULL_MARK_LEFT, LED_LINE_FULL_MARK_RIGHT, LED_LINE_INTERRUPTED, LED_CURVE_LEFT, 
+	LED_CURVE_RIGHT, LED_OBSTACLE, LED_OBSTACLE_AROUND_LEFT, LED_OBSTACLE_AROUND_RIGHT, LED_PAUSE, LED_PLAY, LED_T_CROSSING_BY_L, 
+	LED_T_CROSSING_BY_R, LED_WALL_AHEAD, LED_WALL_L, LED_WALL_R};
 
 /* All the Action-classes have to be forward declared here (before RobotLine) as RobotLine declaration uses them. The other option would be
 not to declare them here, but in that case Action-objects in RobotLine will have to be declared as ActionBase class, forcing downcast later in code, if
@@ -56,7 +61,7 @@ class ActionLoopMenu;
 class RobotLine : public Robot {
 	uint16_t BIGGEST_GAP_IN_LINE_MS = 2500;
 	// Changing this parameter will cause major behaviour change. Limit value: 127.
-	const uint8_t TOP_SPEED = 60; // 7.4V 80	
+	const uint8_t TOP_SPEED = 90; // 7.4 V 80	11.1 V 60
 	const uint16_t AHEAD_IN_CROSSING = 200; // 7.4V : 300
 	const uint8_t LAST_TRANSISTOR = 7; // mrm-ref-can: 8, mrm-ref-can8: 7
 
@@ -80,6 +85,8 @@ class RobotLine : public Robot {
 	ActionLoop8* actionLoop8;
 	ActionLoop9* actionLoop9;
 	ActionLoopMenu* actionLoopMenu;
+
+	uint16_t barrierBrightest = 2000; // Default value, it should be calibrated.
 
 	MotorGroupDifferential* motorGroup = NULL; // Class that conveys commands to motors.
 
@@ -134,6 +141,18 @@ public:
 	*/
 	void bitmapsSet();
 
+	/** Line sensor - brightness of the surface
+	@param transistorNumber - starts from 0 and end value depends on sensor. Usually 7 (for mrm-ref-can8) or 8 (for mrm-ref-can9).
+	@return - brightness as an analog value.
+	*/
+	uint16_t brightness(uint8_t transistorNumber);
+
+	/** Reads push button switch
+	@number - 0 to 3, push button's ordinal number
+	@return - true if pressed
+	*/
+	bool button(uint8_t number);
+
 	/** Go through a curve
 	*/
 	void curve();
@@ -143,9 +162,59 @@ public:
 	*/
 	bool dark();
 
+	/** Display 8x8 image
+	@image - image's number
+	*/
+	void display(ledSign image);
+
 	/** Enter evacuation-zone algorithm.
 	*/
 	void evacuationZone();
+
+	/** Front side - left sensor distance.
+	@return - in mm
+	*/
+	uint16_t frontLeft();
+
+	/** Front side - right sensor distance.
+	@return - in mm
+	*/
+	uint16_t frontRight();
+
+	/** Start motors
+	@param leftSpeed, in range -127 to 127
+	@param right Speed, in range -127 to 127
+	@param speedLimit - Speed limit, 0 to 127. For example, 80 will limit all the speeds to 80/127%. 0 will turn the motors off.
+	*/
+	void go(int16_t leftSpeed, int16_t rightSpeed);
+
+	/** Left side - rear sensor distance.
+	@return - in mm
+	*/
+	uint16_t leftBack();
+
+	/** Left side - front sensor distance.
+	@return - in mm
+	*/
+	uint16_t leftFront();
+
+	/** Line found?
+	@return - true if any sensor detects black.
+	@param firstTransistor - start checking from this transistor.
+	@param lastTransistor - do not check after this one.
+	*/
+	bool lineAny(uint8_t fistTransistor = 0, uint8_t lastTransistor = 0xFF);
+
+	/** Line sensor
+	@param transistorNumber - starts from 0 and end value depends on sensor. Usually 7 (for mrm-ref-can8) or 8 (for mrm-ref-can9).
+	@return - true if black line found
+	*/
+	bool line(uint8_t transistorNumber);
+
+	/** Center of measurements, like center of the line
+	@return - -50 - 50. If 0, center of the robot is on the line. Depending on sensor, this value is roughly number of milimeter the line is left or right.
+	*/
+	float lineCenter();
 
 	/** Generic actions, use them as templates
 	*/
@@ -168,6 +237,23 @@ public:
 	*/
 	void goAhead();
 
+	/**Compass
+	@return - North is 0º, clockwise are positive angles, values 0 - 360.
+	*/
+	float heading();
+
+	/** Color sensor's hue
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - Hue
+	*/
+	uint8_t hue(uint8_t deviceNumber);
+
+	/** Set color sensor's illumination intensity
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - all sensors.
+	@param current - 0 - 3
+	*/
+	void illumination(uint8_t current, uint8_t deviceNumber);
+
 	/** Follow a RCJ line.
 	*/
 	void lineFollow();
@@ -189,9 +275,57 @@ public:
 	*/
 	void omniWheelsTest();
 
+	/** Choose a pattern closest to the current 6 colors
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param includeValue - if true, HSV compared. If not, HS.
+	@raturn - patternNumber
+	*/
+	uint8_t patternColors(uint8_t deviceNumber);
+
+	/**Pitch
+	@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0º.
+	*/
+	float pitch();
+
 	/** Starts the RCJ Line run after this action selected.
 	*/
 	void rcjLine();
+
+	/** Right side - rear sensor distance.
+	@return - in mm
+	*/
+	uint16_t rightBack();
+
+	/** Right side - front sensor distance.
+	@return - in mm
+	*/
+	uint16_t rightFront();
+
+	/** Roll
+	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0º.
+	*/
+	float roll();
+
+	/** Color sensor's saturation
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - saturation.
+	*/
+	uint8_t saturation(uint8_t deviceNumber);
+
+	/** Move servo
+	@param degrees - Servo's target angle, 0 - 180º, or 0 - 360°, depending on model, counting clockwise
+	@param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
+	*/
+	void servo(uint16_t degrees = 90, uint8_t servoNumber = 0);
+
+	/** Display fixed sign stored in sensor
+	@image - sign's number
+	*/
+	void sign(uint8_t number);
+
+	/** Stop the robot
+	*/
+	void stop();
 
 	/** Prints line and color sensors. Used for debugging.
 	@param newLine - new line
@@ -204,9 +338,25 @@ public:
 	*/
 	void turn(int16_t byDegreesClockwise);
 
+	/** Color sensor's value
+	@param deviceNumber - device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - value
+	*/
+	uint8_t value(uint8_t deviceNumber);
+
 	/** Follows a wall.
 	*/
 	void wallFollow();
+
+	/** Wall left?
+	@return - true if wall
+	*/
+	bool wallLeft();
+
+	/** Wall right?
+	@return - true if wall
+	*/
+	bool wallRight();
 };
 
 /** Actions serve a few purposes.

@@ -328,7 +328,6 @@ void Mrm_col_can::patternPrint() {
 
 /** Choose a pattern closest to the current 6 colors
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@param includeValue - if true, HSV compared. If not, HS.
 @raturn - patternNumber
 */
 uint8_t Mrm_col_can::patternRecognizedBy6Colors(uint8_t deviceNumber) {

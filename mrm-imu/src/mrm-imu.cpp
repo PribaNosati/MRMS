@@ -48,7 +48,7 @@ float Mrm_imu::heading() {
 }
 
 /**Pitch
-@return - Pitch in degrees. Inclination forwards or backwards.
+@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0º.
 */
 float Mrm_imu::pitch() {
 	struct bno055_euler_float_t eulerData;
@@ -59,7 +59,7 @@ float Mrm_imu::pitch() {
 }
 
 /**Roll
-@return - Roll in degrees. Inclination to the left or right. Values -90 - 90
+@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0º.
 */
 float Mrm_imu::roll() {
 	struct bno055_euler_float_t eulerData;

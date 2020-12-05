@@ -171,7 +171,7 @@ uint16_t Mrm_lid_can_b2::reading(uint8_t deviceNumber){
 		return 0;
 	}
 	if (started(deviceNumber))
-		return (*readings)[deviceNumber];
+		return (*readings)[deviceNumber] == 0 ? 2000 : (*readings)[deviceNumber];
 	else
 		return 0;
 }

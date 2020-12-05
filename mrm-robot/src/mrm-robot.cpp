@@ -304,12 +304,14 @@ void Robot::actionSet() {
 	const uint16_t TIMEOUT_MS = 2000;
 
 	// If a button pressed, first execute its action
-	ActionBase* action8x8 = mrm_8x8a->actionCheck();
+	ActionBase* action8x8 = NULL;
+	if (mrm_8x8a->alive())
+		action8x8 = mrm_8x8a->actionCheck();
 	ActionBase* actionSw = mrm_switch->actionCheck();
 	if (action8x8 != NULL)
-		_actionCurrent = action8x8;
+		actionSet(action8x8);
 	else if (actionSw != NULL)
-		_actionCurrent = actionSw;
+		actionSet(actionSw);
 	else { // Check keyboard
 		if (Serial.available() || serialBT != NULL && serialBT->available()) {
 			lastUserActionMs = millis();
@@ -602,7 +604,7 @@ void Robot::delayMicros(uint16_t pauseMicros) {
 uint8_t Robot::devicesScan(bool verbose) {
 	devicesStop();
 	uint8_t count = 0;
-	delayMs(100); // Read all the messages sent after stop.
+	delayMs(50); // Read all the messages sent after stop.
 	for (uint8_t i = 0; i < _boardNextFree; i++)
 		count += board[i]->devicesScan(verbose);
 	if (verbose)

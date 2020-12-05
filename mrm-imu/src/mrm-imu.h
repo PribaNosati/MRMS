@@ -73,12 +73,12 @@ public:
 	uint8_t magneticCalibration();
 
 	/**Pitch
-	@return - Pitch in degrees. Inclination forwards or backwards.
+	@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0º.
 	*/
 	float pitch();
 
 	/**Roll
-	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90
+	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0º.
 	*/
 	float roll();
 
