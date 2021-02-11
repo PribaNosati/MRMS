@@ -122,14 +122,14 @@ void Mrm_therm_b_can::readingsPrint() {
 */
 bool Mrm_therm_b_can::started(uint8_t deviceNumber) {
 	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_THERM_B_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		print("Start mrm-therm-b-can-b2%i \n\r", deviceNumber); //AAA
+		print("Start mrm-therm-b-can-b2%i \n\r", deviceNumber);
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0);
 			// Wait for 1. message.
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					print("Thermo confirmed\n\r");  //AAA
+					print("Thermo confirmed\n\r"); 
 					return true;
 				}
 				robotContainer->delayMs(1);

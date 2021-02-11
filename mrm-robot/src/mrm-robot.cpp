@@ -3,11 +3,13 @@
 #include <mrm-bldc2x50.h>
 #include <mrm-bldc4x2.5.h>
 #include <mrm-can-bus.h>
+#include <mrm-col-b.h>
 #include <mrm-col-can.h>
+#include <mrm-fet-can.h>
 #include <mrm-imu.h>
 #include <mrm-pid.h>
-#include <mrm-ir-finder2.h>
-#include <mrm-ir-finder-can.h>
+//#include <mrm-ir-finder2.h>
+//#include <mrm-ir-finder-can.h>
 #include <mrm-ir-finder3.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
@@ -20,31 +22,73 @@
 #include <mrm-servo.h>
 #include <mrm-switch.h>
 #include <mrm-therm-b-can.h>
-#include <mrm-us.h>
+// #include <mrm-us.h>
+#include <mrm-us-b.h>
+#include <mrm-us1.h>
 
-
+#if RADIO == 1
 extern BluetoothSerial* serialBT;
+#endif
 
 /**
 */
-Robot::Robot(char name[15]) {
+Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 	Serial.begin(115200);
-	//serial = new BluetoothSerial();
+
 	if (strlen(name) > 15)
 		strcpy(errorMessage, "Name overflow");
 	strcpy(_name, name);
+
+	if (strlen(ssid) > 15)
+		strcpy(errorMessage, "SSID overflow");
+	strcpy(_ssid, ssid);
+
+	if (strlen(wiFiPassword) > 15)
+		strcpy(errorMessage, "WiFi pwd. overflow");
+	strcpy(_wiFiPassword, wiFiPassword);
+
+#if RADIO == 1
 	if (serialBT == NULL) {
 		serialBT = new BluetoothSerial(); // Additional serial port
 		serialBT->begin(_name); //Start Bluetooth. ESP32 - Bluetooth device name, choose one.
 	}
+#endif
 
 	delay(50);
 	print("%s started.\r\n", _name);
 
 	Wire.begin(); // Start I2C
+
+#if RADIO == 2
+	delay(100);
+	webServer = new WiFiServer(80);
+
+	  // Connect to Wi-Fi network with SSID and password
+	print("Connecting to %s", ssid);
+	WiFi.begin(ssid, wiFiPassword);
+	uint32_t startMs = millis();
+	bool ok = true;
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(200);
+		print(".");
+		if (millis() - startMs > 2000){
+			ok = false;
+			break;
+		}
+	}
+	if (ok){
+		// Print local IP address and start web server
+		print("\n\r");
+		print("WiFi connected.\n\r");
+		print("IP address: %i.%i.%i.%i\n\r", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
+		webServer->begin();
+	}
+	else
+		print("\n\rWeb server not started.\n\r");
+#endif
 
 	mrm_can_bus = new Mrm_can_bus();
 
@@ -62,6 +106,8 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionCANBusScan(this));
 	actionAdd(new ActionCANBusSniff(this));
 	actionAdd(new ActionCANBusStress(this));
+	actionAdd(new ActionColorBTest6Colors(this));
+	actionAdd(new ActionColorBTestHSV(this));
 	actionAdd(new ActionColorIlluminationOff(this));
 	actionAdd(new ActionColorIlluminationOn(this));
 	actionAdd(new ActionColorPatternErase(this));
@@ -85,6 +131,7 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionLidarCalibrate(this));
 	actionAdd(_actionLoop);
 	actionAdd(new ActionMenuColor(this));
+	actionAdd(new ActionMenuColorB(this));
 	actionAdd(new ActionMenuMain(this));
 	actionAdd(new ActionMenuReflectance(this));
 	actionAdd(new ActionMenuSystem(this));
@@ -100,14 +147,18 @@ Robot::Robot(char name[15]) {
 	actionAdd(new ActionServoTest(this));
 	actionAdd(_actionStop);
 	actionAdd(new ActionThermoTest(this));
+	actionAdd(new ActionUS_BTest(this));
+	actionAdd(new ActionUS1Test(this));
 
 	mrm_8x8a = new Mrm_8x8a(this);
 	mrm_bldc2x50 = new Mrm_bldc2x50(this);
 	mrm_bldc4x2_5 = new Mrm_bldc4x2_5(this);
+	mrm_col_b = new Mrm_col_b(this);
 	mrm_col_can = new Mrm_col_can(this);
+	mrm_fet_can = new Mrm_fet_can(this);
 	mrm_imu = new Mrm_imu(this);
-	mrm_ir_finder2 = new Mrm_ir_finder2(this);
-	mrm_ir_finder_can = new Mrm_ir_finder_can(this);
+	//mrm_ir_finder2 = new Mrm_ir_finder2(this);
+	// mrm_ir_finder_can = new Mrm_ir_finder_can(this);
 	mrm_ir_finder3 = new Mrm_ir_finder3(this);
 	mrm_lid_can_b = new Mrm_lid_can_b(this);
 	mrm_lid_can_b2 = new Mrm_lid_can_b2(this);
@@ -119,16 +170,18 @@ Robot::Robot(char name[15]) {
 	mrm_servo = new Mrm_servo(this);
 	mrm_switch = new Mrm_switch(this);
 	mrm_therm_b_can = new Mrm_therm_b_can(this);
-	mrm_us = new Mrm_us(this);
+	// mrm_us = new Mrm_us(this);
+	mrm_us_b = new Mrm_us_b(this);
+	mrm_us1 = new Mrm_us1(this);
 
 	// 8x8 LED
-	mrm_8x8a->add("LED8x8-0");
+	mrm_8x8a->add((char*)"LED8x8-0");
 
 	// Motors mrm-bldc2x50
-	mrm_bldc2x50->add(false, "BL2x50-0");
-	mrm_bldc2x50->add(false, "BL2x50-1");
-	mrm_bldc2x50->add(false, "BL2x50-2");
-	mrm_bldc2x50->add(false, "BL2x50-3");
+	mrm_bldc2x50->add(false, (char*)"BL2x50-0");
+	mrm_bldc2x50->add(false, (char*)"BL2x50-1");
+	mrm_bldc2x50->add(false, (char*)"BL2x50-2");
+	mrm_bldc2x50->add(false, (char*)"BL2x50-3");
 
 	// LEDs
 	pinMode(2, OUTPUT);
@@ -137,117 +190,128 @@ Robot::Robot(char name[15]) {
 	digitalWrite(15, false);
 
 	// Motors mrm-bldc4x2.5
-	mrm_bldc4x2_5->add(false, "BL4x2.5-0");
-	mrm_bldc4x2_5->add(false, "BL4x2.5-1");
-	mrm_bldc4x2_5->add(false, "BL4x2.5-2");
-	mrm_bldc4x2_5->add(false, "BL4x2.5-3");
+	mrm_bldc4x2_5->add(false, (char*)"BL4x2.5-0");
+	mrm_bldc4x2_5->add(false, (char*)"BL4x2.5-1");
+	mrm_bldc4x2_5->add(false, (char*)"BL4x2.5-2");
+	mrm_bldc4x2_5->add(false, (char*)"BL4x2.5-3");
+
+	// Colors sensors mrm-col-b
+	mrm_col_b->add((char*)"Clr-0");
+	mrm_col_b->add((char*)"Clr-1");
 
 	// Colors sensors mrm-col-can
-	mrm_col_can->add("Col-0");
-	mrm_col_can->add("Col-1");
-	mrm_col_can->add("Col-2");
-	mrm_col_can->add("Col-3");
+	mrm_col_can->add((char*)"Col-0");
+	mrm_col_can->add((char*)"Col-1");
+	mrm_col_can->add((char*)"Col-2");
+	mrm_col_can->add((char*)"Col-3");
+
+	// FET outputs
+	mrm_fet_can->add((char*)"FET-0");
 
 	// IMU
 	mrm_imu->add();
 
-	// mrm-ir-finder2
-	mrm_ir_finder2->add(34, 33);
+	// // mrm-ir-finder2
+	// mrm_ir_finder3->add(34, 33);
 
-	// mrm-ir-finder-can
-	mrm_ir_finder_can->add("IRFind-0");
+	// // mrm-ir-finder-can
+	// mrm_ir_finder_can->add((char*)"IRFind-0");
 
 	// mrm-ir-finder3
-	mrm_ir_finder3->add("IR3Fin-0");
+	mrm_ir_finder3->add((char*)"IR3Fin-0");
 
 	// Motors mrm-mot2x50
-	mrm_mot2x50->add(false, "Mot2x50-0");
-	mrm_mot2x50->add(false, "Mot2x50-1");
-	mrm_mot2x50->add(false, "Mot2x50-2");
-	mrm_mot2x50->add(false, "Mot2x50-3");
-	mrm_mot2x50->add(false, "Mot2x50-4");
-	mrm_mot2x50->add(false, "Mot2x50-5");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-0");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-1");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-2");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-3");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-4");
+	mrm_mot2x50->add(false, (char*)"Mot2x50-5");
 
 	// Motors mrm-mot4x10
-	mrm_mot4x10->add(false, "Mot4x10-0");
-	mrm_mot4x10->add(false, "Mot4x10-1");
-	mrm_mot4x10->add(false, "Mot4x10-2");
-	mrm_mot4x10->add(false, "Mot4x10-3");
+	mrm_mot4x10->add(false, (char*)"Mot4x10-0");
+	mrm_mot4x10->add(false, (char*)"Mot4x10-1");
+	mrm_mot4x10->add(false, (char*)"Mot4x10-2");
+	mrm_mot4x10->add(false, (char*)"Mot4x10-3");
 
 	// Motors mrm-mot4x3.6can
-	mrm_mot4x3_6can->add(false, "Mot3.6-0");
-	mrm_mot4x3_6can->add(false, "Mot3.6-1");
-	mrm_mot4x3_6can->add(false, "Mot3.6-2");
-	mrm_mot4x3_6can->add(false, "Mot3.6-3");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-0");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-1");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-2");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-3");
 
-	mrm_mot4x3_6can->add(false, "Mot3.6-4");
-	mrm_mot4x3_6can->add(false, "Mot3.6-5");
-	mrm_mot4x3_6can->add(false, "Mot3.6-6");
-	mrm_mot4x3_6can->add(false, "Mot3.6-7");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-4");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-5");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-6");
+	mrm_mot4x3_6can->add(false, (char*)"Mot3.6-7");
 
 	// Lidars mrm-lid-can-b, VL53L0X, 2 m
-	mrm_lid_can_b->add("Lidar2m-0");
-	mrm_lid_can_b->add("Lidar2m-1");
-	mrm_lid_can_b->add("Lidar2m-2");
-	mrm_lid_can_b->add("Lidar2m-3");
-	mrm_lid_can_b->add("Lidar2m-4");
-	mrm_lid_can_b->add("Lidar2m-5");
-	mrm_lid_can_b->add("Lidar2m-6");
-	mrm_lid_can_b->add("Lidar2m-7");
-	mrm_lid_can_b->add("Lidar2m-8");
-	mrm_lid_can_b->add("Lidar2m-9");
-	mrm_lid_can_b->add("Lidar2m10");
-	mrm_lid_can_b->add("Lidar2m11");	
-	mrm_lid_can_b->add("Lidar2m12");
-	mrm_lid_can_b->add("Lidar2m13");
+	mrm_lid_can_b->add((char*)"Lidar2m-0");
+	mrm_lid_can_b->add((char*)"Lidar2m-1");
+	mrm_lid_can_b->add((char*)"Lidar2m-2");
+	mrm_lid_can_b->add((char*)"Lidar2m-3");
+	mrm_lid_can_b->add((char*)"Lidar2m-4");
+	mrm_lid_can_b->add((char*)"Lidar2m-5");
+	mrm_lid_can_b->add((char*)"Lidar2m-6");
+	mrm_lid_can_b->add((char*)"Lidar2m-7");
+	mrm_lid_can_b->add((char*)"Lidar2m-8");
+	mrm_lid_can_b->add((char*)"Lidar2m-9");
+	mrm_lid_can_b->add((char*)"Lidar2m10");
+	mrm_lid_can_b->add((char*)"Lidar2m11");	
+	mrm_lid_can_b->add((char*)"Lidar2m12");
+	mrm_lid_can_b->add((char*)"Lidar2m13");
 
 	// Lidars mrm-lid-can-b2, VL53L1X, 4 m
-	mrm_lid_can_b2->add("Lidar4m-0");
-	mrm_lid_can_b2->add("Lidar4m-1");
-	mrm_lid_can_b2->add("Lidar4m-2");
-	mrm_lid_can_b2->add("Lidar4m-3");
-	mrm_lid_can_b2->add("Lidar4m-4");
-	mrm_lid_can_b2->add("Lidar4m-5");
-	mrm_lid_can_b2->add("Lidar4m-6");
-	mrm_lid_can_b2->add("Lidar4m-7");
+	mrm_lid_can_b2->add((char*)"Lidar4m-0");
+	mrm_lid_can_b2->add((char*)"Lidar4m-1");
+	mrm_lid_can_b2->add((char*)"Lidar4m-2");
+	mrm_lid_can_b2->add((char*)"Lidar4m-3");
+	mrm_lid_can_b2->add((char*)"Lidar4m-4");
+	mrm_lid_can_b2->add((char*)"Lidar4m-5");
+	mrm_lid_can_b2->add((char*)"Lidar4m-6");
+	mrm_lid_can_b2->add((char*)"Lidar4m-7");
 
 	// CAN Bus node
-	mrm_node->add("Node-0");
-	mrm_node->add("Node-1");
+	mrm_node->add((char*)"Node-0");
+	mrm_node->add((char*)"Node-1");
 
 	// Reflective array
-	mrm_ref_can->add("RefArr-0");
-	mrm_ref_can->add("RefArr-1");
-	mrm_ref_can->add("RefArr-2");
-	mrm_ref_can->add("RefArr-3");
+	mrm_ref_can->add((char*)"RefArr-0");
+	mrm_ref_can->add((char*)"RefArr-1");
+	mrm_ref_can->add((char*)"RefArr-2");
+	mrm_ref_can->add((char*)"RefArr-3");
 
 	// Servo motors. Note that some pins are not appropriate for PWM (servo)
-	mrm_servo->add(18, "Servo1", 0, 300, 0.5, 2.5); // Data for mrm-rds5060-300
-	mrm_servo->add(19, "Servo2", 0, 300, 0.5, 2.5);
-	mrm_servo->add(16, "Servo3", 0, 300, 0.5, 2.5); 
-	mrm_servo->add(17, "Servo4", 0, 300, 0.5, 2.5);
+	mrm_servo->add(18, (char*)"Servo1", 0, 300, 0.5, 2.5); // Data for mrm-rds5060-300
+	mrm_servo->add(19, (char*)"Servo2", 0, 300, 0.5, 2.5);
+	mrm_servo->add(16, (char*)"Servo3", 0, 300, 0.5, 2.5); 
+	mrm_servo->add(17, (char*)"Servo4", 0, 300, 0.5, 2.5);
 
 
 	// Switch
-	mrm_switch->add(18, 19, "Switch");
+	mrm_switch->add(18, 19, (char*)"Switch");
 
 	// Thermal array
-	mrm_therm_b_can->add("Thermo-0");
-	mrm_therm_b_can->add("Thermo-1");
-	mrm_therm_b_can->add("Thermo-2");
-	mrm_therm_b_can->add("Thermo-3");
+	mrm_therm_b_can->add((char*)"Thermo-0");
+	mrm_therm_b_can->add((char*)"Thermo-1");
+	mrm_therm_b_can->add((char*)"Thermo-2");
+	mrm_therm_b_can->add((char*)"Thermo-3");
 
 	// Ultrasonic
-	mrm_us->add("US-0");
-	mrm_us->add("US-1");
-	mrm_us->add("US-2");
-	mrm_us->add("US-3");
+	mrm_us_b->add((char*)"US-B-0");
+	mrm_us1->add((char*)"US1-0");
+	// mrm_us->add((char*)"US-0");
+	// mrm_us->add((char*)"US-1");
+	// mrm_us->add((char*)"US-2");
+	// mrm_us->add((char*)"US-3");
 
 	// Add boards
 	add(mrm_8x8a);
 	add(mrm_bldc2x50);
 	add(mrm_bldc4x2_5);
+	add(mrm_col_b);
 	add(mrm_col_can);
+	add(mrm_fet_can);
 	add(mrm_ir_finder3);
 	add(mrm_lid_can_b);
 	add(mrm_lid_can_b2);
@@ -257,7 +321,16 @@ Robot::Robot(char name[15]) {
 	add(mrm_node);
 	add(mrm_ref_can);
 	add(mrm_therm_b_can);
-	add(mrm_us);
+	// add(mrm_us);
+	add(mrm_us_b);
+	add(mrm_us1);
+
+	_devicesAtStartup = devicesScan(true);
+	if (mrm_8x8a->alive()){
+		char buffer[7];
+		sprintf(buffer, "N:%i.", _devicesAtStartup);
+		mrm_8x8a->text(buffer);
+	}
 }
 
 /** Add a new action to the collection of robot's possible actions.
@@ -305,22 +378,28 @@ void Robot::actionSet() {
 
 	// If a button pressed, first execute its action
 	ActionBase* action8x8 = NULL;
-	if (mrm_8x8a->alive())
-		action8x8 = mrm_8x8a->actionCheck();
-	ActionBase* actionSw = mrm_switch->actionCheck();
+	if (mrm_8x8a->alive()) 
+		action8x8 = mrm_8x8a->actionCheck(); 
+	ActionBase* actionSw = mrm_switch->actionCheck(); 
 	if (action8x8 != NULL)
 		actionSet(action8x8);
 	else if (actionSw != NULL)
 		actionSet(actionSw);
 	else { // Check keyboard
-		if (Serial.available() || serialBT != NULL && serialBT->available()) {
+		bool btAvailable = false;
+#if RADIO == 1
+		btAvailable = serialBT != NULL && serialBT->available();
+#endif
+		if (Serial.available() || btAvailable) {
 			lastUserActionMs = millis();
-			uint8_t ch;
+			uint8_t ch = ' ';
 			if (Serial.available())
 				ch = Serial.read();
+#if RADIO == 1
 			else
 				if (serialBT != NULL)
 					ch = serialBT->read();
+#endif
 
 			if (ch != 13) //if received data different from ascii 13 (enter)
 				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
@@ -477,7 +556,7 @@ bool Robot::boardSelect(uint8_t selectedNumber, uint8_t *selectedBoardIndex, uin
 			if (board[boardNumber]->alive(deviceNumber)) {
 				if (currentCount == 0) {
 					if (++lastBoardAndIndex == selectedNumber) {
-						Board *selectedBoard = board[boardNumber];
+						// Board *selectedBoard = board[boardNumber];
 						*selectedDeviceIndex = deviceNumber;
 						*selectedBoardIndex = boardNumber;
 						*maxInput = board[boardNumber]->deadOrAliveCount() / board[boardNumber]->devicesOnASingleBoard() - 1;
@@ -539,35 +618,50 @@ void Robot::canIdChange() {
 /** mrm-color-can illumination off
 */
 void Robot::colorIlluminationOff() {
-	mrm_col_can->illumination(0xFF, 0);
+	if (mrm_col_can->alive())
+		mrm_col_can->illumination(0xFF, 0);
+	else if (mrm_col_b->alive())
+		mrm_col_b->illumination(0xFF, 0);
 	end();
 }
 
 /** mrm-color-can illumination on
 */
 void Robot::colorIlluminationOn() {
-	mrm_col_can->illumination(0xFF, 1);
+	if (mrm_col_can->alive())
+		mrm_col_can->illumination(0xFF, 5);
+	else if (mrm_col_b->alive())
+		mrm_col_b->illumination(0xFF, 5);
 	end();
 }
 
 /** Erase HSV patterns
 */
 void Robot::colorPatternErase() {
-	mrm_col_can->patternErase();
+	if (mrm_col_can->alive())
+		mrm_col_can->patternErase();
+	else if (mrm_col_b->alive())
+		mrm_col_b->patternErase();
 	end();
 }
 
 /** Print HSV patterns
 */
 void Robot::colorPatternPrint() {
-	mrm_col_can->patternPrint();
+	if (mrm_col_can->alive())
+		mrm_col_can->patternPrint();
+	else if (mrm_col_b->alive())
+		mrm_col_b->patternPrint();
 	end();
 }
 
 /** Record HSV color patterns
 */
 void Robot::colorPatternRecord() {
-	mrm_col_can->patternsRecord();
+	if (mrm_col_can->alive())
+		mrm_col_can->patternsRecord();
+	else if (mrm_col_b->alive())
+		mrm_col_b->patternsRecord();
 	end();
 }
 
@@ -594,7 +688,9 @@ void Robot::delayMicros(uint16_t pauseMicros) {
 	uint32_t startMicros = micros();
 	do {
 		noLoopWithoutThis();
-	} while (micros() - startMicros < pauseMicros);
+		if (startMicros > micros()) // micros() will overflow after 72 min!
+			startMicros = 0; // In that case, reset the start time
+	} while (micros() < startMicros + pauseMicros);
 }
 
 /** Contacts all the CAN Bus devices and checks which one is alive.
@@ -645,7 +741,7 @@ void Robot::errors() {
 void Robot::firmwarePrint() {
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		board[i]->firmwareRequest();
-		uint32_t startMs = millis();
+		// uint32_t startMs = millis();
 		delayMs(1);
 	}
 	end();
@@ -677,7 +773,7 @@ void Robot::fpsPause() {
 */
 void Robot::fpsPrint() {
 	print("CAN peaks: %i received/s, %i sent/s\n\r", mrm_can_bus->messagesPeakReceived(), mrm_can_bus->messagesPeakSent());
-	print("Arduino: %i FPS, low peak: %i FPS\n\r", (int)fpsGet(), fpsTopGap == 1000000 ? 0 : (int)(1000000 / (float)fpsTopGap));
+	print("Arduino: %i FPS, low peak: %i FPS\n\r", (int)fpsGet(), fpsTopGap == 1000 ? 0 : (int)(1000 / (float)fpsTopGap));
 	for (uint8_t i = 0; i < _boardNextFree; i++) {
 		board[i]->fpsRequest();
 		uint32_t startMs = millis();
@@ -701,7 +797,7 @@ void Robot::fpsReset() {
 /** Updates data for FPS calculation
 */
 void Robot::fpsUpdate() {
-	fpsMs[fpsNextIndex] = micros();
+	fpsMs[fpsNextIndex] = millis(); // millis() will overflow after some time! Not taken into account here.
 	fpsNextIndex = (fpsNextIndex == 0 ? 1 : 0);
 	if (fpsMs[0] != 0 && fpsMs[1] != 0) {
 		uint32_t gap = (fpsNextIndex == 0 ? fpsMs[1] - fpsMs[0] : fpsMs[0] - fpsMs[1]);
@@ -744,7 +840,7 @@ void Robot::info() {
 	end();
 }
 
-/** Tests mrm-ir-finder-can, raw data.
+/** Tests mrm-ir-finder3, raw data.
 */
 void Robot::irFinder3Test() {
 	if (setup())
@@ -752,7 +848,7 @@ void Robot::irFinder3Test() {
 	mrm_ir_finder3->test();
 }
 
-/** Tests mrm-ir-finder-can, calculated data.
+/** Tests mrm-ir-finder3, calculated data.
 */
 void Robot::irFinder3TestCalculated() {
 	if (setup())
@@ -843,8 +939,16 @@ void Robot::lidarCalibrate() {
 */
 void Robot::menu() {
 	// Print menu
-	if (_devicesScanBeforeMenu)
-		devicesScan(false);
+	if (_devicesScanBeforeMenu){
+		uint8_t cnt = devicesScan(false);
+		if (cnt > _devicesAtStartup)  // Late-booters
+			_devicesAtStartup = cnt;
+		else if (cnt < _devicesAtStartup){
+			print("%i devices instead of %i!\n\r", cnt, _devicesAtStartup);
+			if (mrm_8x8a->alive(0, false))
+				mrm_8x8a->text((char*)"Error. Cnt.");
+		}
+	}
 	print("\r\n");
 
 	bool any = false;
@@ -938,26 +1042,30 @@ void Robot::messagePrint(CANBusMessage *msg, bool outbound) {
 /** Receives CAN Bus messages. 
 */
 void Robot::messagesReceive() {
+	#define REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN false
 	while (true) {
-		CANBusMessage* msg = mrm_can_bus->messageReceive();
-		if (msg == NULL) // No more messages
+		_msg = mrm_can_bus->messageReceive();
+		if (_msg == NULL) // No more messages
 			break;
-		uint32_t id = msg->messageId;
+		uint32_t id = _msg->messageId;
 		if (_sniff)
-			messagePrint(msg, false);
+			messagePrint(_msg, false);
+		#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
 		bool any = false;
+		#endif
 		for (uint8_t boardId = 0; boardId < _boardNextFree; boardId++) {
-			if (board[boardId]->messageDecode(id, msg->data)) {
+ 			if (board[boardId]->messageDecode(id, _msg->data)) {
+				#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
 				any = true;
 				break;
+				#endif
 			}
 		}
 
-#define REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN false
-#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
-		if (!any)
-			print("Address device unknown: 0x%X\n\r", id);
-#endif
+// #if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
+// 		if (!any)
+// 			print("Address device unknown: 0x%X\n\r", id);
+// #endif
 	}
 }
 
@@ -987,6 +1095,9 @@ void Robot::noLoopWithoutThis() {
 	fpsUpdate(); // Measure FPS. Less than 30 - a bad thing.
 	verbosePrint(); // Print FPS and maybe some additional data
 	errors();
+#if RADIO == 2
+	web();
+#endif
 }
 
 /** Production test
@@ -1016,7 +1127,7 @@ void Robot::reflectanceArrayCalibrationPrint() {
 */
 void Robot::run() {
 	while (true) {
-		actionSet(); // Check if a key pressed and update current command buffer.
+		actionSet(); // Check if a key pressed and update current command buffer. 
 		if (_actionCurrent == NULL) // If last command finished, display menu.
 			menu();
 		else 
@@ -1039,13 +1150,19 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 	uint32_t lastMs = millis();
 	uint32_t convertedNumber = 0;
 	bool any = false;
-	while (millis() - lastMs < timeoutFirst && !any || !onlySingleDigitInput && millis() - lastMs < timeoutBetween && any) {
-		if (Serial.available() || serialBT != NULL && serialBT->available()) {
+	while ((millis() - lastMs < timeoutFirst && !any) || (!onlySingleDigitInput && millis() - lastMs < timeoutBetween && any)) {
+		bool btAvailable = false;
+#if RADIO == 1
+		btAvailable = serialBT != NULL && serialBT->available();
+#endif
+		if (Serial.available() || btAvailable) {
 			uint8_t character = 0;
 			if (Serial.available())
 				character = Serial.read();
+#if RADIO == 1
 			else if (serialBT != NULL && serialBT->available())
 				character = serialBT->read();
+#endif
 			if (48 <= character && character <= 57) {
 				convertedNumber = convertedNumber * 10 + (character - 48);
 				any = true;
@@ -1058,8 +1175,10 @@ uint16_t Robot::serialReadNumber(uint16_t timeoutFirst, uint16_t timeoutBetween,
 	// Eat tail
 	while (Serial.available())
 		Serial.read();
+#if RADIO == 1
 	while (serialBT != NULL && serialBT->available())
 		serialBT->read();
+#endif
 
 	// Return result
 	if (any) {
@@ -1129,6 +1248,7 @@ bool Robot::stressTest() {
 			char buffer[50];
 			sprintf(buffer, "%i devices.\n\r", totalCnt);
 			mrm_8x8a->text(buffer);
+			mrm_8x8a->activeCheckIfStartedSet(false); // This is not a normal state, but just not to disrupt the test.
 		}
 	}
 
@@ -1201,7 +1321,11 @@ void Robot::thermoTest() {
 @return - true if break requested.
 */
 bool Robot::userBreak() {
-	if (/*switchOn() ||*/ Serial.available() || serialBT != NULL && serialBT->available()) {
+	bool btAvailable = false;
+#if RADIO == 1
+	btAvailable = serialBT != NULL && serialBT->available();
+#endif
+	if (/*switchOn() ||*/ Serial.available() || btAvailable) {
 		return true;
 	}
 	else
@@ -1226,15 +1350,77 @@ void Robot::verboseToggle() {
 	verbose = !verbose;
 };
 
-///** Print to all serial ports, pointer to list
-//*/
-//void Robot::vprint(const char* fmt, va_list argp) {
-//	if (strlen(fmt) >= 100)
-//		return;
-//	static char buffer[100];
-//	vsprintf(buffer, fmt, argp);
-//
-//	Serial.print(buffer);
-//	if (serialBT() != 0)
-//		serialBT()->print(buffer);
-//}
+#if RADIO == 2
+/** Web server
+*/
+void Robot::web(){
+	static uint32_t previousTime = 0;
+	static uint32_t currentTime = 0;
+	const uint16_t timeoutTime = 2000;
+	// Variable to store the HTTP request
+	String header;
+
+	WiFiClient client = webServer->available();   // Listen for incoming clients
+
+  	if (client) {                             // If a new client connects,
+		currentTime = millis();
+		previousTime = currentTime;
+		print("New Client.\n\r");          // print a message out in the serial port
+		String currentLine = "";                // make a String to hold incoming data from the client
+		while (client.connected() && currentTime - previousTime <= timeoutTime) {  // loop while the client's connected
+			currentTime = millis();
+			if (client.available()) {             // if there's bytes to read from the client,
+				char c = client.read();             // read a byte, then
+				print("%c", c);                    // print it out the serial monitor
+				header += c;
+				if (c == '\n') {                    // if the byte is a newline character
+					// if the current line is blank, you got two newline characters in a row.
+					// that's the end of the client HTTP request, so send a response:
+					if (currentLine.length() == 0) {
+						// HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+						// and a content-type so the client knows what's coming, then a blank line:
+						client.println("HTTP/1.1 200 OK");
+						client.println("Content-type:text/html");
+						client.println("Connection: close");
+						client.println();
+						
+						// Display the HTML web page
+						client.println("<!DOCTYPE html><html>");
+						client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+						client.println("<link rel=\"icon\" href=\"data:,\">");
+						// CSS to style the on/off buttons 
+						// Feel free to change the background-color and font-size attributes to fit your preferences
+						client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+						client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
+						client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
+						client.println(".button2 {background-color: #555555;}</style></head>");
+						
+						// Web Page Heading
+						client.println("<body><h1>ESP32 Web Server</h1>");
+						
+						// Display current state, and ON/OFF buttons for GPIO 26  
+						client.println("<p>State </p>");
+
+						client.println("</body></html>");
+						
+						// The HTTP response ends with another blank line
+						client.println();
+						// Break out of the while loop
+						break;
+					} else { // if you got a newline, then clear currentLine
+						currentLine = "";
+					}
+				} else if (c != '\r') {  // if you got anything else but a carriage return character,
+					currentLine += c;      // add it to the end of the currentLine
+				}
+			}
+		}
+		// Clear the header variable
+		header = "";
+		// Close the connection
+		client.stop();
+		Serial.println("Client disconnected.");
+		Serial.println("");
+	}
+}
+#endif

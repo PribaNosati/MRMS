@@ -74,7 +74,7 @@ void Mrm_ref_can::add(char * deviceName)
 */
 bool Mrm_ref_can::analogStarted(uint8_t deviceNumber) {
 	if ((*_mode)[deviceNumber] != ANALOG_VALUES || millis() - (*_lastReadingMs)[deviceNumber] > MRM_REF_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		//print("Start analog \n\r"); // AAA
+		//print("Start analog \n\r"); 
 		(*_lastReadingMs)[deviceNumber] = 0;
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0); // As analog
@@ -82,7 +82,7 @@ bool Mrm_ref_can::analogStarted(uint8_t deviceNumber) {
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					//print("Analog confirmed\n\r"); // AAA
+					//print("Analog confirmed\n\r"); 
 					(*_mode)[deviceNumber] = ANALOG_VALUES;
 					return true;
 				}
@@ -285,7 +285,7 @@ void Mrm_ref_can::dataFreshReadingsSet(bool setToFresh, uint8_t deviceNumber) {
 bool Mrm_ref_can::digitalStarted(uint8_t deviceNumber, bool darkCenter, bool startIfNot) {
 	if ((*_mode)[deviceNumber] != DIGITAL_AND_DARK_CENTER || millis() - (*_lastReadingMs)[deviceNumber] > MRM_REF_CAN_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
 		if (startIfNot) {
-			//print("Digital started, dark: %i \n\r", darkCenter); // AAA
+			//print("Digital started, dark: %i \n\r", darkCenter); 
 			(*_lastReadingMs)[deviceNumber] = 0;
 			for (uint8_t i = 0; i < 8; i++) { // 8 tries
 				start(deviceNumber, darkCenter ? 1 : 2); // As digital with dark or bright center
@@ -293,7 +293,7 @@ bool Mrm_ref_can::digitalStarted(uint8_t deviceNumber, bool darkCenter, bool sta
 				uint32_t startMs = millis();
 				while (millis() - startMs < 50) {
 					if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-						//print("Digital confirmed\n\r"); // AAA
+						//print("Digital confirmed\n\r"); 
 						(*_mode)[deviceNumber] = darkCenter ? DIGITAL_AND_DARK_CENTER : DIGITAL_AND_BRIGHT_CENTER;
 						return true;
 					}
@@ -436,12 +436,11 @@ void Mrm_ref_can::readingsPrint() {
 }
 
 /**Test
-@param analog - if not, digital values.
+@param analog - if true, analog values - if not, digital values.
 */
 void Mrm_ref_can::test(bool analog)
 {
 	static uint32_t lastMs = 0;
-
 	if (millis() - lastMs > 300) {
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {

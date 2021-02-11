@@ -118,7 +118,7 @@ public:
 	/** Add a mrm-ref-can sensor
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char*)"");
 
 	/** Any dark or bright
 	@param dark - any dark? Otherwise, any bright?
@@ -184,7 +184,7 @@ public:
 	void readingsPrint();
 
 	/**Test
-	@param analog - if not, digital values.
+	@param analog - if true, analog values - if not, digital values.
 	*/
 	void test(bool analog);
 

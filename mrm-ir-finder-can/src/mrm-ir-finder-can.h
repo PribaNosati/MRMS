@@ -56,7 +56,7 @@ public:
 	/** Add a mrm-ir-finder-can sensor
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char*)"");
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

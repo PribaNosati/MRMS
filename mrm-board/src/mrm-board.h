@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Arduino.h"
-#include <BluetoothSerial.h>
 #include <mrm-can-bus.h>
 #include <mrm-common.h>
 #include <mrm-pid.h>
@@ -48,8 +47,9 @@
 #define toDeg(x) ((x) / PI * 180.0) // Radians to degrees
 #endif
 
-enum BoardId{ID_MRM_8x8A, ID_ANY, ID_MRM_BLDC2X50, ID_MRM_BLDC4x2_5, ID_MRM_COL_CAN, ID_MRM_IR_FINDER_2, ID_MRM_IR_FINDER3, ID_MRM_IR_FINDER_CAN, ID_MRM_LID_CAN_B, ID_MRM_LID_CAN_B2, ID_MRM_MOT2X50, ID_MRM_MOT4X3_6CAN, ID_MRM_MOT4X10,
-	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US};
+enum BoardId{ID_MRM_8x8A, ID_ANY, ID_MRM_BLDC2X50, ID_MRM_BLDC4x2_5, ID_MRM_COL_B, ID_MRM_COL_CAN, ID_MRM_FET_CAN, ID_MRM_IR_FINDER_2, 
+	ID_MRM_IR_FINDER3, ID_MRM_IR_FINDER_CAN, ID_MRM_LID_CAN_B, ID_MRM_LID_CAN_B2, ID_MRM_MOT2X50, ID_MRM_MOT4X3_6CAN, ID_MRM_MOT4X10, 
+	ID_MRM_NODE, ID_MRM_REF_CAN, ID_MRM_SERVO, ID_MRM_SWITCH, ID_MRM_THERM_B_CAN, ID_MRM_US, ID_MRM_US_B, ID_MRM_US1};
 
 enum BoardType{MOTOR_BOARD, SENSOR_BOARD};
 
@@ -99,7 +99,7 @@ public:
 	@param boardName - board's name
 	@param id - unique id
 	*/
-	Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, char * boardName, BoardType boardType, BoardId id);
+	Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOnABoard, const char * boardName, BoardType boardType, BoardId id);
 
 	/** Add a device. 
 	@param deviceName
@@ -309,7 +309,7 @@ public:
 	@param maxNumberOfBoards - maximum number of boards
 	@param id - unique id
 	*/
-	MotorBoard(Robot* robot, uint8_t devicesOnABoard, char * boardName, uint8_t maxNumberOfBoards, BoardId id);
+	MotorBoard(Robot* robot, uint8_t devicesOnABoard, const char * boardName, uint8_t maxNumberOfBoards, BoardId id);
 
 	/** Changes rotation's direction
 	@param deviceNumber - Devices's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -363,7 +363,7 @@ public:
 	@param maxNumberOfBoards - maximum number of boards
 	@param id - unique id
 	*/
-	SensorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards, BoardId id);
+	SensorBoard(Robot* robot, uint8_t devicesOnABoard, const char* boardName, uint8_t maxNumberOfBoards, BoardId id);
 
 	/** Starts periodical CANBus messages that will be refreshing values that mirror sensor's calculated values
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -375,7 +375,7 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	@return - true if canId for this class
 	*/
-	virtual bool messageDecode(uint32_t canId, uint8_t data[8]){}
+	virtual bool messageDecode(uint32_t canId, uint8_t data[8]){return false;}
 };
 
 //typedef void (*SpeedSetFunction)(uint8_t motorNumber, int8_t speed);

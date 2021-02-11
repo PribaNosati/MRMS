@@ -1,5 +1,6 @@
 #include <mrm-8x8a.h>
 #include <mrm-col-can.h>
+#include <mrm-fet-can.h>
 #include <mrm-imu.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
@@ -838,7 +839,7 @@ void RobotLine::loop1() { armCatchReady(); end(); }
 void RobotLine::loop2() { armIdle(); end(); }
 void RobotLine::loop3() { actionSet(actionEvacuationZone); }
 void RobotLine::loop4() { armCatch(); end(); }
-void RobotLine::loop5() {}
+void RobotLine::loop5() { mrm_fet_can->test(); }
 void RobotLine::loop6() {}
 void RobotLine::loop7() {}
 void RobotLine::loop8() {}

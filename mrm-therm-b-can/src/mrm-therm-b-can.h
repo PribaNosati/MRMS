@@ -54,7 +54,7 @@ public:
 	/** Add a mrm-therm-b-an board
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char *)"");
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

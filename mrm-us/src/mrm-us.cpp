@@ -72,12 +72,12 @@ bool Mrm_us::messageDecode(uint32_t canId, uint8_t data[8]) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (isForMe(canId, deviceNumber)) {
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
-				bool any = false;
-				uint8_t startIndex = 0;
+				// bool any = false;
+				// uint8_t startIndex = 0;
 				switch (data[0]) {
 				case COMMAND_SENSORS_MEASURE_SENDING:
-					startIndex = 0;
-					any = true;
+					// startIndex = 0;
+					// any = true;
 					break;
 				default:
 					print("Unknown command. ");

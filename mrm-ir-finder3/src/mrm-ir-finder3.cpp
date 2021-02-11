@@ -66,7 +66,7 @@ void Mrm_ir_finder3::add(char * deviceName)
 
 /** Ball's direction
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@return - robot's front is 0°, positive angles clockwise, negative anti-clockwise. Back of the robot is 180°.
+@return - robot's front is 0ï¿½, positive angles clockwise, negative anti-clockwise. Back of the robot is 180ï¿½.
 */
 int16_t Mrm_ir_finder3::angle(uint8_t deviceNumber) {
 	if (singleStarted(deviceNumber))
@@ -81,7 +81,7 @@ int16_t Mrm_ir_finder3::angle(uint8_t deviceNumber) {
 */
 bool Mrm_ir_finder3::calculatedStarted(uint8_t deviceNumber) {
 	if (!(*_calculated)[deviceNumber] || millis() - (*_lastReadingMs)[deviceNumber] > MRM_IR_FINDER3_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		print("Start IR finder \n\r"); // AAA
+		print("Start IR finder \n\r"); 
 		(*_lastReadingMs)[deviceNumber] = 0;
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 1); // As calculated
@@ -89,7 +89,7 @@ bool Mrm_ir_finder3::calculatedStarted(uint8_t deviceNumber) {
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					print("IR3 confirmed\n\r"); // AAA
+					print("IR3 confirmed\n\r"); 
 					(*_calculated)[deviceNumber] = true;
 					return true;
 				}
@@ -214,7 +214,7 @@ void Mrm_ir_finder3::test()
 */
 bool Mrm_ir_finder3::singleStarted(uint8_t deviceNumber) {
 	if ((*_calculated)[deviceNumber] || millis() - (*_lastReadingMs)[deviceNumber] > MRM_IR_FINDER3_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		print("Start IR finder \n\r"); // AAA
+		print("Start IR finder \n\r"); 
 		(*_lastReadingMs)[deviceNumber] = 0;
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0); // As single
@@ -222,7 +222,7 @@ bool Mrm_ir_finder3::singleStarted(uint8_t deviceNumber) {
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					print("IR3 confirmed\n\r"); // AAA
+					print("IR3 confirmed\n\r"); 
 					(*_calculated)[deviceNumber] = false;
 					return true;
 				}

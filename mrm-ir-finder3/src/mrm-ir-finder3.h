@@ -70,11 +70,11 @@ public:
 	/** Add a mrm-ir-finder3 sensor
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char*)"");
 
 	/** Ball's direction
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - robot's front is 0°, positive angles clockwise, negative anti-clockwise. Back of the robot is 180°.
+	@return - robot's front is 0ï¿½, positive angles clockwise, negative anti-clockwise. Back of the robot is 180ï¿½.
 	*/
 	int16_t angle(uint8_t deviceNumber = 0);
 

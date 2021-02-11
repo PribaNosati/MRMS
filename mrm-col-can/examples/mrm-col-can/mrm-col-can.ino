@@ -12,5 +12,5 @@ void setup() {
 }
 
 void loop() {
-    mrm_col_can.test(); 
+    mrm_col_can.test(1); 
 }

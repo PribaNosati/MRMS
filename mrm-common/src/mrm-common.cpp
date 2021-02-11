@@ -1,7 +1,9 @@
 #include <mrm-common.h>
 
 // Global variables to reduce coupling among classes and reduce number of parameters
+#if RADIO == 1
 BluetoothSerial *serialBT = NULL;
+#endif
 char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
 
 /** Print to all serial ports
@@ -25,6 +27,8 @@ void vprint(const char* fmt, va_list argp) {
 	vsprintf(buffer, fmt, argp);
 
 	Serial.print(buffer);
+#if RADIO == 1
 	if (serialBT != NULL)
 		serialBT->print(buffer);
+#endif
 }

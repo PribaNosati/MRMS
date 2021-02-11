@@ -76,7 +76,7 @@ public:
 	/** Add a mrm-ref-can sensor
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char*)"");
 	
 	/** Calibration, only once after production
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

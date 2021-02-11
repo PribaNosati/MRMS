@@ -38,7 +38,7 @@ public:
 	@param pin2 - ESP32 pin the second switch is connected to. Enter 0xFF if not in use.
 	@param deviceName - device's name
 	*/
-	void add(uint8_t pin1 = 0xFF, uint8_t pin2 = 0xFF, char * deviceName = "");
+	void add(uint8_t pin1 = 0xFF, uint8_t pin2 = 0xFF, char * deviceName = (char *)"");
 
 	/** Read switch
 	@param switchNumber

@@ -21,15 +21,15 @@ Mrm_pid::Mrm_pid(float proportionalComponent, float derivativeComponent, float i
 */
 float Mrm_pid::calculate(float valueNow, bool verbose) {
 	float speed = 0;
-	float millisElapsed = (micros() - lastCalcuationAtMicros) / 1000.0;
-	if (millisElapsed > 0.00001)
-		speed = (valueNow - lastValue) / millisElapsed; // Change in 1 msec
+	float microsElapsed = (micros() - lastCalcuationAtMicros) / 1000.0; // Warning! micros() will overflow after 72 min!
+	if (microsElapsed > 0.00001)
+		speed = (valueNow - lastValue) / microsElapsed; // Change in 1 msec
 	lastCalcuationAtMicros = micros();
 	float pidCorrection = valueNow * proportional + speed * derivative + cumulativeValue * integrative; // Here the PID controller corrects the speed
 	cumulativeValue += valueNow;
 	if (verbose) {
 #ifdef PrintSpeed
-		print(" Sp="+ (String)speed + "=(" + (String)valueNow + "-" + (String)lastValue + ")/" + (String)millisElapsed);
+		print(" Sp="+ (String)speed + "=(" + (String)valueNow + "-" + (String)lastValue + ")/" + (String)microsElapsed);
 #endif
 		print(" Corr=" + (String)pidCorrection + "=" + (String)valueNow + "*" + (String)round(proportional));
 		if (derivative != 0) {

@@ -20,7 +20,7 @@ Mrm_bldc4x2_5::~Mrm_bldc4x2_5()
 */
 void Mrm_bldc4x2_5::add(bool isReversed, char * deviceName)
 {
-	uint16_t canIn, canOut;
+	uint16_t canIn = 0, canOut = 0;
 	switch (nextFree) {
 	case 0:
 		canIn = CAN_ID_BLDC4X2_5_0_MOTOR0_IN;

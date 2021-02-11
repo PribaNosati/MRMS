@@ -48,7 +48,7 @@ public:
 	@param isLeft - is on the left side
 	@param deviceName - device's name
 	*/
-	void add(bool isReversed = false, char * deviceName = "");
+	void add(bool isReversed = false, char * deviceName = (char*)"");
 };
 
 

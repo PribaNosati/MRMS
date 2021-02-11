@@ -78,7 +78,7 @@ void Mrm_switch::test()
 	static uint32_t lastMs = 0;
 
 	if (millis() - lastMs > 300) {
-		uint8_t pass = 0;
+		// uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			//if (alive(deviceNumber)) {
 				print("Sw:");

@@ -43,9 +43,9 @@ public:
 	@param maxDegrees - maximum servo angle
 	@param minDegreesPulseMicroSec - pulse ms for minimum angle
 	@param maxDegreesPulseMicroSec - pulse ms for maximum angle
-	@param timerWidth - timer width in bits, 1 - 16. 12 yields angle resolution of about 1º
+	@param timerWidth - timer width in bits, 1 - 16. 12 yields angle resolution of about 1ï¿½
 	*/
-	void add(uint8_t gpioPin = 16, char* deviceName = "", uint16_t minDegrees = 0, uint16_t maxDegrees = 180, float minDegreesPulseMs = 1, float maxDegreesPulseMs = 2, uint8_t timerWidth = 12);
+	void add(uint8_t gpioPin = 16, char* deviceName = (char *)"", uint16_t minDegrees = 0, uint16_t maxDegrees = 180, float minDegreesPulseMs = 1, float maxDegreesPulseMs = 2, uint8_t timerWidth = 12);
 
 	void sweep();
 
@@ -54,7 +54,7 @@ public:
 	void test();
 
 	/** Move servo
-	@param degrees - Servo's target angle, 0 - 180º, or 0 - 360°, depending on model, counting clockwise
+	@param degrees - Servo's target angle, 0 - 180ï¿½, or 0 - 360ï¿½, depending on model, counting clockwise
 	@param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 	*/
 	void write(uint16_t degrees = 90, uint8_t servoNumber = 0);

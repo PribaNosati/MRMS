@@ -39,7 +39,7 @@ void Mrm_imu::add(bool defaultI2CAddress) {
 }
 
 /**Compass
-@return - North is 0º, clockwise are positive angles, values 0 - 360.
+@return - North is 0ï¿½, clockwise are positive angles, values 0 - 360.
 */
 float Mrm_imu::heading() {
 	struct bno055_euler_float_t eulerData;
@@ -48,7 +48,7 @@ float Mrm_imu::heading() {
 }
 
 /**Pitch
-@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0º.
+@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0ï¿½.
 */
 float Mrm_imu::pitch() {
 	struct bno055_euler_float_t eulerData;
@@ -59,7 +59,7 @@ float Mrm_imu::pitch() {
 }
 
 /**Roll
-@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0º.
+@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0ï¿½.
 */
 float Mrm_imu::roll() {
 	struct bno055_euler_float_t eulerData;
@@ -730,7 +730,7 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 	//if (comres != BNO055_SUCCESS)
 	//	errorHandler();
 	bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
-	if (comres != BNO055_SUCCESS)
+	if (comres != BNO055_SUCCESS){
 #ifdef ESP_PLATFORM
 		if (robotContainer != NULL)
 			strcpy(errorMessage, "mrm-imu not initialized");
@@ -739,6 +739,7 @@ void Mrm_imu::bno055Initialize(bool defaultI2CAddress)
 #else
 		Serial.println("mrm-imu not initialized");
 #endif
+	}
 #ifdef ESP_PLATFORM
 	print("OK\n\r");
 #else

@@ -58,6 +58,7 @@ enum LED8x8Type{LED_8X8_CUSTOM, LED_8X8_STORED, LED_8X8_STORED_CUSTOM };
 
 class Mrm_8x8a : public SensorBoard
 {
+	bool _activeCheckIfStarted = true;
 	std::vector<uint8_t>* displayedLast;
 	std::vector<uint8_t>* displayedTypeLast;
 	std::vector<bool[MRM_8x8A_SWITCHES_COUNT]>* lastOn;
@@ -81,6 +82,10 @@ public:
 
 	~Mrm_8x8a();
 
+	/** Contacting mrm_8x8a periodically to check. Normally true:
+	 */
+	void activeCheckIfStartedSet(bool value){_activeCheckIfStarted = value;}
+
 	ActionBase* actionCheck();
 
 	void actionSet(ActionBase* action, uint8_t switchNumber, uint8_t deviceNumber = 0);
@@ -88,7 +93,7 @@ public:
 	/** Add a mrm-8x8a board
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char*)"");
 
 	/** Display stored (in sensor, read-only) bitmap
 	@param bitmapId - bitmap's id

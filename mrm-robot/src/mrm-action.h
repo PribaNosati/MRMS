@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include <BluetoothSerial.h>
 #include <mrm-board.h>
 #include <mrm-ref-can.h>
 
@@ -24,7 +23,7 @@ public:
 		A menu-action changes menuLevel to its own, forcing all the actions with this menuLevel to be displayed. "|" lists action in many menus, for example 1 | 16 | 16.
 	@param boardId - menu only for a specific board
 	*/
-	ActionBase(Robot* robot, char shortcut[4], char text[20], uint8_t menuLevel = 1, BoardId boardsId = ID_ANY);
+	ActionBase(Robot* robot, const char shortcut[4], const char text[20], uint8_t menuLevel = 1, BoardId boardsId = ID_ANY);
 
 	BoardId boardsId() { return _boardsId; }
 
@@ -71,6 +70,17 @@ public:
 	ActionCANBusStress(Robot* robot) : ActionBase(robot, "all", "CAN Bus stress", 16) {}//1 | 2 | 4 | 8 | 16 | 32 | 64 | 128-> in all menus. 0 - in no menu.
 };
 
+class ActionColorBTest6Colors : public ActionBase {
+	void perform();
+public:
+	ActionColorBTest6Colors(Robot* robot) : ActionBase(robot, "10c", "Test 10 colors", 4, ID_MRM_COL_B) {}
+};
+
+class ActionColorBTestHSV : public ActionBase {
+	void perform();
+public:
+	ActionColorBTestHSV(Robot* robot) : ActionBase(robot, "hsv", "Test HSV", 4, ID_MRM_COL_B) {}
+};
 
 class ActionColorIlluminationOff : public ActionBase {
 	void perform();
@@ -216,6 +226,12 @@ public:
 	ActionMenuColor(Robot* robot) : ActionBase(robot, "col", "Color (menu)", 1, ID_MRM_COL_CAN) {}
 };
 
+class ActionMenuColorB : public ActionBase {
+	void perform();
+public:
+	ActionMenuColorB(Robot* robot) : ActionBase(robot, "col", "Color (menu)", 1, ID_MRM_COL_B) {}
+};
+
 class ActionMenuMain : public ActionBase {
 	void perform();
 public:
@@ -304,4 +320,16 @@ class ActionThermoTest : public ActionBase {
 	void perform();
 public:
 	ActionThermoTest(Robot* robot) : ActionBase(robot, "the", "Test thermo", 1, ID_MRM_THERM_B_CAN) {}
+};
+
+class ActionUS_BTest : public ActionBase {
+	void perform();
+public:
+	ActionUS_BTest(Robot* robot) : ActionBase(robot, "uls", "Test ultras.", 1, ID_MRM_US_B) {}
+};
+
+class ActionUS1Test : public ActionBase {
+	void perform();
+public:
+	ActionUS1Test(Robot* robot) : ActionBase(robot, "ult", "Test ultras.", 1, ID_MRM_US1) {}
 };

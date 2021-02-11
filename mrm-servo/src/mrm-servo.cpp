@@ -20,7 +20,7 @@ Mrm_servo::~Mrm_servo()
 @param maxDegrees - maximum servo angle
 @param minDegreesPulseMicroSec - pulse ms for minimum angle
 @param maxDegreesPulseMicroSec - pulse ms for maximum angle
-@param timerWidth - timer width in bits, 1 - 16. 12 yields angle resolution of about 1º.
+@param timerWidth - timer width in bits, 1 - 16. 12 yields angle resolution of about 1ï¿½.
 */
 void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint16_t minDegrees, uint16_t maxDegrees, float minDegreesPulseMs, float maxDegreesPulseMs, uint8_t timerWidth)
 {
@@ -44,7 +44,7 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint16_t minDegrees, uint
 	_maxDegreesPulseMs = maxDegreesPulseMs;
 
 
-	// Standard servo, 0-180º: 20 ms period, duty 1 - 2 ms. 1.5 ms - neutral position.
+	// Standard servo, 0-180ï¿½: 20 ms period, duty 1 - 2 ms. 1.5 ms - neutral position.
 	// For pulseWidth=20 ms (50 Hz) and _timerWidth=12, tickLength = (1000 / 50) / (2^12 - 1) = 20/4095 = 0.004884 ms
 	// pulseHighWidth = numberOfTicks*tickLength
 	// numberOfTicksNeeded = pulseHighWidth/tickLength pulseHighWidthMicroSec/1000000/tickLength = pulseHighWidthMicroSec * f. For 90 degrees numberOfTicksNeeded = 1.5/0.004884 = 307. For 0 degrees numberOfTicksNeeded = 1/0.004884 = 205
@@ -52,7 +52,7 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint16_t minDegrees, uint
 	float tickLength = (1000 / (float)MRM_SERVO_FREQUENCY_HZ) / ((1 << _timerWidth) - 1); //tickLength = pulsePeriod/(2^timerWidthBits-1) * 1000, in ms. 
 	f = 1 / tickLength;
 	
-	double resFreq = ledcSetup(nextFree, MRM_SERVO_FREQUENCY_HZ, _timerWidth); // nextFree is channel number, which can be 0 - 15.
+	/*double resFreq = */ledcSetup(nextFree, MRM_SERVO_FREQUENCY_HZ, _timerWidth); // nextFree is channel number, which can be 0 - 15.
 	ledcAttachPin(gpioPin, nextFree); // gpioPin assigned to channel nextFree
 
 	nextFree++;
@@ -97,7 +97,7 @@ void Mrm_servo::test()
 }
 
 /** Move servo
-@param degrees - Servo's target angle, 0 - 180º, or 0 - 360°, depending on model, counting clockwise
+@param degrees - Servo's target angle, 0 - 180ï¿½, or 0 - 360ï¿½, depending on model, counting clockwise
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
 */
 void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
@@ -108,10 +108,10 @@ void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
 	degrees = constrain(degrees, _minDegrees, _maxDegrees);
 	ledcWrite(servoNumber, map(degrees, _minDegrees, _maxDegrees, _minDegreesPulseMs * f, _maxDegreesPulseMs * f));
 
-	uint16_t _minDegrees;
-	uint16_t _minDegreesPulseMicroSec;
-	uint16_t _maxDegrees;
-	uint16_t _maxDegreesPulseMicroSec;
+	// uint16_t _minDegrees;
+	// uint16_t _minDegreesPulseMicroSec;
+	// uint16_t _maxDegrees;
+	// uint16_t _maxDegreesPulseMicroSec;
 }
 
 /** Position servo according to user input.
@@ -124,7 +124,7 @@ void Mrm_servo::writeInteractive() {
 		print("\n\rTest motor %i\n\r", selectedMotor);
 
 		// Select speed
-		bool fixedSpeed = false;
+		// bool fixedSpeed = false;
 		print("Enter angle \n\r");
 		uint16_t degrees = robotContainer->serialReadNumber(2000, 500, false);
 		if (degrees != 0xFFFF) {

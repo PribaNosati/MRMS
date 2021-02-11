@@ -15,7 +15,7 @@
 @param boardName - board's name
 @param id - unique id
 */
-Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, char boardName[], BoardType boardType, BoardId id) {
+Board::Board(Robot* robot, uint8_t maxNumberOfBoards, uint8_t devicesOn1Board, const char boardName[], BoardType boardType, BoardId id) {
 	robotContainer = robot;
 	idIn = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
 	idOut = new std::vector<uint32_t>(maxNumberOfBoards * devicesOn1Board);
@@ -137,6 +137,7 @@ uint8_t Board::devicesScan(bool verbose, uint16_t mask) {
 			aliveSet(false, deviceNumber);
 			canData[0] = COMMAND_REPORT_ALIVE;
 			messageSend(canData, 1, deviceNumber);
+			// print("%s scanned\n\r", name(deviceNumber));
 			robotContainer->delayMicros(500); // Exchange CAN Bus messages and receive possible answer, that sets _alive. 
 		}
 	}
@@ -171,11 +172,12 @@ uint16_t Board::fps(uint8_t deviceNumber) {
 */
 void Board::fpsDisplay() {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-		if (alive(deviceNumber))
+		if (alive(deviceNumber)){
 			if ((*fpsLast)[deviceNumber] == 0xFFFF)
 				print("%s: no response\n\r", (*_name)[deviceNumber]);
 			else
 				print("%s: %i FPS\n\r", (*_name)[deviceNumber], fps(deviceNumber));
+		}
 	}
 }
 
@@ -296,7 +298,7 @@ bool Board::messageDecodeCommon(uint32_t canId, uint8_t data[8], uint8_t deviceN
 	case COMMAND_REPORT_ALIVE:
 		if (_aliveReport)
 			print("%s alive.\n\r", name(deviceNumber));
-		aliveSet(true, deviceNumber);
+		aliveSet(true, deviceNumber); 
 		break;
 	default:
 		found = false;
@@ -436,7 +438,7 @@ void Board::reset(uint8_t deviceNumber) {
 @param measuringModeNow - Measuring mode id. Default 0.
 @param refreshMs - gap between 2 CAN Bus messages to refresh local Arduino copy of device's data. 0 - device's default.
 */
-void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refreshMs) {
+void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refreshMs) { 
 	if (deviceNumber == 0xFF)
 		for (uint8_t i = 0; i < nextFree; i++)
 			start(i, measuringModeNow, refreshMs);
@@ -458,7 +460,6 @@ void Board::start(uint8_t deviceNumber, uint8_t measuringModeNow, uint16_t refre
 				canData[2] = (refreshMs >> 8) & 0xFF;
 			}
 			messageSend(canData, refreshMs == 0 ? 1 : 3, deviceNumber);
-			//robotContainer->mrm_can_bus->messageSend((*idIn)[deviceNumber], refreshMs == 0 ? 1 : 3, canData);
 #endif
 		}
 	}
@@ -507,7 +508,7 @@ void Board::swap(uint8_t deviceNumber1, uint8_t deviceNumber2) {
 @param maxNumberOfBoards - maximum number of boards
 @param id - unique id
 */
-MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, char* boardName, uint8_t maxNumberOfBoards, BoardId id) :
+MotorBoard::MotorBoard(Robot* robot, uint8_t devicesOnABoard, const char* boardName, uint8_t maxNumberOfBoards, BoardId id) :
 	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, MOTOR_BOARD, id) {
 	encoderCount = new std::vector<uint32_t>(devicesOnABoard * maxNumberOfBoards);
 	reversed = new std::vector<bool>(devicesOnABoard * maxNumberOfBoards);
@@ -611,7 +612,7 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 {
 	const uint16_t PAUSE_MS = 20;
 	const uint16_t DISPLAY_PAUSE_MS = 300;
-	const uint8_t STEP = 1;
+	// const uint8_t STEP = 1;
 	const uint8_t MAXIMUM_SPEED = 100; // Max. 127
 
 	const int8_t startSpeed[3] = { 0, MAXIMUM_SPEED, -MAXIMUM_SPEED };
@@ -645,9 +646,9 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 	while (goOn) {
 		for (uint8_t motorNumber = 0; motorNumber < nextFree; motorNumber++) {
 
-			if (selectedMotor != 0xFFFF && motorNumber != selectedMotor || !alive(motorNumber))
+			if ((selectedMotor != 0xFFFF && motorNumber != selectedMotor) || !alive(motorNumber))
 				continue;
-
+ 
 			if (!encodersStarted[motorNumber]) {
 				encodersStarted[motorNumber] = true;
 				canData[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;
@@ -705,7 +706,7 @@ void MotorBoard::test(uint8_t deviceNumber, uint16_t betweenTestsMs)
 @param maxNumberOfBoards - maximum number of boards
 @param id - unique id
 */
-SensorBoard::SensorBoard(Robot* robot, uint8_t devicesOnABoard, char boardName[], uint8_t maxNumberOfBoards, BoardId id) : 
+SensorBoard::SensorBoard(Robot* robot, uint8_t devicesOnABoard, const char boardName[], uint8_t maxNumberOfBoards, BoardId id) : 
 	Board(robot, maxNumberOfBoards, devicesOnABoard, boardName, SENSOR_BOARD, id) {
 }
 

@@ -49,7 +49,7 @@ public:
 	/** Add a mrm-us board
 	@param deviceName - device's name
 	*/
-	void add(char * deviceName = "");
+	void add(char * deviceName = (char *)"");
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id

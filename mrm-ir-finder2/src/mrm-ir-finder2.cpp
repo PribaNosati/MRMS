@@ -61,7 +61,7 @@ void Mrm_ir_finder2::test(bool updateByTimerInterrupts) {
 	if (millis() - lastMs > 300) {
 		if (nextFree == 0) {
 			print("No mrm-ir-finder2\n\r");
-			lastMs = 0xFFFFFFFFFFFFFFFF;
+			lastMs = 0xFFFFFFFF;
 		}
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
