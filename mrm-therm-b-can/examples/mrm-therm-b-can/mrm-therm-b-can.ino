@@ -1,15 +1,26 @@
-#include <mrm-therm-b-can.h>
+#include <mrm-can-bus.h>
 
-Mrm_therm_b_can mrm_therm_b_can; // Instance of library for mrm-ref-can
+#define COMMAND_SENSORS_MEASURE_CONTINUOUS 0x10 // Command that instruct the sensor to start sending readings.
+#define COMMAND_SENSORS_MEASURE_SENDING 0x13    // Command indicating that the payload is sensor's reading.
+
+Mrm_can_bus can;
+
+uint8_t data[8];                                // Message content: 8 bytes
 
 void setup() {
-  Serial.begin(115200); // Start serial communication with PC at 115000 bits per second
-  delay(500); // Delay to allow serial port to start
-  Serial.println("Start");
+  Serial.begin(115200);                         // Adjust monitor speed to 115200 bps in order not to get garbage in the window.
 
-  mrm_therm_b_can.add(); // Add one mrm-therm-b-can board
-  mrm_therm_b_can.test();  // Start testing
+  // Start all the sensors connected to the CAN Bus.
+  data[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS; // First byte of the content
+  for (uint8_t i = 0; i < 8; i++)
+    can.messageSend(0x210 + 2 * i, 1, data);    // 0x210 is sensor 1, 0x212 sensor 2, etc. This loop will start all the sensors that are connected to the bus.
 }
 
 void loop() {
+  CANBusMessage* msg = can.messageReceive();                            // Receive a message
+  if (msg != NULL && msg->data[0] ==  COMMAND_SENSORS_MEASURE_SENDING){ // If not NULL, a message received. Also check the command to see if the payload is a reading.
+    uint16_t deg = (msg->data[2] << 8) | msg->data[1];                  // Reconstruct temperature from 2 bytes.
+    Serial.print(deg);
+    Serial.println(" deg C");
+  }
 }
