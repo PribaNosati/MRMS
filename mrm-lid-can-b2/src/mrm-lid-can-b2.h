@@ -63,7 +63,7 @@ class Mrm_lid_can_b2 : public SensorBoard
 	bool started(uint8_t deviceNumber);
 	
 public:
-	
+
 	/** Constructor
 	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
@@ -94,7 +94,7 @@ public:
 	@param isShort - if not short, long.
 	*/
 	void distanceMode(uint8_t deviceNumber, bool isShort = true);
-	
+
 	/** Measurement time (IMP) in ms. IMP must be >= TB. Probably the best value is IMP = TB. Stored in sensors non-volatile memory.
 	Allow 50 ms for flash to be written.
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

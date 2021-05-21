@@ -91,7 +91,7 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
-	
+
 	/** Cumulative readings
 	@param receiverNumberInSensor - single IR receiver in mrm-ir-finder3
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

@@ -9,9 +9,9 @@ Purpose: mrm-therm-b-can interface to CANBus.
 Licence: You can use this code any way you like.
 */
 
-#define CAN_ID_THERM_B_CAN0_IN 0x0210 
+#define CAN_ID_THERM_B_CAN0_IN 0x0210
 #define CAN_ID_THERM_B_CAN0_OUT 0x0211
-#define CAN_ID_THERM_B_CAN1_IN 0x0212 
+#define CAN_ID_THERM_B_CAN1_IN 0x0212
 #define CAN_ID_THERM_B_CAN1_OUT 0x0213
 #define CAN_ID_THERM_B_CAN2_IN 0x0214
 #define CAN_ID_THERM_B_CAN2_OUT 0x0215
@@ -61,7 +61,7 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	*/
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
-		
+
 	/** Analog readings
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

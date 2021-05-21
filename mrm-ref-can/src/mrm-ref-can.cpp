@@ -195,7 +195,7 @@ void Mrm_ref_can::calibrationDataRequest(uint8_t deviceNumber, bool waitForResul
 /** Print all calibration in a line
 */
 void Mrm_ref_can::calibrationPrint() {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber)) {
 			print("Calibration for %s.\n\r", name());
 			print("Dark: ");

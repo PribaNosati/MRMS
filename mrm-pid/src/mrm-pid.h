@@ -12,16 +12,16 @@ Licence: You can use this code any way you like.
 class Mrm_pid
 {
 	float cumulativeValue = 0;
-	float derivative; // A derivative component, depends on error change (not on error value). 
-					  // For example, if a robot follows a line and the line is the below robot's center (error 0), it will not mean that we will not have to 
+	float derivative; // A derivative component, depends on error change (not on error value).
+					  // For example, if a robot follows a line and the line is the below robot's center (error 0), it will not mean that we will not have to
 					  // correct the robots direction. If, at that moment, the robot is turning sharply to the left (but the current error is the mentioned 0), You will
 					  // have to set the motors' speed so that the robot turns to the right. It will not turn to the right as it has a big rotational
-					  // speed to the left, but the speed will be reduced. By doing nothing, robot would turn to much to the left. The proportional 
+					  // speed to the left, but the speed will be reduced. By doing nothing, robot would turn to much to the left. The proportional
 					  // component would start to influence the motion but it would be too late - You would see a periodic left - right rotation.
 	float integrative; // Integral component, corrects a long term error. For example when left motors are stronger causing the robot to go more to the right, when it should go straight.
 	unsigned long lastCalcuationAtMicros = micros();
 	float lastValue = 0;
-	float proportional; // Proportional component. A bigger error causes a bigger correction. 
+	float proportional; // Proportional component. A bigger error causes a bigger correction.
 	HardwareSerial * serial; //Additional serial port
 	
 	/** Print to all serial ports

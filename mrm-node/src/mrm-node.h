@@ -37,13 +37,20 @@ Licence: You can use this code any way you like.
 #define COMMAND_NODE_SWITCH_ON 0x07
 #define COMMAND_NODE_SERVO_SET 0x08
 
+#define MRM_NODE_INACTIVITY_ALLOWED_MS 10000
 
 class Mrm_node : public SensorBoard
 {
 	std::vector<uint16_t[MRM_NODE_ANALOG_COUNT]>* readings; // Analog readings of all sensors
 	std::vector<bool[MRM_NODE_SWITCHES_COUNT]>* switches;
 	std::vector<uint16_t[MRM_NODE_SERVO_COUNT]>* servoDegrees;// = { 0xFFFF, 0xFFFF, 0xFFFF };
-	
+
+	/** If sensor not started, start it and wait for 1. message
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - started or not
+	*/
+	bool started(uint8_t deviceNumber);
+
 public:
 
 	/** Constructor

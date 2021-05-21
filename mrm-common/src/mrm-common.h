@@ -8,7 +8,10 @@
 extern char errorMessage[60];
 
 /** Print to all serial ports
-@param fmt - C format string
+@param fmt - C format string: 
+	%c - character,
+	%i - integer,
+	%s - string.
 @param ... - variable arguments
 */
 void print(const char* fmt, ...);

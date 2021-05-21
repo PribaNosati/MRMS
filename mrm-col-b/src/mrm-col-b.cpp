@@ -337,7 +337,7 @@ bool Mrm_col_b::messageDecode(uint32_t canId, uint8_t data[8]) {
 					(*_lastReadingMs)[deviceNumber] = millis();
 					break;
 				case MRM_COL_B_SENDING_COLORS_10_TO_11:
-					(*readings)[deviceNumber][9] = (data[1] << 8) | data[2]; // clear
+					(*readings)[deviceNumber][9] = (data[1] << 8) | data[2]; // clear (white)
 					// print("Data4: %i %i %i %i\n\r", (int)data[0], (int)data[1], (int)data[2], (int)(*readings)[deviceNumber][9]);
 					(*_lastReadingMs)[deviceNumber] = millis();
 					break;

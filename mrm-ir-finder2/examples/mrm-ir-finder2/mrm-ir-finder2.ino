@@ -1,15 +1,15 @@
 #include "IRFinders.h"
 
-IRFinders ir; //Define the object
+IRFinders ir;               //Define the object
 
 void setup() {
-  //Add a sensor. 
-  ir.add(A7, A10); //Analog input pin (A7), connected to sensor's DEG output (angle), A10 to CM (distance).
+                            //Add a sensor. 
+  ir.add(A7, A10);          //Analog input pin (A7), connected to sensor's DEG output (angle), A10 to CM (distance).
   
-  Serial.begin(115200); // Start communication with a computer connected to Arduino via a USB cable
+  Serial.begin(115200);     // Start communication with a computer connected to Arduino via a USB cable
   Serial.println("Start");
 
-  ir.test(); // Study the test() function in order to use it in Your code.
+  ir.test();                // Study the test() function in order to use it in Your code.
 }
 
 void loop() {}

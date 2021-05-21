@@ -8,23 +8,22 @@
 #define COMMAND_SENSORS_MEASURE_SENDING 0x13
 
 Mrm_can_bus can;
-uint8_t data[8];        // Message content: 8 bytes
+uint8_t data[8];                                  // Message content: 8 bytes
 
 void setup() {
-  data[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;  // First byte of the content
-  can.messageSend(0x200, 1, data); // Instruct the mrm-8x8a to start monitoring the switches and send every change of state.
+  data[0] = COMMAND_SENSORS_MEASURE_CONTINUOUS;   // First byte of the content
+  can.messageSend(0x200, 1, data);                // Instruct the mrm-8x8a to start monitoring the switches and send every change of state.
 }
 
 void loop() {
-  // Receive a message
-  CANBusMessage* msg = can.messageReceive();
+  CANBusMessage* msg = can.messageReceive();      // Receive a message
 
-  // If a CAN Bus message received and the content indicated that a switch was pressed, enter the if-part.
+                                                  // If a CAN Bus message received (msg != NULL) and the content indicated that a switch was pressed, enter the if-part.
   if (msg != NULL && msg->data[0] == COMMAND_SWITCH_ON){
 
     Serial.println("Smile!");
 
-    // Prepare "smile" bitmap.
+                                                  // Prepare "smile" bitmap.
     uint8_t red[8] = { 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000100, 0b00111000, 0b00000000, 0b00111100 };
     uint8_t green[8] = { 0b00111100, 0b01000010, 0b10101001, 0b10101001, 0b10000001, 0b10000001, 0b01000010, 0b00111100 };
 
@@ -32,7 +31,7 @@ void loop() {
     data[0] = COMMAND_8X8_BITMAP_DISPLAY_PART1;
     for (uint8_t i = 0; i < 7; i++) 
       data[i + 1] = green[i];
-    can.messageSend(0x200, 8, data); // Send the first part.
+    can.messageSend(0x200, 8, data);              // Send the first part.
 
     // Second part:
     data[0] = COMMAND_8X8_BITMAP_DISPLAY_PART2;

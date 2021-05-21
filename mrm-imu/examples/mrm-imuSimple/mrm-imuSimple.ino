@@ -3,8 +3,8 @@
 Mrm_imu imu;
 
 void setup(){
-  Serial.begin(115200);// Start communication with a computer connected to Arduino via a USB cable
-  Wire.begin(); // Start I2C
+  Serial.begin(115200); // Start communication with a computer connected to Arduino via a USB cable
+  Wire.begin();         // Start I2C
   imu.add(true); 
 }
 

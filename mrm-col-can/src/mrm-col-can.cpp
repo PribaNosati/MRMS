@@ -253,7 +253,7 @@ void Mrm_col_can::integrationTime(uint8_t deviceNumber, uint8_t value) {
 @param data - 8 bytes from CAN Bus message.
 */
 bool Mrm_col_can::messageDecode(uint32_t canId, uint8_t data[8]) {
-	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
 				// const uint8_t STEP = 1;
@@ -284,7 +284,7 @@ bool Mrm_col_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					//print("RCV 6 col%i\n\r", (*_last6ColorsMs)[deviceNumber]); 
 					break;
 				case CAN_COL_SENDING_HSV:
-					(*_hue)[deviceNumber] = (data[1] << 8) | data[2]; 
+					(*_hue)[deviceNumber] = (data[1] << 8) | data[2];
 					(*_saturation)[deviceNumber] = (data[3] << 8) | data[4];
 					(*_value)[deviceNumber] = (data[5] << 8) | data[6];
 					(*_patternByHSV)[deviceNumber] = data[7] & 0xF;

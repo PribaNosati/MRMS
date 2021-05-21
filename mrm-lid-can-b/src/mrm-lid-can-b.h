@@ -81,7 +81,7 @@ public:
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
 	void calibration(uint8_t deviceNumber = 0);
-	
+
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
@@ -93,7 +93,7 @@ public:
 	@param value - long range 0, high speed 1, high accuracy 2
 	*/
 	void rangingType(uint8_t deviceNumber, uint8_t value = 0);
-	
+
 	/** Distance in mm
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - distance in mm

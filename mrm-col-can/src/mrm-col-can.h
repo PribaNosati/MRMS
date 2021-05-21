@@ -66,7 +66,7 @@ class Mrm_col_can : public SensorBoard
 	@return - started or not
 	*/
 	bool hsvStarted(uint8_t deviceNumber);
-	
+
 public:
 
 	/** Constructor
@@ -89,7 +89,7 @@ public:
 	uint16_t colorBlue(uint8_t deviceNumber);
 
 	/** Green
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - color intensity
 	*/
 	uint16_t colorGreen(uint8_t deviceNumber);
@@ -113,7 +113,7 @@ public:
 	uint16_t colorViolet(uint8_t deviceNumber);
 
 	/** Yellow
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - color intensity
 	*/
 	uint16_t colorYellow(uint8_t deviceNumber);

@@ -23,7 +23,6 @@ void VL53L1Xs::add(uint8_t pin, uint8_t i2c_addr) {
 	pDev[nextFree]->I2cDevAddr = i2c_addr << 1;
 	pDev[nextFree]->comms_type = 1;
 	pDev[nextFree]->comms_speed_khz = 400;
-	Serial.println("AAA0");
 	nextFree++;
 }
 
@@ -35,7 +34,6 @@ void VL53L1Xs::begin(boolean verbose) {
 		Serial.print("VL53L1X " + (String)i + "...");
 		uint8_t i2cAddress = pDev[i]->I2cDevAddr;
 		pDev[i]->I2cDevAddr = 0x52; //0x29 x 2
-		Serial.println("AAA1");
 		if (pins[i] != 0xFF)
 			pinMode(pins[i], INPUT);//Enable the sensor by activating internal pull-up.
 
@@ -43,17 +41,14 @@ void VL53L1Xs::begin(boolean verbose) {
 
 		if (VL53L1_WaitDeviceBooted(pDev[i]) != VL53L1_ERROR_NONE)
 			errorVL(i, "Wait");
-		Serial.println("AAA2");
 		//Set unique I2C address
 		if (pins[i] != 0xFF) {
 			VL53L1_SetDeviceAddress(pDev[i], i2cAddress);
 			pDev[i]->I2cDevAddr = i2cAddress;
 		}
-		Serial.println("AAA3");
 		//Only once after power-up.
 		if (VL53L1_DataInit(pDev[i]) != VL53L1_ERROR_NONE)
 			errorVL(i, "Init");
-		Serial.println("AAA4");
 		//Device info
 		VL53L1_DeviceInfo_t DeviceInfo;
 		if (VL53L1_GetDeviceInfo(pDev[i], &DeviceInfo) != VL53L1_ERROR_NONE)

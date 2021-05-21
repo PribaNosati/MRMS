@@ -165,7 +165,7 @@ public:
 	@return - yes or no.
 	*/
 	bool dark(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0, bool fromAnalog = false);
-	
+
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.

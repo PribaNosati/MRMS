@@ -31,7 +31,7 @@ Licence: You can use this code any way you like.
 class Mrm_mot2x50 : public MotorBoard
 {
 public:
-	
+
 	/** Constructor
 	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.

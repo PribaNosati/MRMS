@@ -7,7 +7,10 @@ BluetoothSerial *serialBT = NULL;
 char errorMessage[60] = ""; // Global variable enables functions to set it although not passed as parameter
 
 /** Print to all serial ports
-@param fmt - C format string
+@param fmt - C format string: 
+	%c - character,
+	%i - integer,
+	%s - string.
 @param ... - variable arguments
 */
 void print(const char* fmt, ...) {
