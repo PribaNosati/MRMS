@@ -292,14 +292,6 @@ public:
 	*/
 	void info();
 
-	/** Tests mrm-ir-finder3, raw data.
-	*/
-	void irFinder3Test();
-
-	/** Tests mrm-ir-finder3, calculated data.
-	*/
-	void irFinder3TestCalculated();
-
 	/** Tests mrm-lid-can-b
 	*/
 	void lidar2mTest();
@@ -375,13 +367,13 @@ public:
 	*/
 	void reflectanceArrayCalibrationPrint();
 
+	/** One pass of robot's program
+	*/
+	void refresh();
+
 	/** Starts robot's program
 	*/
 	void run();
-
-	/** One pass of robot's program
-	*/
-	void runOnce();
 
 	/** Reads serial ASCII input and converts it into an integer
 	@param timeoutFirst - timeout for first input

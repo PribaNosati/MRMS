@@ -26,7 +26,7 @@ Licence: You can use this code any way you like.
 #define ID_IR_FINDER3_7_IN 0x033E
 #define ID_IR_FINDER3_7_OUT 0x033F
 
-#define MRM_IR_FINDER3_SENSOR_COUNT 18 // Number of IR receivers in each device.
+#define MRM_IR_FINDER3_SENSOR_COUNT 12 // Number of IR receivers in each device.
 
 //CANBus commands
 #define COMMAND_IR_FINDER3_SENDING_SENSORS_1_TO_7 0x04
@@ -41,7 +41,7 @@ class Mrm_ir_finder3 : public SensorBoard
 	std::vector<int16_t>* _angle;
 	std::vector<bool>* _calculated; // If not, then for every sensor.
 	std::vector<uint16_t>* _distance;
-	bool near;
+	std::vector<bool>*  _near;
 
 	/** If calculated mode not started, start it and wait for 1. message
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

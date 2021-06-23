@@ -9,6 +9,7 @@ Mrm_ir_finder3::Mrm_ir_finder3(Robot* robot, uint8_t maxNumberOfBoards) : Sensor
 	_angle = new std::vector<int16_t>(maxNumberOfBoards);
 	_calculated = new std::vector<bool>(maxNumberOfBoards);
 	_distance = new std::vector<uint16_t>(maxNumberOfBoards);
+	_near = new std::vector<bool>(maxNumberOfBoards);
 	readings = new std::vector<uint16_t[MRM_IR_FINDER3_SENSOR_COUNT]>(maxNumberOfBoards);
 	measuringModeLimit = 2;
 }
@@ -69,7 +70,7 @@ void Mrm_ir_finder3::add(char * deviceName)
 @return - robot's front is 0�, positive angles clockwise, negative anti-clockwise. Back of the robot is 180�.
 */
 int16_t Mrm_ir_finder3::angle(uint8_t deviceNumber) {
-	if (singleStarted(deviceNumber))
+	if (calculatedStarted(deviceNumber))
 		return (*_angle)[deviceNumber];
 	else
 		return 0;
@@ -81,7 +82,7 @@ int16_t Mrm_ir_finder3::angle(uint8_t deviceNumber) {
 */
 bool Mrm_ir_finder3::calculatedStarted(uint8_t deviceNumber) {
 	if (!(*_calculated)[deviceNumber] || millis() - (*_lastReadingMs)[deviceNumber] > MRM_IR_FINDER3_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		print("Start IR finder \n\r"); 
+		robotContainer->print("Start IR finder \n\r"); 
 		(*_lastReadingMs)[deviceNumber] = 0;
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 1); // As calculated
@@ -89,7 +90,7 @@ bool Mrm_ir_finder3::calculatedStarted(uint8_t deviceNumber) {
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					print("IR3 confirmed\n\r"); 
+					robotContainer->print("IR3 confirmed\n\r"); 
 					(*_calculated)[deviceNumber] = true;
 					return true;
 				}
@@ -109,7 +110,7 @@ bool Mrm_ir_finder3::calculatedStarted(uint8_t deviceNumber) {
 	When 0 is return, there is no ball in sight.
 */
 uint16_t Mrm_ir_finder3::distance(uint8_t deviceNumber) {
-	if (singleStarted(deviceNumber))
+	if (calculatedStarted(deviceNumber))
 		return (*_distance)[deviceNumber];
 	else
 		return 0;
@@ -120,6 +121,7 @@ uint16_t Mrm_ir_finder3::distance(uint8_t deviceNumber) {
 @param data - 8 bytes from CAN Bus message.
 */
 bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8]) {
+	// Todo: a problem: one message can be for short range sensors, the other for long. A mixed data will be the result.
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
@@ -133,18 +135,18 @@ bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8]) {
 				case COMMAND_IR_FINDER3_SENDING_SENSORS_8_TO_12:
 					startIndex = 7;
 					length = 5;
-					near = data[6];
+					(*_near)[deviceNumber] = data[6];
 					(*_lastReadingMs)[deviceNumber] = millis();
 					any = true;
 					break;
 				case COMMAND_SENSORS_MEASURE_CALCULATED_SENDING:
 					(*_angle)[deviceNumber] = ((data[1] << 8) | data[2]) - 180;
 					(*_distance)[deviceNumber] = (data[3] << 8) | data[4];
-					near = data[5];
+					(*_near)[deviceNumber] = data[5];
 					(*_lastReadingMs)[deviceNumber] = millis();
 					break;
 				default:
-					print("Unknown command. ");
+					robotContainer->print("Unknown command. ");
 					messagePrint(canId, 8, data, false);
 					errorCode = 201;
 					errorInDeviceNumber = deviceNumber;
@@ -178,11 +180,11 @@ uint16_t Mrm_ir_finder3::reading(uint8_t receiverNumberInSensor, uint8_t deviceN
 /** Print all readings in a line
 */
 void Mrm_ir_finder3::readingsPrint() {
-	print("IRBall:");
+	robotContainer->print("IRBall:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber)) {
 			for (uint8_t irNo = 0; irNo < MRM_IR_FINDER3_SENSOR_COUNT; irNo++)
-				print(" %3i", reading(irNo, deviceNumber));
+				robotContainer->print(" %3i", reading(irNo, deviceNumber));
 		}
 }
 
@@ -197,14 +199,23 @@ void Mrm_ir_finder3::test()
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) {
 				if (pass++)
-					print("| ");
-				for (uint8_t i = 0; i < MRM_IR_FINDER3_SENSOR_COUNT; i++)
-					print("%i ", reading(i, deviceNumber));
+					robotContainer->print("| ");
+				uint8_t last;
+				if ((*_near)[deviceNumber]){
+					last = MRM_IR_FINDER3_SENSOR_COUNT;
+					robotContainer->print("Near ");
+				}
+				else{
+					last = MRM_IR_FINDER3_SENSOR_COUNT / 2;
+					robotContainer->print("Far ");
+				}
+				for (uint8_t i = 0; i < last; i++)
+					robotContainer->print("%i ", reading(i, deviceNumber));
 			}
 		}
 		lastMs = millis();
 		if (pass)
-			print("\n\r");
+			robotContainer->print("\n\r");
 	}
 }
 
@@ -214,7 +225,7 @@ void Mrm_ir_finder3::test()
 */
 bool Mrm_ir_finder3::singleStarted(uint8_t deviceNumber) {
 	if ((*_calculated)[deviceNumber] || millis() - (*_lastReadingMs)[deviceNumber] > MRM_IR_FINDER3_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		print("Start IR finder \n\r"); 
+		robotContainer->print("Start IR finder \n\r"); 
 		(*_lastReadingMs)[deviceNumber] = 0;
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0); // As single
@@ -222,7 +233,7 @@ bool Mrm_ir_finder3::singleStarted(uint8_t deviceNumber) {
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					print("IR3 confirmed\n\r"); 
+					robotContainer->print("IR3 confirmed\n\r"); 
 					(*_calculated)[deviceNumber] = false;
 					return true;
 				}
@@ -245,11 +256,12 @@ void Mrm_ir_finder3::testCalculated()
 		uint8_t pass = 0;
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) 
-				print("%i deg., dist: %i\n\r", angle(), distance());
+				robotContainer->print("%s: %i deg., dist: %i\n\r", (*_near)[deviceNumber] ? "Near" : "Far",
+				angle(), distance());
 		}
 		lastMs = millis();
 		if (pass)
-			print("\n\r");
+			robotContainer->print("\n\r");
 	}
 }
 
