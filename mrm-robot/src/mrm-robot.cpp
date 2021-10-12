@@ -79,6 +79,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	if (strlen(wiFiPassword) > 15)
 		strcpy(errorMessage, "WiFi pwd. overflow");
 	strcpy(_wiFiPassword, wiFiPassword);
+	boardInfo = new BoardInfo();
 
 #if RADIO == 1
 	if (serialBT == NULL) {
@@ -122,42 +123,46 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 
 	mrm_can_bus = new Mrm_can_bus();
 
+	// LED Test
+	LEDSignText* signTest = new LEDSignText();
+	strcpy(signTest->text, "Test");
+
 	_actionCurrent = NULL;
 	_actionPrevious = _actionCurrent;
 
 	_actionCANBusStress = new ActionCANBusStress(this);
 	_actionDoNothing = new ActionDoNothing(this);
-	_actionLoop = new ActionLoop(this);
+	_actionLoop = new ActionLoop(this, signTest);
 	_actionMenuMain = new ActionMenuMain(this);
 	_actionStop = new ActionStop(this);
 
 	actionAdd(new Action8x8Test(this));
-	actionAdd(new ActionBluetoothTest(this));
+	actionAdd(new ActionBluetoothTest(this, signTest));
 	actionAdd(new ActionCANBusScan(this));
 	actionAdd(new ActionCANBusSniff(this));
 	actionAdd(new ActionCANBusStress(this));
-	actionAdd(new ActionColorBTest6Colors(this));
-	actionAdd(new ActionColorBTestHSV(this));
+	actionAdd(new ActionColorBTest6Colors(this, signTest));
+	actionAdd(new ActionColorBTestHSV(this, signTest));
 	actionAdd(new ActionColorIlluminationOff(this));
 	actionAdd(new ActionColorIlluminationOn(this));
 	actionAdd(new ActionColorPatternErase(this));
 	actionAdd(new ActionColorPatternPrint(this));
 	actionAdd(new ActionColorPatternRecognize(this));
 	actionAdd(new ActionColorPatternRecord(this));
-	actionAdd(new ActionColorTest6Colors(this));
-	actionAdd(new ActionColorTestHSV(this));
+	actionAdd(new ActionColorTest6Colors(this, signTest));
+	actionAdd(new ActionColorTestHSV(this, signTest));
 	actionAdd(new ActionDeviceIdChange(this));
 	actionAdd(new ActionFirmware(this));
 	actionAdd(new ActionFPS(this));
 	actionAdd(new ActionGoAhead(this));
-	actionAdd(new ActionI2CTest(this));
-	actionAdd(new ActionIMUTest(this));
+	actionAdd(new ActionI2CTest(this, signTest));
+	actionAdd(new ActionIMUTest(this, signTest));
 	actionAdd(new ActionInfo(this));
-	actionAdd(new ActionIRFinderTest(this));
-	actionAdd(new ActionIRFinderCanTest(this));
-	actionAdd(new ActionIRFinderCanTestCalculated(this));
-	actionAdd(new ActionLidar2mTest(this));
-	actionAdd(new ActionLidar4mTest(this));
+	actionAdd(new ActionIRFinderTest(this, signTest));
+	actionAdd(new ActionIRFinderCanTest(this, signTest));
+	actionAdd(new ActionIRFinderCanTestCalculated(this, signTest));
+	actionAdd(new ActionLidar2mTest(this, signTest));
+	actionAdd(new ActionLidar4mTest(this, signTest));
 	actionAdd(new ActionLidarCalibrate(this));
 	actionAdd(_actionLoop);
 	actionAdd(new ActionMenuColor(this));
@@ -165,20 +170,20 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	actionAdd(new ActionMenuMain(this));
 	actionAdd(new ActionMenuReflectance(this));
 	actionAdd(new ActionMenuSystem(this));
-	actionAdd(new ActionMotorTest(this));
-	actionAdd(new ActionNodeTest(this));
-	actionAdd(new ActionNodeServoTest(this));
+	actionAdd(new ActionMotorTest(this, signTest));
+	actionAdd(new ActionNodeTest(this, signTest));
+	actionAdd(new ActionNodeServoTest(this, signTest));
 	//actionAdd(new ActionOscillatorTest(this));
 	actionAdd(new ActionReflectanceArrayCalibrate(this));
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
-	actionAdd(new ActionReflectanceArrayAnalogTest(this));
-	actionAdd(new ActionReflectanceArrayDigitalTest(this));
+	actionAdd(new ActionReflectanceArrayAnalogTest(this, signTest));
+	actionAdd(new ActionReflectanceArrayDigitalTest(this, signTest));
 	actionAdd(new ActionServoInteractive(this));
-	actionAdd(new ActionServoTest(this));
+	actionAdd(new ActionServoTest(this, signTest));
 	actionAdd(_actionStop);
-	actionAdd(new ActionThermoTest(this));
-	actionAdd(new ActionUS_BTest(this));
-	actionAdd(new ActionUS1Test(this));
+	actionAdd(new ActionThermoTest(this, signTest));
+	actionAdd(new ActionUS_BTest(this, signTest));
+	actionAdd(new ActionUS1Test(this, signTest));
 
 	mrm_8x8a = new Mrm_8x8a(this);
 	mrm_bldc2x50 = new Mrm_bldc2x50(this);
@@ -310,6 +315,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	mrm_ref_can->add((char*)"RefArr-1");
 	mrm_ref_can->add((char*)"RefArr-2");
 	mrm_ref_can->add((char*)"RefArr-3");
+	mrm_ref_can->add((char*)"RefArr-4");
 
 	// Switch
 	mrm_switch->add(18, 19, (char*)"Switch");
@@ -349,11 +355,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	add(mrm_us1);
 
 	_devicesAtStartup = devicesScan(true);
-	if (mrm_8x8a->alive()){
-		char buffer[7];
-		sprintf(buffer, "N:%i.", _devicesAtStartup);
-		mrm_8x8a->text(buffer);
-	}
+	devicesLEDCount();
 }
 
 /** Add a new action to the collection of robot's possible actions.
@@ -467,6 +469,18 @@ void Robot::actionSet(ActionBase* newAction) {
 	_actionPrevious = _actionCurrent;
 	_actionCurrent = newAction;
 	_actionCurrent->preprocessingStart();
+	// Display action on 8x8 LED
+	if (mrm_8x8a->alive()){
+		if (_actionCurrent->ledSign == NULL)
+			devicesLEDCount();
+		else if (_actionCurrent->ledSign->type == 1 && strcmp(((LEDSignText*)(_actionCurrent->ledSign))->text, "") != 0)
+			mrm_8x8a->text(((LEDSignText*)(_actionCurrent->ledSign))->text);
+		else if (_actionCurrent->ledSign->type == 0){
+			mrm_8x8a->bitmapCustomDisplay(
+				((LEDSignBitmap*)_actionCurrent->ledSign)->red, 
+				((LEDSignBitmap*)_actionCurrent->ledSign)->green);
+		}
+	}
 }
 
 /** Add a new board to the collection of possible boards for the robot
@@ -716,16 +730,59 @@ void Robot::delayMicros(uint16_t pauseMicros) {
 	} while (micros() < startMicros + pauseMicros);
 }
 
-/** Contacts all the CAN Bus devices and checks which one is alive.
-@verbose - if true, print.
+/** Lists all the alive (responded to last ping) CAN Bus devices.
+@boardType - sensor, motor, or all boards
 @return count
 */
-uint8_t Robot::devicesScan(bool verbose) {
+void Robot::deviceInfo(uint8_t deviceGlobalOrdinalNumber, BoardInfo * deviceInfo, BoardType boardType){
+	uint8_t count = 0;
+	for (uint8_t boardKind = 0; boardKind < _boardNextFree; boardKind++){
+		if (boardType == ANY_BOARD || board[boardKind]->boardType() == boardType){ // Board types
+			for (uint8_t deviceNumber = 0; deviceNumber < board[boardKind]->count(); deviceNumber++){// Devices for the current board type
+				if (board[boardKind]->alive(deviceNumber)){
+					if (count == deviceGlobalOrdinalNumber)
+					{
+						strcpy(deviceInfo->name, board[boardKind]->name(deviceNumber));
+						deviceInfo->board = board[boardKind];
+						deviceInfo->deviceNumber = deviceNumber;
+						//print("In func: %s %i", deviceInfo->name, deviceNumber);
+						if (boardType == SENSOR_BOARD)
+							deviceInfo->readingsCount = ((SensorBoard*)(board[boardKind]))->readingsCount();
+						return;
+					}
+					else
+						count++;
+				}
+			}
+		}
+	}
+	strcpy(deviceInfo->name, "");
+	deviceInfo->readingsCount = 0;
+}
+
+/** Display number of CAN Bus devices using 8x8 display
+*/
+void Robot::devicesLEDCount(){
+	if (mrm_8x8a->alive()){
+		char buffer[7];
+		sprintf(buffer, "N:%i.", _devicesAtStartup);
+		mrm_8x8a->text(buffer);
+	}
+}
+
+/** Contacts all the CAN Bus devices and checks which one is alive.
+@verbose - if true, print.
+@boardType - sensor, motor, or all boards
+@return count
+*/
+uint8_t Robot::devicesScan(bool verbose, BoardType boardType) {
 	devicesStop();
 	uint8_t count = 0;
 	delayMs(50); // Read all the messages sent after stop.
-	for (uint8_t i = 0; i < _boardNextFree; i++)
-		count += board[i]->devicesScan(verbose);
+	for (uint8_t i = 0; i < _boardNextFree; i++){
+		if (boardType == ANY_BOARD || board[i]->boardType() == boardType)
+			count += board[i]->devicesScan(verbose);
+	}
 	if (verbose)
 		print("%i devices.\n\r", count);
 	end();

@@ -53,6 +53,7 @@ class Mrm_ref_can : public SensorBoard
 
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataDark; // 
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* calibrationDataBright;
+	std::vector<uint16_t>* centerOfMeasurements; // Center of the dark sensors.
 	std::vector<uint8_t>* dataFresh; // All the data refreshed, bitwise stored. 
 									// Most significant bit 0: readings for transistors 1 - 3, 
 									// bit 1: 4 - 6, 
@@ -63,7 +64,8 @@ class Mrm_ref_can : public SensorBoard
 	std::vector<uint8_t>* _mode;
 	bool readingDigitalAndCenter = true; // Reading only center and transistors as bits. Otherwise reading all transistors as analog values.
 	std::vector<uint16_t[MRM_REF_CAN_SENSOR_COUNT]>* _reading; // Analog or digital readings of all sensors, depending on measuring mode.
-	std::vector<uint16_t>* centerOfMeasurements; // Center of the dark sensors.
+																// When digital, 0 is bright and 1 is dark
+	std::vector<uint8_t>* _transistorCount;
 
 	/** If analog mode not started, start it and wait for 1. message
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -111,7 +113,7 @@ public:
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	@param maxNumberOfBoards - maximum number of boards
 	*/
-	Mrm_ref_can(Robot* robot = NULL, uint8_t maxNumberOfBoards = 4);
+	Mrm_ref_can(Robot* robot = NULL, uint8_t maxNumberOfBoards = 5);
 
 	~Mrm_ref_can();
 
@@ -187,6 +189,15 @@ public:
 	@param analog - if true, analog values - if not, digital values.
 	*/
 	void test(bool analog);
+
+	/**Transistor count
+	@param count - transistor count
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void transistorCountSet(uint8_t count, uint8_t deviceNumber = 0){
+		if (count <= 9)
+			(*_transistorCount)[deviceNumber] = count;
+	}
 
 };
 

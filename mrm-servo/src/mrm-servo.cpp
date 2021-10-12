@@ -3,8 +3,16 @@
 
 /** Constructor
 @param robot - robot containing this board
+@param maxNumberOfServos - Maximum number of servo motors cannot be bigger than 16 since there are 16 PWM channels in ESP32
 */
-Mrm_servo::Mrm_servo(Robot* robot) {
+Mrm_servo::Mrm_servo(Robot* robot, uint8_t maxNumberOfServos) {
+	_currentDegrees = new std::vector<uint16_t>(maxNumberOfServos);
+	_minDegrees = new std::vector<uint16_t>(maxNumberOfServos);
+	_minDegreesPulseMs = new std::vector<float>(maxNumberOfServos);
+	_maxDegrees = new std::vector<uint16_t>(maxNumberOfServos);
+	_maxDegreesPulseMs = new std::vector<float>(maxNumberOfServos);
+	_name = new std::vector<char[10]>(maxNumberOfServos);
+	_timerWidth = new std::vector<uint8_t>(maxNumberOfServos);
 	robotContainer = robot;
 	nextFree = 0;
 }
@@ -34,28 +42,29 @@ void Mrm_servo::add(uint8_t gpioPin, char* deviceName, uint16_t minDegrees, uint
 			strcpy(errorMessage, "Device name too long");
 			return;
 		}
-		strcpy(_name[nextFree], deviceName);
+		strcpy((*_name)[nextFree], deviceName);
 	}
 
-	_timerWidth = timerWidth;
-	_minDegrees = minDegrees;
-	_maxDegrees = maxDegrees;
-	_minDegreesPulseMs = minDegreesPulseMs;
-	_maxDegreesPulseMs = maxDegreesPulseMs;
-
+	(*_timerWidth)[nextFree] = timerWidth;
+	(*_minDegrees)[nextFree] = minDegrees;
+	(*_maxDegrees)[nextFree] = maxDegrees;
+	(*_minDegreesPulseMs)[nextFree] = minDegreesPulseMs;
+	(*_maxDegreesPulseMs)[nextFree] = maxDegreesPulseMs;
 
 	// Standard servo, 0-180�: 20 ms period, duty 1 - 2 ms. 1.5 ms - neutral position.
 	// For pulseWidth=20 ms (50 Hz) and _timerWidth=12, tickLength = (1000 / 50) / (2^12 - 1) = 20/4095 = 0.004884 ms
 	// pulseHighWidth = numberOfTicks*tickLength
 	// numberOfTicksNeeded = pulseHighWidth/tickLength pulseHighWidthMicroSec/1000000/tickLength = pulseHighWidthMicroSec * f. For 90 degrees numberOfTicksNeeded = 1.5/0.004884 = 307. For 0 degrees numberOfTicksNeeded = 1/0.004884 = 205
 
-	float tickLength = (1000 / (float)MRM_SERVO_FREQUENCY_HZ) / ((1 << _timerWidth) - 1); //tickLength = pulsePeriod/(2^timerWidthBits-1) * 1000, in ms. 
+	float tickLength = (1000 / (float)MRM_SERVO_FREQUENCY_HZ) / ((1 << timerWidth) - 1); //tickLength = pulsePeriod/(2^timerWidthBits-1) * 1000, in ms. 
 	f = 1 / tickLength;
 	
-	/*double resFreq = */ledcSetup(nextFree, MRM_SERVO_FREQUENCY_HZ, _timerWidth); // nextFree is channel number, which can be 0 - 15.
+	/*double resFreq = */ledcSetup(nextFree, MRM_SERVO_FREQUENCY_HZ, timerWidth); // nextFree is channel number, which can be 0 - 15.
 	ledcAttachPin(gpioPin, nextFree); // gpioPin assigned to channel nextFree
 
 	nextFree++;
+
+	write((*_maxDegrees)[nextFree-1] / 2, nextFree - 1);
 }
 
 void Mrm_servo::sweep() {
@@ -80,33 +89,46 @@ void Mrm_servo::test()
 {
 	const uint16_t ms = 300; // Min. 12.
 	int16_t step = 5;
-	int16_t degrees = _minDegrees;
-	while (!robotContainer->userBreak()) {
-		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
-			write(degrees, deviceNumber);
-			print("%i\n\r", degrees);
+	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
+		int16_t degrees = (*_minDegrees)[deviceNumber];
+		while (!robotContainer->userBreak()) {
+			
+				write(degrees, deviceNumber);
+				robotContainer->print("%i\n\r", degrees);
+
+			robotContainer->delayMs(ms);
+			if (degrees + step < (*_minDegrees)[deviceNumber] || degrees + step > (*_maxDegrees)[deviceNumber])
+				step = -step;
+			degrees += step;
 		}
-		robotContainer->delayMs(ms);
-		if (degrees + step < _minDegrees || degrees + step > _maxDegrees)
-			step = -step;
-		degrees += step;
 	}
 
-	print("\n\rTest over.\n\r");
+	robotContainer->print("\n\rTest over.\n\r");
 	robotContainer->end();
 }
 
 /** Move servo
 @param degrees - Servo's target angle, 0 - 180�, or 0 - 360�, depending on model, counting clockwise
 @param servoNumber - Servo's ordinal number. Each call of function add() assigns a increasing number to the servo, starting with 0.
+@param ms - Duration of action in ms. 0 ms - immediately.
 */
-void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
+void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber, uint16_t ms) {
 	if (servoNumber >= nextFree) {
+		//robotContainer->print("Servo: %i, limit %i failed\n\r", servoNumber, nextFree);
 		strcpy(errorMessage, "Servo doesn't exist");
 		return;
 	}
-	degrees = constrain(degrees, _minDegrees, _maxDegrees);
-	ledcWrite(servoNumber, map(degrees, _minDegrees, _maxDegrees, _minDegreesPulseMs * f, _maxDegreesPulseMs * f));
+	degrees = constrain(degrees, (*_minDegrees)[servoNumber], (*_maxDegrees)[servoNumber]);
+
+	ledcWrite(servoNumber, map(degrees, (*_minDegrees)[servoNumber], (*_maxDegrees)[servoNumber], (*_minDegreesPulseMs)[servoNumber] * f, (*_maxDegreesPulseMs)[servoNumber] * f));
+	// uint32_t startMs = millis();
+	// while (millis() - startMs < ms){
+	// 	uint16_t currentDegrees = map(millis(), startMs, startMs + ms, (*_currentDegrees)[servoNumber], degrees);
+	// 	ledcWrite(servoNumber, map(currentDegrees, (*_minDegrees)[servoNumber], (*_maxDegrees)[servoNumber], 
+	// 		(*_minDegreesPulseMs)[servoNumber] * f, (*_maxDegreesPulseMs)[servoNumber] * f));
+	// 	robotContainer->delayMs(10);
+	// }
+	(*_currentDegrees)[servoNumber] = degrees;
 
 	// uint16_t _minDegrees;
 	// uint16_t _minDegreesPulseMicroSec;
@@ -118,22 +140,22 @@ void Mrm_servo::write( uint16_t degrees, uint8_t servoNumber) {
 */
 void Mrm_servo::writeInteractive() {
 	// Select motor
-	print("Enter servo number [0-%i]\n\r", nextFree - 1);
+	robotContainer->print("Enter servo number [0-%i]\n\r", nextFree - 1);
 	uint16_t selectedMotor = robotContainer->serialReadNumber(3000, 500, nextFree - 1 > 9, nextFree - 1, false);
 	if (selectedMotor != 0xFFFF) {
-		print("\n\rTest motor %i\n\r", selectedMotor);
+		robotContainer->print("\n\rTest motor %i\n\r", selectedMotor);
 
 		// Select speed
 		// bool fixedSpeed = false;
-		print("Enter angle \n\r");
+		robotContainer->print("Enter angle \n\r");
 		uint16_t degrees = robotContainer->serialReadNumber(2000, 500, false);
 		if (degrees != 0xFFFF) {
 			write(degrees, selectedMotor);
-			print("OK\n\r");
+			robotContainer->print("OK\n\r");
 		}
 		else
-			print("Timeout\n\r");
+			robotContainer->print("Timeout\n\r");
 	}
 	else
-		print("Timeout\n\r");
+		robotContainer->print("Timeout\n\r");
 }

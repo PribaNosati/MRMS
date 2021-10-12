@@ -58,6 +58,7 @@ protected:
 	ActionBase* _actionStop;
 
 	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
+	BoardInfo * boardInfo;
 	uint8_t _boardNextFree = 0;
 
 	uint8_t _devicesAtStartup = 0;
@@ -119,6 +120,10 @@ protected:
 	@return - true if found
 	*/
 	bool boardSelect(uint8_t selectedNumber, uint8_t *selectedBoardIndex, uint8_t* selectedDeviceIndex, uint8_t* maxInput);
+
+	/** Display number of CAN Bus devices using 8x8 display
+	*/
+	void devicesLEDCount();
 
 	/** Avoids FPS measuring in the next 2 cycles.
 	*/
@@ -245,11 +250,18 @@ public:
 	*/
 	void delayMicros(uint16_t pauseMicros);
 
-	/** Contacts all the CAN Bus devices and checks which one is alive.
-	@verbose - if true, print.
+	/** Lists all the alive (responded to last ping) CAN Bus devices.
+	@boardType - sensor, motor, or all boards
 	@return count
 	*/
-	uint8_t devicesScan(bool verbose);
+	void deviceInfo(uint8_t deviceOrdinadeviceGlobalOrdinalNumberlNumber, BoardInfo * deviceInfo, BoardType boardType = ANY_BOARD);
+
+	/** Contacts all the CAN Bus devices and checks which one is alive.
+	@verbose - if true, print.
+	@boardType - sensor, motor, or all boards
+	@return count
+	*/
+	uint8_t devicesScan(bool verbose, BoardType boardType = ANY_BOARD);
 
 	/** Starts devices' CAN Bus messages broadcasting.
 	*/
