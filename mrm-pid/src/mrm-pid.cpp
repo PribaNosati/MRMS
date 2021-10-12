@@ -17,9 +17,10 @@ Mrm_pid::Mrm_pid(float proportionalComponent, float derivativeComponent, float i
 /** Calculation
 @param inputValue - Input value, for example an error.
 @param verbose - Display to screen.
+@param limit - Absolute return value limited to this value.
 @return - A calculated value, for example a change in robot's direction (motors' speed) needed to correct the error.
 */
-float Mrm_pid::calculate(float valueNow, bool verbose) {
+float Mrm_pid::calculate(float valueNow, bool verbose, float limit) {
 	float speed = 0;
 	float microsElapsed = (micros() - lastCalcuationAtMicros) / 1000.0; // Warning! micros() will overflow after 72 min!
 	if (microsElapsed > 0.00001)
@@ -37,6 +38,10 @@ float Mrm_pid::calculate(float valueNow, bool verbose) {
 		}
 	}
 	lastValue = valueNow;
+	if (pidCorrection < - limit)
+		pidCorrection = -limit;
+	else if (pidCorrection > limit)
+		pidCorrection = limit;
 	return pidCorrection;
 }
 

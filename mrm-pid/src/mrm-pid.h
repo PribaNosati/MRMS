@@ -4,7 +4,7 @@
 #define PrintSpeed // If defined, a speed calculation will be displayed.
 
 /**
-Purpose: A simple proportional–integral–derivative controller (PID controller or three term controller).
+Purpose: A simple proportionalï¿½integralï¿½derivative controller (PID controller or three term controller).
 @author MRMS team
 @version 0.1 2018-02-19
 Licence: You can use this code any way you like.
@@ -42,8 +42,9 @@ public:
 	/** Calculation
 	@param inputValue - Input value, for example an error.
 	@param verbose - Display to screen.
+	@param limit - Absolute return value limited to this value.
 	@return - A calculated value, for example a change in robot's direction (motors' speed) needed to correct the error.
 	*/
-	float calculate(float inputValue, bool verbose = false);
+	float calculate(float inputValue, bool verbose = false, float limit = __FLT_MAX__);
 };
 
