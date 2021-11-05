@@ -82,6 +82,17 @@ public:
 	*/
 	void calibration(uint8_t deviceNumber = 0);
 
+	/** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+					rest will be averaged. Keeps returning 0 till all the sample is read.
+					If sampleCount is 0, it will not wait but will just return the last value.
+	@param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
+					Therefore, lower sigma number will remove more errornous readings.
+	@return - distance in mm
+	*/
+	uint16_t distance(uint8_t deviceNumber, uint8_t sampleCount = 0, uint8_t sigmaCount = 1);
+
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
@@ -94,11 +105,12 @@ public:
 	*/
 	void rangingType(uint8_t deviceNumber, uint8_t value = 0);
 
-	/** Distance in mm
+	/** Analog readings
+	@param receiverNumberInSensor - always 0
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@return - distance in mm
+	@return - analog value
 	*/
-	uint16_t reading(uint8_t deviceNumber = 0);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
 	/** Print all readings in a line
 	*/
