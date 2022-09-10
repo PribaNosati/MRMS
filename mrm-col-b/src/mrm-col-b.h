@@ -183,8 +183,9 @@ public:
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
+	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
 
 	/** Erase all patterns
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - in all sensors

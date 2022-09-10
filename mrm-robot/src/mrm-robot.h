@@ -2,12 +2,14 @@
 #include <mrm-action.h>
 #include <mrm-can-bus.h>
 #include <mrm-col-b.h>
+#include <Preferences.h>
 #if RADIO == 1
 #include <BluetoothSerial.h>
 #endif
 
-#define ACTIONS_LIMIT 80 // Increase if more actions are needed.
-#define BOARDS_LIMIT 25 // Maximum number of different board types.
+#define ACTIONS_LIMIT 82 // Increase if more actions are needed.
+#define BOARDS_LIMIT 30 // Maximum number of different board types.
+#define EEPROM_SIZE 12 // EEPROM size
 #define LED_ERROR 15 // mrm-esp32's pin number, hardware defined.
 #define LED_OK 2 // mrm-esp32's pin number, hardware defined.
 
@@ -25,6 +27,7 @@ class Mrm_imu;
 class Mrm_ir_finder3;
 class Mrm_lid_can_b;
 class Mrm_lid_can_b2;
+class Mrm_lid_d;
 class Mrm_mot2x50;
 class Mrm_mot4x10;
 class Mrm_mot4x3_6can;
@@ -57,6 +60,8 @@ protected:
 	ActionBase* _actionPrevious;
 	ActionBase* _actionStop;
 
+	bool _actionTextDisplay = true;
+
 	Board* board[BOARDS_LIMIT]; // Collection of all the robot's boards
 	BoardInfo * boardInfo;
 	uint8_t _boardNextFree = 0;
@@ -72,13 +77,14 @@ protected:
 	uint8_t menuLevel = 1; // Submenus have bigger numbers
 	CANBusMessage* _msg;
 	char _name[16];
-	int16_t pitch;
-	int16_t roll;
+	Preferences* preferences; // EEPROM
 	#if RADIO == 1
 	BluetoothSerial *serialBT = NULL;
 	#endif
 	bool _sniff = false;
 	char _ssid[16];
+	char uartRxCommandCumulative[24];
+	uint8_t uartRxCommandIndex = 0;
 	bool verbose = false; // Verbose output
 #if RADIO == 2
 	WiFiServer* webServer;
@@ -137,6 +143,11 @@ protected:
 	*/
 	void fpsReset();
 
+	/** Enable or disable plug and play for all the connected boards.
+	 @param enable - enable or disable
+	*/
+	void pnpSet(bool enable);
+
 	/** Prints additional data in every loop pass
 	*/
 	void verbosePrint();
@@ -156,6 +167,7 @@ public:
 	// Mrm_ir_finder_can* mrm_ir_finder_can;
 	Mrm_lid_can_b* mrm_lid_can_b;// 10
 	Mrm_lid_can_b2* mrm_lid_can_b2;
+	Mrm_lid_d* mrm_lid_d;
 	Mrm_mot2x50* mrm_mot2x50;
 	Mrm_mot4x3_6can* mrm_mot4x3_6can;
 	Mrm_mot4x10* mrm_mot4x10;
@@ -301,6 +313,11 @@ public:
 	*/
 	virtual void goAhead() = 0;
 
+	/**Compass
+	@return - North is 0 degrees, clockwise are positive angles, values 0 - 360.
+	*/
+	float heading();
+
 	/** Lists I2C devices
 	*/
 	void i2cTest();
@@ -371,6 +388,19 @@ public:
 	*/
 	void oscillatorTest();
 
+	/** Enable plug and play for all the connected boards.
+	 */
+	void pnpOn();
+
+	/** Disable plug and play for all the connected boards.
+	 */
+	void pnpOff();
+
+	/**Pitch
+	@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0 degrees.
+	*/
+	float pitch();
+
 	/** Print to all serial ports
 	@param fmt - C format string: 
 		%c - character,
@@ -388,6 +418,11 @@ public:
 	*/
 	void refresh();
 
+	/** Roll
+	@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0 degrees.
+	*/
+	float roll();
+
 	/** Starts robot's program
 	*/
 	void run();
@@ -401,6 +436,25 @@ public:
 	@return - converted number or 0xFFFF when timeout
 	*/
 	uint16_t serialReadNumber(uint16_t timeoutFirst = 3000, uint16_t timeoutBetween = 500, bool onlySingleDigitInput = false, uint16_t limit = 0xFFFE, bool printWarnings = true);
+
+	/**
+	 * @brief Number of characters in buffer
+	 * 
+	 * @return Number
+	 */
+	uint8_t serialDataCount(){return uartRxCommandIndex;}
+
+	/**
+	 * @brief Clear buffer
+	 */
+	void serialDataClear(){uartRxCommandIndex = 0;}
+
+	/**
+	 * @brief Returns serial buffer
+	 * 
+	 * @return buffer
+	 */
+	char* serialDataGet(){return uartRxCommandCumulative;}
 
 	/** Moves servo motor manually
 	*/

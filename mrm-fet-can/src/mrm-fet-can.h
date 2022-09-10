@@ -29,7 +29,7 @@ Licence: You can use this code any way you like.
 #define COMMAND_TURN_ON 0x50
 #define COMMAND_TURN_OFF 0x51
 
-class Mrm_fet_can : public SensorBoard
+class Mrm_fet_can : public MotorBoard
 {
 	
 public:
@@ -52,8 +52,9 @@ public:
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
+	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
 		
 	/**Test
 	*/

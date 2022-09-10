@@ -91,7 +91,7 @@ void Mrm_lid_can_b2::defaults(uint8_t deviceNumber) {
 
 /** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+@param sampleCount - Number or readings. 40% of the readings, with extreme values, will be discarded and the
 				rest will be averaged. Keeps returning 0 till all the sample is read.
 				If sampleCount is 0, it will not wait but will just return the last value.
 @param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
@@ -110,7 +110,8 @@ uint16_t Mrm_lid_can_b2::distance(uint8_t deviceNumber, uint8_t sampleCount, uin
 		else{
 			uint16_t rds[sampleCount];
 			for (uint8_t i = 0; i < sampleCount; i++){
-				(*readings)[deviceNumber] = 0;
+				if (i != 0) // For 2. reading, etc. - force new readout
+					(*readings)[deviceNumber] = 0;
 				uint32_t ms = millis();
 				while ((*readings)[deviceNumber] == 0){
 					robotContainer->noLoopWithoutThis();
@@ -175,9 +176,10 @@ void Mrm_lid_can_b2::measurementTime(uint8_t deviceNumber, uint16_t ms) {
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
 @param data - 8 bytes from CAN Bus message.
+@param length - number of data bytes
 @return - true if canId for this class
 */
-bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
+bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8], uint8_t length){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)){
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
@@ -194,7 +196,7 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 					break;
 				default:
 					robotContainer->print("Unknown command. ");
-					messagePrint(canId, 8, data, false);
+					messagePrint(canId, length, data, false);
 					errorCode = 202;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -202,6 +204,22 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 			return true;
 		}
 	return false;
+}
+
+/** Enable plug and play
+@param enable - enable or disable
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_lid_can_b2::pnpSet(bool enable, uint8_t deviceNumber){
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			pnpSet(enable, i);
+	else if (alive(deviceNumber)) {
+		delay(1);
+		canData[0] = enable ? COMMAND_LID_CAN_B2_PNP_ENABLE : COMMAND_LID_CAN_B2_PNP_DISABLE;
+		canData[1] = enable;
+		messageSend(canData, 2, deviceNumber);
+	}
 }
 
 /** Analog readings

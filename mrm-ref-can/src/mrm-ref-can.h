@@ -44,6 +44,10 @@ Licence: You can use this code any way you like.
 #define COMMAND_REF_CAN_CALIBRATION_DATA_REQUEST 0x0D
 #define COMMAND_REF_CAN_SENDING_SENSORS_CENTER 0x0E
 #define COMMAND_REPORT_ALIVE_QUEUELESS 0x0F // todo
+#define COMMAND_REF_CAN_PNP_ENABLE 0x28
+#define COMMAND_REF_CAN_PNP_DISABLE 0x29
+#define COMMAND_REF_CAN_PNP_REQUEST 0x32
+#define COMMAND_REF_CAN_PNP_SENDING 0x33
 
 #define MRM_REF_CAN_INACTIVITY_ALLOWED_MS 10000
 
@@ -171,8 +175,15 @@ public:
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
+	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
+
+	/** Enable plug and play
+	@param enable - enable or disable
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void pnpSet(bool enable, uint8_t deviceNumber);
 	
 	/** Analog readings
 	@param receiverNumberInSensor - single IR transistor in mrm-ref-can

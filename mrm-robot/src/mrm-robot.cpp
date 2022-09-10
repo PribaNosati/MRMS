@@ -13,6 +13,7 @@
 #include <mrm-ir-finder3.h>
 #include <mrm-lid-can-b.h>
 #include <mrm-lid-can-b2.h>
+#include <mrm-lid-d.h>
 #include <mrm-mot2x50.h>
 #include <mrm-mot4x10.h>
 #include <mrm-mot4x3.6can.h>
@@ -80,6 +81,10 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 		strcpy(errorMessage, "WiFi pwd. overflow");
 	strcpy(_wiFiPassword, wiFiPassword);
 	boardInfo = new BoardInfo();
+
+	// EEPROM, data retained after system powered down
+	preferences = new Preferences();
+	preferences->begin("data", false);
 
 #if RADIO == 1
 	if (serialBT == NULL) {
@@ -163,6 +168,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	actionAdd(new ActionIRFinderCanTestCalculated(this, signTest));
 	actionAdd(new ActionLidar2mTest(this, signTest));
 	actionAdd(new ActionLidar4mTest(this, signTest));
+	actionAdd(new ActionLidar4mMultiTest(this, signTest));
 	actionAdd(new ActionLidarCalibrate(this));
 	actionAdd(_actionLoop);
 	actionAdd(new ActionMenuColor(this));
@@ -174,6 +180,8 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	actionAdd(new ActionNodeTest(this, signTest));
 	actionAdd(new ActionNodeServoTest(this, signTest));
 	//actionAdd(new ActionOscillatorTest(this));
+	actionAdd(new ActionPnPOff(this));
+	actionAdd(new ActionPnPOn(this));
 	actionAdd(new ActionReflectanceArrayCalibrate(this));
 	actionAdd(new ActionReflectanceArrayCalibrationPrint(this));
 	actionAdd(new ActionReflectanceArrayAnalogTest(this, signTest));
@@ -197,6 +205,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	mrm_ir_finder3 = new Mrm_ir_finder3(this);
 	mrm_lid_can_b = new Mrm_lid_can_b(this);
 	mrm_lid_can_b2 = new Mrm_lid_can_b2(this);
+	mrm_lid_d = new Mrm_lid_d(this);
 	mrm_mot2x50 = new Mrm_mot2x50(this);
 	mrm_mot4x3_6can = new Mrm_mot4x3_6can(this);
 	mrm_mot4x10 = new Mrm_mot4x10(this);
@@ -306,6 +315,10 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	mrm_lid_can_b2->add((char*)"Lidar4m-6");
 	mrm_lid_can_b2->add((char*)"Lidar4m-7");
 
+	// Lidars mrm-lid-can-b2, VL53L5X, 4 m multi
+	mrm_lid_d->add((char*)"LidMul-0");
+	// mrm_lid_d->add((char*)"LidMul-1");
+
 	// CAN Bus node
 	mrm_node->add((char*)"Node-0");
 	mrm_node->add((char*)"Node-1");
@@ -344,6 +357,7 @@ Robot::Robot(char name[15], char ssid[15], char wiFiPassword[15]) {
 	add(mrm_ir_finder3);
 	add(mrm_lid_can_b);
 	add(mrm_lid_can_b2);
+	add(mrm_lid_d);
 	add(mrm_mot2x50);
 	add(mrm_mot4x10);
 	add(mrm_mot4x3_6can);
@@ -397,8 +411,6 @@ void Robot::actionProcess() {
 */
 void Robot::actionSet() {
 	static uint32_t lastUserActionMs = 0;
-	static uint8_t uartRxCommandIndex = 0;
-	static char uartRxCommandCumulative[10];
 	const uint16_t TIMEOUT_MS = 2000;
 
 	// If a button pressed, first execute its action
@@ -429,14 +441,20 @@ void Robot::actionSet() {
 			if (ch != 13) //if received data different from ascii 13 (enter)
 				uartRxCommandCumulative[uartRxCommandIndex++] = ch;	//add data to Rx_Buffer
 
-			if (ch == 13 || uartRxCommandIndex >= 3 || ch == 'x') //if received data = 13
+			if (ch == 13 || (uartRxCommandIndex >= 3 && !(uartRxCommandCumulative[0] == 'e' && uartRxCommandCumulative[1] == 's' && uartRxCommandCumulative[2] == 'c')) || ch == 'x' && uartRxCommandIndex == 1) //if received data = 13
 			{
-				uartRxCommandCumulative[uartRxCommandIndex] = 0;
-				uartRxCommandIndex = 0;
 
 				print("Command: %s", uartRxCommandCumulative);
 
 				uint8_t found = 0;
+				if (uartRxCommandCumulative[0] == 'e' && uartRxCommandCumulative[1] == 's' && uartRxCommandCumulative[2] == 'c'){
+					found = 1;
+				}
+				else{
+					uartRxCommandCumulative[uartRxCommandIndex] = 0;
+					uartRxCommandIndex = 0;
+				}
+
 				for (uint8_t i = 0; i < _actionNextFree; i++) {
 					if (strcmp(_action[i]->_shortcut, uartRxCommandCumulative) == 0) {
 						print(" ok.\r\n");
@@ -470,7 +488,7 @@ void Robot::actionSet(ActionBase* newAction) {
 	_actionCurrent = newAction;
 	_actionCurrent->preprocessingStart();
 	// Display action on 8x8 LED
-	if (mrm_8x8a->alive()){
+	if (mrm_8x8a->alive() && _actionTextDisplay){
 		if (_actionCurrent->ledSign == NULL)
 			devicesLEDCount();
 		else if (_actionCurrent->ledSign->type == 1 && strcmp(((LEDSignText*)(_actionCurrent->ledSign))->text, "") != 0)
@@ -791,7 +809,8 @@ uint8_t Robot::devicesScan(bool verbose, BoardType boardType) {
 	delayMs(50); // Read all the messages sent after stop.
 	for (uint8_t i = 0; i < _boardNextFree; i++){
 		if (boardType == ANY_BOARD || board[i]->boardType() == boardType)
-			count += board[i]->devicesScan(verbose);
+			count += board[i]->devicesScan(verbose);// AAA
+			// print("SC1 %s ", board[i]->name()),count += board[i]->devicesScan(verbose), print("SC2");//AAA
 	}
 	if (verbose)
 		print("%i devices.\n\r", count);
@@ -898,6 +917,15 @@ void Robot::fpsUpdate() {
 	}
 }
 
+
+/**Compass
+@return - North is 0 degrees, clockwise are positive angles, values 0 - 360.
+*/
+float Robot::heading() {
+	return mrm_imu->heading();
+}
+
+
 /** Lists I2C devices
 */
 void Robot::i2cTest() {
@@ -937,15 +965,16 @@ void Robot::info() {
 void Robot::lidar2mTest() {
 	static uint16_t selected;
 	if (setup()) {
+		//devicesScan(false, SENSOR_BOARD);
 		// Select lidar
 		uint8_t count = mrm_lid_can_b->deadOrAliveCount();
 		print("%s - enter lidar number [0-%i] or wait for all\n\r", mrm_lid_can_b->name(), count - 1);
-		selected = serialReadNumber(3000, 1000, count - 1 < 9, count - 1, false);
-		if (selected == 0xFFFF) {
+		selected = serialReadNumber(2000, 1000, count - 1 < 9, count - 1, false);
+		if (selected == 0xFFFF) { // Test all
 			print("Test all\n\r");
 			selected = 0xFF;
 		}
-		else {
+		else { // Test only selected
 			if (mrm_lid_can_b->alive(selected))
 				print("\n\rTest lidar %s\n\r", mrm_lid_can_b->name(selected));
 			else {
@@ -1040,7 +1069,7 @@ void Robot::menu() {
 					if (board[j]->alive(0xFF) && board[j]->id() == _action[i]->boardsId())
 						anyAlive = true;
 			if (anyAlive) {
-				print("%-3s - %-19s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : "");
+				print("%-3s - %-15s%s", _action[i]->_shortcut, _action[i]->_text, column == maxColumns ? "\n\r" : ""); // -19
 				delayMs(2);
 				any = true;
 				if (column++ == maxColumns)
@@ -1116,9 +1145,6 @@ void Robot::messagePrint(CANBusMessage *msg, bool outbound) {
 	}
 }
 
-													   
-							   
-		   
 
 /** Receives CAN Bus messages. 
 */
@@ -1135,7 +1161,7 @@ void Robot::messagesReceive() {
 		bool any = false;
 		#endif
 		for (uint8_t boardId = 0; boardId < _boardNextFree; boardId++) {
- 			if (board[boardId]->messageDecode(id, _msg->data)) {
+ 			if (board[boardId]->messageDecode(id, _msg->data, _msg->dlc)) {
 				#if REPORT_DEVICE_TO_DEVICE_MESSAGES_AS_UNKNOWN
 				any = true;
 				break;
@@ -1196,6 +1222,52 @@ void Robot::oscillatorTest() {
 	}
 }
 
+
+/**Pitch
+@return - Pitch in degrees. Inclination forwards or backwards. Leveled robot shows 0 degrees.
+*/
+float Robot::pitch() {
+	return mrm_imu->pitch();
+}
+
+
+/** Enable plug and play for all the connected boards.
+ */
+void Robot::pnpOn(){
+	pnpSet(true);
+}
+
+/** Disable plug and play for all the connected boards.
+ */
+void Robot::pnpOff(){
+	pnpSet(false);
+}
+
+/** Enable or disable plug and play for all the connected boards.
+ @param enable - enable or disable
+ */
+void Robot::pnpSet(bool enable){
+	uint8_t count = mrm_lid_can_b2->deadOrAliveCount();
+	for (uint8_t i = 0; i < count; i++)
+		if (mrm_lid_can_b2->alive(i)){
+			mrm_lid_can_b2->pnpSet(enable, i);
+			print("%s PnP %s\n\r", mrm_lid_can_b2->name(i), enable ? "on" : "off");
+		}
+	count = mrm_lid_can_b->deadOrAliveCount();
+	for (uint8_t i = 0; i < count; i++)
+		if (mrm_lid_can_b->alive(i)){
+			mrm_lid_can_b->pnpSet(enable, i);
+			print("%s PnP %s\n\r", mrm_lid_can_b->name(i), enable ? "on" : "off");
+		}
+			count = mrm_lid_can_b->deadOrAliveCount();
+	for (uint8_t i = 0; i < count; i++)
+		if (mrm_ref_can->alive(i)){
+			mrm_ref_can->pnpSet(enable, i);
+			print("%s PnP %s\n\r", mrm_ref_can->name(i), enable ? "on" : "off");
+		}
+	end();
+}
+
 /** Prints mrm-ref-can* calibration data
 */
 void Robot::reflectanceArrayCalibrationPrint() {
@@ -1215,12 +1287,22 @@ void Robot::refresh(){
 		noLoopWithoutThis(); // Receive all CAN Bus messages. This call should be included in any loop, like here.
 }
 
+
+/** Roll
+@return - Roll in degrees. Inclination to the left or right. Values -90 - 90. Leveled robot shows 0�.
+*/
+float Robot::roll() {
+	return mrm_imu->roll();
+}
+
+
 /** Starts robot's program
 */
 void Robot::run() {
 	while (true) 
 		refresh();
 }
+
 
 /** Reads serial ASCII input and converts it into an integer
 @param timeoutFirst - timeout for first input

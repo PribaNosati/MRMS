@@ -5,7 +5,8 @@
 @param robot - robot containing this board
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_ir_finder3::Mrm_ir_finder3(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "IRFind3", maxNumberOfBoards, ID_MRM_IR_FINDER3) {
+Mrm_ir_finder3::Mrm_ir_finder3(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "IRFind3", maxNumberOfBoards, ID_MRM_IR_FINDER3, MRM_IR_FINDER3_SENSOR_COUNT) {
 	_angle = new std::vector<int16_t>(maxNumberOfBoards);
 	_calculated = new std::vector<bool>(maxNumberOfBoards);
 	_distance = new std::vector<uint16_t>(maxNumberOfBoards);
@@ -119,8 +120,9 @@ uint16_t Mrm_ir_finder3::distance(uint8_t deviceNumber) {
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
 @param data - 8 bytes from CAN Bus message.
+@param length - number of data bytes
 */
-bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8]) {
+bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8], uint8_t length) {
 	// Todo: a problem: one message can be for short range sensors, the other for long. A mixed data will be the result.
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
@@ -147,7 +149,7 @@ bool Mrm_ir_finder3::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				default:
 					robotContainer->print("Unknown command. ");
-					messagePrint(canId, 8, data, false);
+					messagePrint(canId, length, data, false);
 					errorCode = 201;
 					errorInDeviceNumber = deviceNumber;
 				}

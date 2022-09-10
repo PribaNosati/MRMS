@@ -174,7 +174,7 @@ u8 *data_u8, u8 len_u8)
 	communication routine*/
 	BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 			/* Write the values of respective given register */
@@ -205,7 +205,7 @@ u8 *data_u8, u8 len_u8)
 	communication routine*/
 	BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/* Read the value from given register*/
@@ -233,7 +233,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_chip_id(u8 *chip_id_u8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -279,7 +279,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_sw_rev_id(u16 *sw_id_u8)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct  p_bno055 is empty*/
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -331,7 +331,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_page_id(u8 *page_id_u8)
 	BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 	u8 data_u8 = BNO055_INIT_VALUE;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/* Read the page id form 0x07*/
@@ -371,7 +371,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_write_page_id(u8 page_id_u8)
 	BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 	u8 data_u8r = BNO055_INIT_VALUE;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 			/* Read the current page*/
@@ -417,7 +417,7 @@ u8 *accel_rev_id_u8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -460,7 +460,7 @@ u8 *mag_rev_id_u8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -505,7 +505,7 @@ u8 *gyro_rev_id_u8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -549,7 +549,7 @@ u8 *bl_rev_id_u8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -601,7 +601,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_x(s16 *accel_x_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		if (p_bno055->page_id != BNO055_PAGE_ZERO)
@@ -660,7 +660,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_y(s16 *accel_y_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -721,7 +721,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_accel_z(s16 *accel_z_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -792,7 +792,7 @@ struct bno055_accel_t *accel)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -882,7 +882,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_x(s16 *mag_x_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -943,7 +943,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_y(s16 *mag_y_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1005,7 +1005,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_z(s16 *mag_z_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1075,7 +1075,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_mag_xyz(struct bno055_mag_t *mag)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1161,7 +1161,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_x(s16 *gyro_x_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1218,7 +1218,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_y(s16 *gyro_y_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1270,7 +1270,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_z(s16 *gyro_z_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1340,7 +1340,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_gyro_xyz(struct bno055_gyro_t *gyro)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1424,7 +1424,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_h(s16 *euler_h_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1481,7 +1481,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_r(s16 *euler_r_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1539,7 +1539,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_euler_p(s16 *euler_p_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1611,7 +1611,7 @@ struct bno055_euler_t *euler)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1703,7 +1703,7 @@ s16 *quaternion_w_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1763,7 +1763,7 @@ s16 *quaternion_x_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1823,7 +1823,7 @@ s16 *quaternion_y_s16)
 	BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1883,7 +1883,7 @@ s16 *quaternion_z_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -1961,7 +1961,7 @@ struct bno055_quaternion_t *quaternion)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2061,7 +2061,7 @@ s16 *linear_accel_x_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2119,7 +2119,7 @@ s16 *linear_accel_y_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2177,7 +2177,7 @@ s16 *linear_accel_z_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2247,7 +2247,7 @@ struct bno055_linear_accel_t *linear_accel)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2334,7 +2334,7 @@ s16 *gravity_x_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2392,7 +2392,7 @@ s16 *gravity_y_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2450,7 +2450,7 @@ s16 *gravity_z_s16)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2521,7 +2521,7 @@ struct bno055_gravity_t *gravity)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -2602,7 +2602,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_read_temp_data(s8 *temp_s8)
 	u8 data_u8 = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -5767,7 +5767,7 @@ u8 *mag_calib_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, mag calib
@@ -5812,7 +5812,7 @@ u8 *accel_calib_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty*/
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel calib
@@ -5857,7 +5857,7 @@ u8 *gyro_calib_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro calib
@@ -5902,7 +5902,7 @@ u8 *sys_calib_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty*/
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,system calib
@@ -5950,7 +5950,7 @@ u8 *selftest_accel_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel self test is
@@ -5999,7 +5999,7 @@ u8 *selftest_mag_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, self test of mag is
@@ -6047,7 +6047,7 @@ u8 *selftest_gyro_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page self test of gyro is
@@ -6095,7 +6095,7 @@ u8 *selftest_mcu_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page self test of micro controller
@@ -6150,7 +6150,7 @@ u8 *gyro_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion interrupt
@@ -6205,7 +6205,7 @@ u8 *gyro_highrate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate is
@@ -6261,7 +6261,7 @@ u8 *accel_high_g_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg is
@@ -6316,7 +6316,7 @@ u8 *accel_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion is
@@ -6372,7 +6372,7 @@ u8 *accel_no_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel
@@ -6419,7 +6419,7 @@ u8 *stat_main_clk_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, status of main clk is
@@ -6463,7 +6463,7 @@ u8 *sys_stat_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, the status of system is
@@ -6509,7 +6509,7 @@ u8 *sys_error_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, system BNO055_ERROR code is
@@ -6558,7 +6558,7 @@ u8 *accel_unit_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel unit is
@@ -6606,7 +6606,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -6674,7 +6674,7 @@ u8 *gyro_unit_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro unit is
@@ -6721,7 +6721,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -6789,7 +6789,7 @@ u8 *euler_unit_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, Euler unit is
@@ -6837,7 +6837,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -6905,7 +6905,7 @@ u8 *tilt_unit_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, chip id is
@@ -6955,7 +6955,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -7021,7 +7021,7 @@ u8 *temp_unit_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, temperature unit is
@@ -7070,7 +7070,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -7138,7 +7138,7 @@ u8 *data_output_format_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, data output format is
@@ -7187,7 +7187,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -7277,7 +7277,7 @@ u8 *operation_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, operation mode is
@@ -7348,7 +7348,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -7471,7 +7471,7 @@ u8 *power_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, power mode is
@@ -7529,7 +7529,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -7597,7 +7597,7 @@ u8 *intr_rst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,  reset interrupt is
@@ -7643,7 +7643,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_intr_rst(u8 intr_rst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, reset interrupt
@@ -7699,7 +7699,7 @@ u8 *clk_src_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, clk source is
@@ -7744,7 +7744,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_clk_src(u8 clk_src_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, clk source is
@@ -7801,7 +7801,7 @@ u8 *sys_rst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, reset system is
@@ -7848,7 +7848,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_set_sys_rst(u8 sys_rst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, reset system is
@@ -7905,7 +7905,7 @@ u8 *selftest_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, self test is
@@ -7955,7 +7955,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -8024,7 +8024,7 @@ u8 *temp_source_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, temperature source is
@@ -8072,7 +8072,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -8156,7 +8156,7 @@ u8 *remap_axis_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, axis remap is
@@ -8221,7 +8221,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -8319,7 +8319,7 @@ u8 *remap_x_sign_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, x-axis remap sign is
@@ -8367,7 +8367,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -8436,7 +8436,7 @@ u8 *remap_y_sign_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, y-axis remap sign is
@@ -8484,7 +8484,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -8552,7 +8552,7 @@ u8 *remap_z_sign_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, z-axis remap sign is
@@ -8600,7 +8600,7 @@ u8 data_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 		/* The write operation effective only if the operation
@@ -8706,7 +8706,7 @@ struct bno055_sic_matrix_t  *sic_matrix)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, soft iron calibration matrix is
@@ -8891,7 +8891,7 @@ u8 data2_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -9390,7 +9390,7 @@ struct bno055_accel_offset_t  *accel_offset)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel offset is
@@ -9524,7 +9524,7 @@ u8 data2_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -9774,7 +9774,7 @@ struct bno055_mag_offset_t  *mag_offset)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, mag offset is
@@ -9900,7 +9900,7 @@ u8 data2_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -10159,7 +10159,7 @@ struct bno055_gyro_offset_t  *gyro_offset)
 	BNO055_INIT_VALUE, BNO055_INIT_VALUE};
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro offset is
@@ -10265,7 +10265,7 @@ u8 data2_u8r = BNO055_INIT_VALUE;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -10457,7 +10457,7 @@ u8 *accel_range_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel range is
@@ -10509,7 +10509,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -10596,7 +10596,7 @@ u8 *accel_bw_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel bandwidth is
@@ -10652,7 +10652,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -10736,7 +10736,7 @@ u8 *accel_power_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel power mode is
@@ -10789,7 +10789,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -10877,7 +10877,7 @@ u8 *mag_data_output_rate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, output data rate
@@ -10933,7 +10933,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11017,7 +11017,7 @@ u8 *mag_operation_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, mag operation mode is
@@ -11069,7 +11069,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11154,7 +11154,7 @@ u8 *mag_power_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, mag power mode is
@@ -11206,7 +11206,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11290,7 +11290,7 @@ u8 *gyro_range_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro range is
@@ -11343,7 +11343,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11430,7 +11430,7 @@ u8 *gyro_bw_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro bandwidth is
@@ -11487,7 +11487,7 @@ u8 gyro_auto_sleep_durn = BNO055_INIT_VALUE;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11614,7 +11614,7 @@ u8 *gyro_power_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro power mode is
@@ -11669,7 +11669,7 @@ u8 gyro_bw_u8 = BNO055_INIT_VALUE;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -11786,7 +11786,7 @@ u8 *sleep_tmr_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel sleep mode is
@@ -11836,7 +11836,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 	/* The write operation effective only if the operation
@@ -11929,7 +11929,7 @@ u8 *sleep_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel sleep duration
@@ -11988,7 +11988,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 	/* The write operation effective only if the operation
@@ -12066,7 +12066,7 @@ BNO055_RETURN_FUNCTION_TYPE bno055_get_gyro_sleep_durn(u8 *sleep_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel range is
@@ -12110,7 +12110,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -12188,7 +12188,7 @@ u8 *auto_sleep_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel range is
@@ -12235,7 +12235,7 @@ u8 auto_sleep_durn_u8r;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -12393,7 +12393,7 @@ u8 *sleep_mode_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,mag sleep mode is
@@ -12439,7 +12439,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 	/* The write operation effective only if the operation
@@ -12513,7 +12513,7 @@ u8 *sleep_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,mag sleep duration is
@@ -12558,7 +12558,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 	/* The write operation effective only if the operation
@@ -12656,7 +12656,7 @@ u8 *gyro_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion interrupt mask is
@@ -12723,7 +12723,7 @@ u8 gyro_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel range is
@@ -12815,7 +12815,7 @@ u8 *gyro_highrate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate interrupt mask is
@@ -12897,7 +12897,7 @@ u8 gyro_highrate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate interrupt mask is
@@ -12970,7 +12970,7 @@ u8 *accel_high_g_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg interrupt mask is
@@ -13032,7 +13032,7 @@ u8 accel_high_g_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg interrupt mask is
@@ -13105,7 +13105,7 @@ u8 *accel_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion interrupt mask is
@@ -13166,7 +13166,7 @@ u8 accel_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion interrupt mask is
@@ -13236,7 +13236,7 @@ u8 *accel_nomotion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel nomotion interrupt mask is
@@ -13301,7 +13301,7 @@ u8 accel_nomotion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel
@@ -13379,7 +13379,7 @@ u8 *gyro_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion interrupt  is
@@ -13445,7 +13445,7 @@ BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 u8 data_u8r = BNO055_INIT_VALUE;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/*condition check for page, gyro anymotion interrupt  is
@@ -13537,7 +13537,7 @@ u8 *gyro_highrate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate interrupt is
@@ -13619,7 +13619,7 @@ u8 gyro_highrate_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate interrupt is
@@ -13690,7 +13690,7 @@ u8 *accel_high_g_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg interrupt  is
@@ -13752,7 +13752,7 @@ u8 accel_high_g_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg interrupt is
@@ -13823,7 +13823,7 @@ u8 *accel_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion interrupt  is
@@ -13884,7 +13884,7 @@ u8 accel_any_motion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel range is
@@ -13959,7 +13959,7 @@ u8 *accel_nomotion_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel nomotion interrupt is
@@ -14024,7 +14024,7 @@ BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 u8 data_u8r = BNO055_INIT_VALUE;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/*condition check for page,
@@ -14090,7 +14090,7 @@ u8 *accel_any_motion_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel any motion threshold  is
@@ -14149,7 +14149,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -14224,7 +14224,7 @@ u8 *accel_any_motion_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion duration  is
@@ -14274,7 +14274,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -14355,7 +14355,7 @@ u8 channel_u8, u8 *data_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel anymotion enable is
@@ -14437,7 +14437,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -14565,7 +14565,7 @@ u8 channel_u8, u8 *data_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg enable is
@@ -14647,7 +14647,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -14768,7 +14768,7 @@ u8 *accel_high_g_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE) {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel highg duration is
@@ -14817,7 +14817,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE) {
+if (p_bno055 == BNO055_INIT_VALUE_PTR) {
 	return BNO055_E_NULL_PTR;
 } else {
 	/* The write operation effective only if the operation
@@ -14901,7 +14901,7 @@ u8 *accel_high_g_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, highg threshold is
@@ -14955,7 +14955,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation
@@ -15038,7 +15038,7 @@ u8 *accel_slow_no_motion_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel slownomotion threshold is
@@ -15092,7 +15092,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15166,7 +15166,7 @@ u8 *accel_slow_no_motion_en_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel slownomotion enable is
@@ -15214,7 +15214,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15285,7 +15285,7 @@ u8 *accel_slow_no_motion_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, accel slownomotion duration is
@@ -15330,7 +15330,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15413,7 +15413,7 @@ BNO055_RETURN_FUNCTION_TYPE com_rslt = BNO055_ERROR;
 u8 data_u8r = BNO055_INIT_VALUE;
 s8 stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/*condition check for page, gyro anymotion axis is
@@ -15495,7 +15495,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15623,7 +15623,7 @@ u8 channel_u8, u8 *data_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate enable is
@@ -15705,7 +15705,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15825,7 +15825,7 @@ u8 *gyro_any_motion_filter_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion filter is
@@ -15873,7 +15873,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -15947,7 +15947,7 @@ u8 *gyro_highrate_filter_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate filter is
@@ -15995,7 +15995,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16077,7 +16077,7 @@ u8 *gyro_highrate_x_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate x threshold is
@@ -16131,7 +16131,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16213,7 +16213,7 @@ u8 *gyro_highrate_x_hyst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,gyro highrate x hysteresis is
@@ -16269,7 +16269,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16343,7 +16343,7 @@ u8 *gyro_highrate_x_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate x duration is
@@ -16390,7 +16390,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 	} else {
 /* The write operation effective only if the operation
@@ -16471,7 +16471,7 @@ u8 *gyro_highrate_y_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate y threshold is
@@ -16525,7 +16525,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16606,7 +16606,7 @@ u8 *gyro_highrate_y_hyst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate y hysteresis is
@@ -16661,7 +16661,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16734,7 +16734,7 @@ u8 *gyro_highrate_y_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate y duration is
@@ -16781,7 +16781,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 	} else {
 /* The write operation effective only if the operation
@@ -16862,7 +16862,7 @@ u8 *gyro_highrate_z_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate z threshold is
@@ -16916,7 +16916,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -16997,7 +16997,7 @@ u8 *gyro_highrate_z_hyst_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate z hysteresis is
@@ -17053,7 +17053,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -17127,7 +17127,7 @@ u8 *gyro_highrate_z_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro highrate z duration is
@@ -17174,7 +17174,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -17254,7 +17254,7 @@ u8 *gyro_any_motion_thres_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page,gyro anymotion threshold is
@@ -17307,7 +17307,7 @@ s8 stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 s8 pg_stat_s8 = BNO055_ERROR;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -17385,7 +17385,7 @@ u8 *gyro_any_motion_slope_samples_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion slope samples is
@@ -17436,7 +17436,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 } else {
 /* The write operation effective only if the operation
@@ -17506,7 +17506,7 @@ u8 *gyro_awake_durn_u8)
 	u8 data_u8r = BNO055_INIT_VALUE;
 	s8 stat_s8 = BNO055_ERROR;
 	/* Check the struct p_bno055 is empty */
-	if (p_bno055 == BNO055_INIT_VALUE)  {
+	if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 		return BNO055_E_NULL_PTR;
 		} else {
 		/*condition check for page, gyro anymotion awake duration is
@@ -17549,7 +17549,7 @@ s8 stat_s8 = BNO055_ERROR;
 s8 pg_stat_s8 = BNO055_ERROR;
 u8 prev_opmode_u8 = BNO055_OPERATION_MODE_CONFIG;
 /* Check the struct p_bno055 is empty */
-if (p_bno055 == BNO055_INIT_VALUE)  {
+if (p_bno055 == BNO055_INIT_VALUE_PTR)  {
 	return BNO055_E_NULL_PTR;
 	} else {
 	/* The write operation effective only if the operation

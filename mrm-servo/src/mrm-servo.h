@@ -12,6 +12,7 @@ Licence: You can use this code any way you like.
 For a deeper understanding check https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html .
 */
 
+// Maximum number of servo motors, the number cannot be bigger than 16 since there are 16 PWM channels in ESP32
 #define MAX_SERVO_COUNT 16 // No more can fit in ESP32
 #define MRM_SERVO_FREQUENCY_HZ 50 // Pulse occures FREQUENCY_HZ times each second. For 50 Hz period of one pulse is 20 ms.
 
@@ -35,7 +36,7 @@ public:
 	@param robot - robot containing this board
 	@param maxNumberOfServos - Maximum number of servo motors cannot be bigger than 16 since there are 16 PWM channels in ESP32
 	*/
-	Mrm_servo(Robot* robot = NULL, uint8_t maxNumberOfServos = 5);
+	Mrm_servo(Robot* robot = NULL, uint8_t maxNumberOfServos = 10);
 
 	~Mrm_servo();
 

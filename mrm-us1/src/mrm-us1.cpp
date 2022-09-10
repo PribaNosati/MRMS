@@ -7,7 +7,7 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_us1::Mrm_us1(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "US1", maxNumberOfBoards, ID_MRM_US1) {
+Mrm_us1::Mrm_us1(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "US1", maxNumberOfBoards, ID_MRM_US1, 1) {
 	readings = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 
@@ -64,8 +64,9 @@ void Mrm_us1::add(char * deviceName)
 
 /** Read CAN Bus message into local variables
 @param data - 8 bytes from CAN Bus message.
+@param length - number of data bytes
 */
-bool Mrm_us1::messageDecode(uint32_t canId, uint8_t data[8]) {
+bool Mrm_us1::messageDecode(uint32_t canId, uint8_t data[8], uint8_t length) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
 		if (isForMe(canId, deviceNumber)) {
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
@@ -79,8 +80,8 @@ bool Mrm_us1::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				// }
 				default:
-					print("Unknown command. ");
-					messagePrint(canId, 8, data, false);
+					robotContainer->print("Unknown command. ");
+					messagePrint(canId, length, data, false);
 					errorCode = 204;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -109,9 +110,9 @@ uint16_t Mrm_us1::reading(uint8_t deviceNumber) {
 /** Print all readings in a line
 */
 void Mrm_us1::readingsPrint() {
-	print("US:");
+	robotContainer->print("US:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) 
-			print(" %3i", (*readings)[deviceNumber]);
+			robotContainer->print(" %3i", (*readings)[deviceNumber]);
 }
 
 /** If sensor not started, start it and wait for 1. message
@@ -120,14 +121,14 @@ void Mrm_us1::readingsPrint() {
 */
 bool Mrm_us1::started(uint8_t deviceNumber) {
 	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_US1_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		//print("Start mrm-us1%i \n\r", deviceNumber); 
+		//robotContainer->print("Start mrm-us1%i \n\r", deviceNumber); 
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0);
 			// Wait for 1. message.
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					//print("US confirmed\n\r");
+					//robotContainer->print("US confirmed\n\r");
 					return true;
 				}
 				robotContainer->delayMs(1);
@@ -151,12 +152,12 @@ void Mrm_us1::test()
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) {
 				if (pass++)
-					print("| ");
-				print("%i ", reading(deviceNumber));
+					robotContainer->print("| ");
+				robotContainer->print("%i ", reading(deviceNumber));
 			}
 		}
 		lastMs = millis();
 		if (pass)
-			print("\n\r");
+			robotContainer->print("\n\r");
 	}
 }

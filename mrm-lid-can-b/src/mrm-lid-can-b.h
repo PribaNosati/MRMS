@@ -45,6 +45,10 @@ Licence: You can use this code any way you like.
 
 //CANBus commands
 #define COMMAND_LID_CAN_B_CALIBRATE 0x05
+#define COMMAND_LID_CAN_B_PNP_ENABLE 0x28
+#define COMMAND_LID_CAN_B_PNP_DISABLE 0x29
+#define COMMAND_LID_CAN_B_PNP_REQUEST 0x32
+#define COMMAND_LID_CAN_B_PNP_SENDING 0x33
 #define COMMAND_LID_CAN_B_RANGING_TYPE 0x42
 
 #define MRM_LID_CAN_INACTIVITY_ALLOWED_MS 10000
@@ -84,20 +88,27 @@ public:
 
 	/** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+	@param sampleCount - Number or readings. 40% of the c, with extreme values, will be discarded and the
 					rest will be averaged. Keeps returning 0 till all the sample is read.
 					If sampleCount is 0, it will not wait but will just return the last value.
 	@param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
 					Therefore, lower sigma number will remove more errornous readings.
 	@return - distance in mm
 	*/
-	uint16_t distance(uint8_t deviceNumber, uint8_t sampleCount = 0, uint8_t sigmaCount = 1);
+	uint16_t distance(uint8_t deviceNumber = 0, uint8_t sampleCount = 0, uint8_t sigmaCount = 1);
 
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
+	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
+
+	/** Enable plug and play
+	@param enable - enable or disable
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void pnpSet(bool enable = true, uint8_t deviceNumber = 0);
 
 	/** Ranging type
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.

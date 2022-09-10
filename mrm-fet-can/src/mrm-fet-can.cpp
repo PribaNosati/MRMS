@@ -7,7 +7,8 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_fet_can::Mrm_fet_can(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "FET", maxNumberOfBoards, ID_MRM_FET_CAN) {
+Mrm_fet_can::Mrm_fet_can(Robot* robot, uint8_t maxNumberOfBoards) : 
+	MotorBoard(robot, 1, "FET", maxNumberOfBoards, ID_MRM_FET_CAN) {
 }
 
 Mrm_fet_can::~Mrm_fet_can()
@@ -57,7 +58,7 @@ void Mrm_fet_can::add(char * deviceName)
 		strcpy(errorMessage, "Too many mrm-fet-can\n\r");
 		return;
 	}
-	SensorBoard::add(deviceName, canIn, canOut);
+	MotorBoard::add(deviceName, canIn, canOut);
 }
 
 /** Turn output on
@@ -93,16 +94,17 @@ void Mrm_fet_can::turnOff(uint8_t outputNumber, uint8_t deviceNumber) {
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
 @param data - 8 bytes from CAN Bus message.
+@param length - number of data bytes
 @return - true if canId for this class
 */
-bool Mrm_fet_can::messageDecode(uint32_t canId, uint8_t data[8]){
+bool Mrm_fet_can::messageDecode(uint32_t canId, uint8_t data[8], uint8_t length){
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)){
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
 				switch (data[0]) {
 				default:
-					print("Unknown command. ");
-					messagePrint(canId, 8, data, false);
+					robotContainer->print("Unknown command. ");
+					messagePrint(canId, length, data, false);
 					errorCode = 205;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -131,7 +133,7 @@ void Mrm_fet_can::test()
 				else
 					turnOff(fet);
 
-				print(isOn ? "On %i\n\r" : "Off %i\n\r", fet);
+				robotContainer->print(isOn ? "On %i\n\r" : "Off %i\n\r", fet);
 				if (!isOn)
 					fet = 1 - fet;
 			}

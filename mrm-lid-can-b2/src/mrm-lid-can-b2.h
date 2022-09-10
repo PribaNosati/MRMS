@@ -45,6 +45,8 @@ Licence: You can use this code any way you like.
 
 //CANBus commands
 #define COMMAND_LID_CAN_B2_CALIBRATE 0x05
+#define COMMAND_LID_CAN_B2_PNP_ENABLE 0x28
+#define COMMAND_LID_CAN_B2_PNP_DISABLE 0x29
 #define COMMAND_LID_CAN_B2_DISTANCE_MODE 0x50
 #define COMMAND_LID_CAN_B2_TIMING_BUDGET 0x51
 #define COMMAND_LID_CAN_B2_MEASUREMENT_TIME 0x52
@@ -90,7 +92,7 @@ public:
 
 	/** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+	@param sampleCount - Number or readings. 40% of the readings, with extreme values, will be discarded and the
 					rest will be averaged. Keeps returning 0 till all the sample is read.
 					If sampleCount is 0, it will not wait but will just return the last value.
 	@param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
@@ -116,8 +118,15 @@ public:
 	/** Read CAN Bus message into local variables
 	@param canId - CAN Bus id
 	@param data - 8 bytes from CAN Bus message.
+	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8]);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
+
+	/** Enable plug and play
+	@param enable - enable or disable
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	*/
+	void pnpSet(bool enable = true, uint8_t deviceNumber = 0);
 
 	/** Analog readings
 	@param receiverNumberInSensor - always 0

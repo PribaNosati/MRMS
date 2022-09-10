@@ -6,6 +6,7 @@
 #include <mrm-node.h>
 #include <mrm-ir-finder3.h>
 //#include <mrm-ir-finder-can.h>
+#include <mrm-lid-d.h>
 #include <mrm-ref-can.h>
 #include <mrm-servo.h>
 #include <mrm-robot.h>
@@ -61,6 +62,7 @@ void ActionInfo::perform() { _robot->info(); }
 void ActionLidarCalibrate::perform() { _robot->lidarCalibrate(); }
 void ActionLidar2mTest::perform() { _robot->lidar2mTest(); }
 void ActionLidar4mTest::perform() { _robot->lidar4mTest(); }
+void ActionLidar4mMultiTest::perform() { _robot->mrm_lid_d->test(); }
 void ActionLoop::perform() { _robot->loop(); }
 void ActionMenuColor::perform() { _robot->menuColor(); }
 void ActionMenuColorB::perform() { _robot->menuColor(); }
@@ -70,7 +72,8 @@ void ActionMenuSystem::perform() { _robot->menuSystem(); }
 void ActionMotorTest::perform() { _robot->motorTest(); }
 void ActionNodeTest::perform() { _robot->nodeTest(); }
 void ActionNodeServoTest::perform() { _robot->mrm_node->servoTest();}
-//void ActionOscillatorTest::perform() { _robot->oscillatorTest(); }
+void ActionPnPOff::perform() { _robot->pnpOff();}
+void ActionPnPOn::perform() { _robot->pnpOn();}
 void ActionReflectanceArrayAnalogTest::perform() { _robot->mrm_ref_can->test(true); }
 void ActionReflectanceArrayDigitalTest::perform() { _robot->mrm_ref_can->test(false); }
 void ActionReflectanceArrayCalibrate::perform() { _robot->mrm_ref_can->calibrate(); }

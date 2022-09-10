@@ -317,9 +317,10 @@ bool Mrm_ref_can::digitalStarted(uint8_t deviceNumber, bool darkCenter, bool sta
 /** Read CAN Bus message into local variables
 @param canId - CAN Bus id
 @param data - 8 bytes from CAN Bus message.
+@param length - number of data bytes
 @return - target device found
 */
-bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
+bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8], uint8_t length) {
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (isForMe(canId, deviceNumber)) {
 			if (!messageDecodeCommon(canId, data, deviceNumber)) {
@@ -390,7 +391,7 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 					break;
 				default:
 					robotContainer->print("Unknown command. ");
-					messagePrint(canId, 8, data, false);
+					messagePrint(canId, length, data, false);
 					errorCode = 201;
 					errorInDeviceNumber = deviceNumber;
 				}
@@ -411,6 +412,22 @@ bool Mrm_ref_can::messageDecode(uint32_t canId, uint8_t data[8]) {
 			return true;
 		}
 	return false;
+}
+
+/** Enable plug and play
+@param enable - enable or disable
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+*/
+void Mrm_ref_can::pnpSet(bool enable, uint8_t deviceNumber){
+	if (deviceNumber == 0xFF)
+		for (uint8_t i = 0; i < nextFree; i++)
+			pnpSet(enable, i);
+	else if (alive(deviceNumber)) {
+		delay(1);
+		canData[0] = enable ? COMMAND_REF_CAN_PNP_ENABLE : COMMAND_REF_CAN_PNP_DISABLE;
+		canData[1] = enable;
+		messageSend(canData, 2, deviceNumber);
+	}
 }
 
 /** Analog readings
